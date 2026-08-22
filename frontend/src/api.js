@@ -10,6 +10,7 @@ async function request(path, options = {}) {
   return payload;
 }
 
+const normalizeQuery = (params) => String(params || '').replaceAll('page_size=', 'limit=');
 const normalizeCase = (item) => ({
   ...item,
   customer: item.customer || { id: item.customer_id, name: item.customer_name || 'Unknown' },
@@ -18,16 +19,15 @@ const normalizeCase = (item) => ({
   status: String(item.status || item.recovery_status || item.action_status || '').toUpperCase(),
   max_retries: item.max_retries ?? 2,
 });
-
 const normalizeCases = (payload) => ({ ...payload, items: (payload?.items || []).map(normalizeCase) });
 const normalizeAudit = (payload) => ({ ...payload, items: (payload?.items || []).map((event) => ({ ...event, event_type: String(event.event_type || '').toUpperCase(), result: String(event.result || '').toUpperCase() })) });
 
 export const api = {
   getDashboard: () => request('/dashboard/summary'),
-  getCases: (params = '') => request(`/recovery/cases${params}`).then(normalizeCases),
+  getCases: (params = '') => request(`/recovery/cases${normalizeQuery(params)}`).then(normalizeCases),
   getCase: (id) => request(`/recovery/cases/${id}`).then(normalizeCase),
   executeRecovery: (id) => request(`/recovery/cases/${id}/execute`, { method: 'POST' }),
-  getAudit: (params = '') => request(`/recovery/audit${params}`).then(normalizeAudit),
+  getAudit: (params = '') => request(`/recovery/audit${normalizeQuery(params)}`).then(normalizeAudit),
   seedDemo: () => request('/demo/seed', { method: 'POST' }),
   resetDemo: () => request('/demo/reset', { method: 'POST' }),
   runRecoveryBatch: () => request('/demo/recovery-batch', { method: 'POST' }),
