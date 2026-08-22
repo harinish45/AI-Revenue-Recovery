@@ -4,83 +4,71 @@ import { api } from './api';
 import './styles.css';
 import './enhancements.css';
 
-const demoSummary = { total_transactions: 100, total_revenue: 124500, failed_payments: 20, revenue_at_risk: 18750, recovered_amount: 7250, recovery_rate: 38.7, recovery_attempts: 15, successful_recoveries: 9, failed_recoveries: 6, escalated_cases: 3 };
-const demoCases = [
-  { id: 'RC-001', customer: { name: 'Arjun Kumar' }, payment_id: 'pay_demo_001', amount: 2499, currency: 'INR', failure_reason: 'Gateway timeout', risk_level: 'HIGH', recommended_action: 'RETRY_PAYMENT', status: 'READY', retry_count: 0, max_retries: 2 },
-  { id: 'RC-002', customer: { name: 'Meera Iyer' }, payment_id: 'pay_demo_014', amount: 1999, currency: 'INR', failure_reason: 'Issuer decline', risk_level: 'MEDIUM', recommended_action: 'PAYMENT_LINK', status: 'REVIEW', retry_count: 0, max_retries: 2 },
-  { id: 'RC-003', customer: { name: 'Rohit Sharma' }, payment_id: 'pay_demo_021', amount: 4299, currency: 'INR', failure_reason: 'Gateway timeout', risk_level: 'HIGH', recommended_action: 'RETRY_PAYMENT', status: 'RECOVERED', retry_count: 1, max_retries: 2, recovered_amount: 4299 },
-  { id: 'RC-004', customer: { name: 'Nandhini Raj' }, payment_id: 'pay_demo_031', amount: 999, currency: 'INR', failure_reason: 'Authentication failed', risk_level: 'LOW', recommended_action: 'CUSTOMER_PROMPT', status: 'ESCALATED', retry_count: 2, max_retries: 2 },
-];
-const demoAudit = [
-  { id: 'AUD-001', timestamp: '18:01:05', event_type: 'RECOVERY_SUCCEEDED', action: 'Recovery succeeded', result: '₹2,499', case_id: 'RC-001' },
-  { id: 'AUD-002', timestamp: '18:01:04', event_type: 'POLICY_VALIDATED', action: 'Policy validation passed', result: 'RC-001', case_id: 'RC-001' },
-  { id: 'AUD-003', timestamp: '18:01:03', event_type: 'STRATEGY_SELECTED', action: 'Strategy selected', result: 'Retry payment', case_id: 'RC-001' },
-  { id: 'AUD-004', timestamp: '18:01:02', event_type: 'RISK_CALCULATED', action: 'Revenue risk calculated', result: '₹2,499', case_id: 'RC-001' },
-];
+const demoSummary = { total_payments: 100, total_at_risk: 45000.5, total_recovered: 12000, recovery_rate_percent: 26.67, open_cases: 15, escalated_cases: 3 };
 const money = (value = 0) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(value);
-const prettyAction = (value = '') => String(value).replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
-function StatusPill({ children, type = '' }) { return <span className={`pill ${String(type).toLowerCase().replaceAll('_', '-')}`}>{children}</span>; }
-function MetricCard({ label, value, note, tone = '' }) { return <section className={`metric-card ${tone}`}><div className="metric-label">{label}</div><div className="metric-value">{value}</div><div className="metric-note">{note}</div></section>; }
+const pretty = (value = '') => String(value).replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase());
+const demoCases = [
+  { id: 1, payment_id: 'pay_demo_001', status: 'OPEN', retry_count: 0, diagnosis: 'Gateway timeout; customer has prior successful payments.', recommended_action: 'SEND_RETRY_LINK', payment: { amount: 2499, customer_name: 'Arjun Kumar', failure_reason: 'Gateway timeout' } },
+  { id: 2, payment_id: 'pay_demo_014', status: 'OPEN', retry_count: 0, diagnosis: 'Issuer decline; safer to request a fresh payment authorization.', recommended_action: 'SEND_RETRY_LINK', payment: { amount: 1999, customer_name: 'Meera Iyer', failure_reason: 'Issuer decline' } },
+  { id: 3, payment_id: 'pay_demo_021', status: 'RECOVERED', retry_count: 1, diagnosis: 'Transient gateway issue recovered within policy.', recommended_action: 'SEND_RETRY_LINK', payment: { amount: 4299, customer_name: 'Rohit Sharma', failure_reason: 'Gateway timeout' } },
+];
+
+function Badge({ status }) { const s = String(status || '').toLowerCase(); return <span className={`status-badge ${s}`}>{pretty(status)}</span>; }
+function Metric({ label, value }) { return <div className="metric-card"><div className="metric-label">{label}</div><div className="metric-value">{value}</div></div>; }
 
 function App() {
-  const [active, setActive] = React.useState('Overview');
   const [summary, setSummary] = React.useState(demoSummary);
   const [cases, setCases] = React.useState(demoCases);
-  const [audit, setAudit] = React.useState(demoAudit);
-  const [selected, setSelected] = React.useState(null);
+  const [audit, setAudit] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
-  const [notice, setNotice] = React.useState(null);
-  const [search, setSearch] = React.useState('');
   const [live, setLive] = React.useState(false);
+  const [failureArmed, setFailureArmed] = React.useState(false);
+  const [auditOpen, setAuditOpen] = React.useState(false);
+  const [selected, setSelected] = React.useState(null);
+  const [notice, setNotice] = React.useState(null);
 
   const refresh = React.useCallback(async () => {
-    setLoading(true);
     try {
-      const [nextSummary, nextCases, nextAudit] = await Promise.all([api.getDashboard(), api.getCases('?page_size=50'), api.getAudit('?page_size=20')]);
-      setSummary(nextSummary); setCases(nextCases.items || []); setAudit(nextAudit.items || []); setLive(true);
-      setNotice({ type: 'success', text: 'Live backend data loaded.' });
-    } catch { setLive(false); setNotice({ type: 'warning', text: 'Backend not connected — showing deterministic demo data.' }); }
-    finally { setLoading(false); }
+      const [s, c, a] = await Promise.all([api.getDashboard(), api.getCases(), api.getAudit()]);
+      setSummary(s); setCases(c.items || []); setAudit(a.items || []); setLive(true);
+    } catch { setLive(false); }
   }, []);
   React.useEffect(() => { refresh(); }, [refresh]);
 
-  const runAction = async (label, action) => {
+  const action = async (fn, successText) => {
     setLoading(true); setNotice(null);
-    try { const result = await action(); setNotice({ type: String(result?.status || '').toUpperCase() === 'FAILED' ? 'danger' : 'success', text: result?.message || `${label} completed.` }); await refresh(); }
-    catch (error) { setNotice({ type: 'danger', text: error.message }); }
+    try { const result = await fn(); setNotice({ type: 'success', text: successText || result?.message || 'Action completed.' }); await refresh(); return result; }
+    catch (e) { setNotice({ type: 'error', text: e.message }); }
     finally { setLoading(false); }
   };
-  const openCase = async (item) => {
-    setSelected({ ...item, loading: true });
-    try { setSelected(await api.getCase(item.id)); }
-    catch { setSelected({ ...item, demo: true, decision: { decision: item.recommended_action, reason: 'Customer history indicates the case is within the configured recovery policy.', evidence: ['Previous successful payments', `Retry count ${item.retry_count}/${item.max_retries}`], policy_checks: ['Test mode only', 'Below retry limit', 'Amount within policy'] }, audit_events: demoAudit.filter((x) => x.case_id === item.id || item.id === 'RC-001') }); }
+
+  const execute = async (item) => {
+    setLoading(true); setNotice(null);
+    try {
+      const result = await api.executeRecovery(item.id);
+      setSelected(null);
+      setNotice({ type: result.status === 'ESCALATED' ? 'error' : 'success', text: result.status === 'ESCALATED' ? 'Escalated to Human Review due to gateway failure.' : `${pretty(result.action)} completed — ${money(result.amount_recovered)} recovered.` });
+      await refresh();
+    } catch (e) { setNotice({ type: 'error', text: e.message }); }
+    finally { setLoading(false); }
   };
-  const filteredCases = cases.filter((item) => `${item.customer?.name || ''} ${item.id} ${item.failure_reason || ''}`.toLowerCase().includes(search.toLowerCase()));
-  const metrics = [
-    { label: 'Revenue at risk', value: money(summary.revenue_at_risk), note: `${summary.failed_payments || 0} failed payments`, tone: 'warning' },
-    { label: 'Recovered revenue', value: money(summary.recovered_amount), note: `${summary.recovery_rate || 0}% recovery rate`, tone: 'success' },
-    { label: 'Transactions', value: summary.total_transactions || 0, note: `${money(summary.total_revenue)} processed`, tone: '' },
-    { label: 'Escalated', value: summary.escalated_cases || 0, note: 'needs merchant review', tone: 'danger' },
-  ];
-  const nav = ['Overview', 'Recovery queue', 'Audit trail', 'Policies'];
+
+  const seed = () => action(api.seedDemo, '100 synthetic payments seeded successfully.');
+  const reset = () => action(api.resetDemo, 'Demo database reset complete.');
+  const batch = () => action(api.runRecoveryBatch, 'Batch recovery completed. Metrics refreshed.');
+  const armFailure = async () => { const result = await action(api.simulateFailure, 'Failure simulation armed. Next execution will escalate.'); if (result) setFailureArmed(true); };
 
   return <div className="app-shell">
-    <aside className="sidebar"><div className="brand-block"><div className="brand-mark">R</div><div><div className="brand-name">RecoverAI</div><div className="brand-subtitle">Revenue recovery</div></div></div><nav className="nav-list">{nav.map((item) => <button key={item} className={`nav-item ${active === item ? 'active' : ''}`} onClick={() => setActive(item)}><span className="nav-dot" />{item}</button>)}</nav><div className="sidebar-footer"><div className="test-mode"><span className="mode-dot" />Razorpay Test Mode</div><div className="version">Pitch build · v0.3</div></div></aside>
-    <main className="main-content">
-      <header className="topbar"><div><div className="eyebrow">Merchant control center</div><h1>{active === 'Overview' ? 'Revenue recovery overview' : active}</h1></div><div className="topbar-actions"><div className={`connection-state ${live ? 'online' : 'demo'}`}><span />{live ? 'Backend connected' : 'Demo mode'}</div><button className="ghost-btn" disabled={loading} onClick={() => runAction('Demo reset', api.resetDemo)}>Reset demo</button><button className="primary-btn" disabled={loading} onClick={() => runAction('Recovery batch', api.runRecoveryBatch)}>Run recovery batch</button></div></header>
-      {notice && <div className={`notice ${notice.type}`}><span>{notice.type === 'success' ? '✓' : notice.type === 'danger' ? '!' : 'i'}</span>{notice.text}<button onClick={() => setNotice(null)}>×</button></div>}
-      {active === 'Overview' && <><section className="hero-banner"><div><div className="hero-kicker">AI revenue recovery</div><h2>Turn failed payments back into cash.</h2><p>RecoverAI detects revenue at risk, selects a bounded intervention, executes safely, and explains every money action.</p></div><div className="hero-status"><span className="status-ring" />Agent operational</div></section><section className="metric-grid">{metrics.map((metric) => <MetricCard key={metric.label} {...metric} />)}</section><section className="content-grid"><div className="panel large-panel"><div className="panel-header"><div><h3>Recovery queue</h3><p>Prioritized cases requiring an action.</p></div><button className="text-btn" onClick={() => setActive('Recovery queue')}>View all</button></div><div className="queue-toolbar"><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search customer, case or failure..." /><span>{filteredCases.length} cases</span></div><div className="table-wrap"><table><thead><tr><th>Customer</th><th>Amount</th><th>Failure</th><th>Risk</th><th>AI action</th><th>Status</th></tr></thead><tbody>{filteredCases.map((item) => <tr key={item.id} onClick={() => openCase(item)} className="clickable-row"><td><div className="customer-cell"><div className="avatar">{(item.customer?.name || 'NA').split(' ').map((x) => x[0]).join('').slice(0, 2)}</div><div><strong>{item.customer?.name || 'Unknown'}</strong><span>{item.id}</span></div></div></td><td className="amount">{money(item.amount)}</td><td>{item.failure_reason}</td><td><StatusPill type={item.risk_level}>{item.risk_level}</StatusPill></td><td>{prettyAction(item.recommended_action)}</td><td><StatusPill type={item.status}>{prettyAction(item.status)}</StatusPill></td></tr>)}</tbody></table></div></div><div className="panel agent-panel"><div className="panel-header"><div><h3>Latest agent decision</h3><p>RC-001 · ₹2,499 at risk</p></div><StatusPill type="HIGH">HIGH</StatusPill></div><div className="decision-card"><div className="decision-label">Decision</div><div className="decision-title">Retry payment</div><p>Customer history and policy checks indicate this payment is eligible for one bounded recovery attempt.</p><div className="checks"><div><span className="check">✓</span>Test mode only</div><div><span className="check">✓</span>Retry count 0 / 2</div><div><span className="check">✓</span>Amount below policy limit</div></div></div><button className="recover-btn" onClick={() => openCase(cases[0])}>Review recovery action</button></div></section><section className="bottom-grid"><div className="panel"><div className="panel-header"><div><h3>Recovery performance</h3><p>Current batch · {summary.recovery_attempts || 0} attempts</p></div><div className="trend">{summary.recovery_rate || 0}%</div></div><div className="bar-chart">{[42,60,52,72,66,84,78,92].map((height, index) => <div className="bar-group" key={index}><div className="bar" style={{ height: `${height}%` }} /><span>W{index + 1}</span></div>)}</div></div><AuditPanel audit={audit} onOpen={() => setActive('Audit trail')} /></section></>}
-      {active === 'Recovery queue' && <QueuePage cases={filteredCases} search={search} setSearch={setSearch} onOpen={openCase} />}
-      {active === 'Audit trail' && <AuditPage audit={audit} />}
-      {active === 'Policies' && <PolicyPage />}
+    <header className="topbar"><div><div className="eyebrow">Razorpay Hackathon · Track 03</div><h1>RecoverAI <span>— Autonomous Revenue Recovery</span></h1><p className="subtitle">Detect → Diagnose → Decide → Recover → Audit</p></div><div className="top-actions"><span className={`connection-state ${live ? 'online' : 'demo'}`}><span />{live ? 'Backend connected' : 'Demo fallback'}</span><button className="ghost-btn" disabled={loading} onClick={seed}>Seed Data</button><button className="ghost-btn" disabled={loading} onClick={reset}>Reset</button></div></header>
+    <main>
+      {notice && <div className={`notice ${notice.type}`}><strong>{notice.type === 'error' ? 'Recovery stopped' : 'Success'}</strong><span>{notice.text}</span><button onClick={() => setNotice(null)}>×</button></div>}
+      <section className="metrics-grid"><Metric label="Total at risk" value={money(summary.total_at_risk)} /><Metric label="Total recovered" value={money(summary.total_recovered)} /><Metric label="Recovery rate" value={`${summary.recovery_rate_percent ?? 0}%`} /><Metric label="Open cases" value={summary.open_cases ?? 0} /><Metric label="Escalated cases" value={summary.escalated_cases ?? 0} /></section>
+      <section className="action-center panel"><div><div className="eyebrow">Action center</div><h2>Close the recovery loop</h2><p>Every money action is bounded by the backend policy engine and recorded in the audit trail.</p></div><div className="action-buttons"><button className="primary-btn" disabled={loading} onClick={batch}>{loading ? 'Processing…' : 'Run Batch Recovery'}</button><button className={`failure-btn ${failureArmed ? 'armed' : ''}`} disabled={loading || failureArmed} onClick={armFailure}>{failureArmed ? 'Failure Armed — Next Execute Will Escalate' : 'Arm Failure Simulation'}</button><button className="audit-btn" onClick={() => setAuditOpen(true)}>Open Audit Trail</button></div></section>
+      <section className="panel cases-panel"><div className="panel-header"><div><div className="eyebrow">Recovery queue</div><h2>Payment recovery cases</h2><p>Open cases are eligible for bounded recovery actions.</p></div><span className="test-chip">RAZORPAY TEST MODE</span></div><div className="table-wrap"><table><thead><tr><th>Case</th><th>Customer</th><th>Payment</th><th>Amount</th><th>Diagnosis</th><th>AI Action</th><th>Status</th><th /></tr></thead><tbody>{cases.map((item) => <tr key={item.id}><td><strong>#{item.id}</strong></td><td>{item.customer?.name || item.payment?.customer_name || 'Customer'}</td><td className="muted">{item.payment_id}</td><td className="amount">{money(item.amount ?? item.payment?.amount)}</td><td className="diagnosis">{item.diagnosis || item.payment?.failure_reason || 'Payment failure detected'}</td><td>{pretty(item.recommended_action)}</td><td><Badge status={item.status} /></td><td>{String(item.status).toUpperCase() === 'OPEN' ? <button className="execute-btn" disabled={loading} onClick={() => execute(item)}>Execute</button> : <button className="details-btn" onClick={() => setSelected(item)}>Details</button>}</td></tr>)}</tbody></table></div></section>
+      <section className="pitch-proof"><div><strong>AI recommendation</strong><span>LLM proposes the action.</span></div><b>→</b><div><strong>Policy engine</strong><span>Backend gates the action.</span></div><b>→</b><div><strong>Razorpay Test Mode</strong><span>Bounded execution.</span></div><b>→</b><div><strong>Audit trail</strong><span>Every decision is explainable.</span></div></section>
     </main>
-    {selected && <CaseModal item={selected} loading={loading} onClose={() => setSelected(null)} onExecute={() => runAction('Recovery action', () => api.executeRecovery(selected.id))} />}
+    {selected && <div className="modal-backdrop" onMouseDown={() => setSelected(null)}><div className="case-modal" onMouseDown={(e) => e.stopPropagation()}><div className="modal-header"><div><div className="eyebrow">Recovery case #{selected.id}</div><h2>{selected.payment?.customer_name || selected.customer?.name}</h2></div><button className="close-btn" onClick={() => setSelected(null)}>×</button></div><div className="case-detail"><div><span>Amount</span><strong>{money(selected.amount ?? selected.payment?.amount)}</strong></div><div><span>Status</span><Badge status={selected.status} /></div><div><span>Retry count</span><strong>{selected.retry_count}</strong></div></div><h3>Diagnosis</h3><p>{selected.diagnosis || 'Payment failure requires recovery review.'}</p><h3>Recommended action</h3><p>{pretty(selected.recommended_action)}</p></div></div>}
+    {auditOpen && <div className="drawer-backdrop" onMouseDown={() => setAuditOpen(false)}><aside className="audit-drawer" onMouseDown={(e) => e.stopPropagation()}><div className="drawer-header"><div><div className="eyebrow">Compliance proof</div><h2>Audit Trail</h2></div><button className="close-btn" onClick={() => setAuditOpen(false)}>×</button></div><p>Raw backend events proving diagnosis, policy gating and execution.</p><div className="json-list">{audit.length ? audit.map((event) => <pre key={event.id}>{JSON.stringify(event, null, 2)}</pre>) : <pre>{JSON.stringify({ event_type: 'DEMO_AUDIT', details: { message: 'Seed and execute a case to populate live audit events.' } }, null, 2)}</pre>}</div></aside></div>}
   </div>;
 }
-function AuditPanel({ audit, onOpen }) { return <div className="panel audit-panel"><div className="panel-header"><div><h3>Recent audit activity</h3><p>Every financial action is logged.</p></div><button className="text-btn" onClick={onOpen}>Open audit trail</button></div><div className="audit-list">{(audit.length ? audit.slice(0, 5) : demoAudit).map((event) => <div className="audit-row" key={event.id}><span className="audit-time">{event.timestamp?.slice(11, 19) || event.timestamp}</span><span>{event.action || event.event_type}</span><strong>{event.result || event.case_id}</strong></div>)}</div></div>; }
-function QueuePage({ cases, search, setSearch, onOpen }) { return <section className="panel page-panel"><div className="panel-header"><div><h3>Recovery queue</h3><p>Every eligible case is bounded by backend policy.</p></div><StatusPill type="READY">LIVE QUEUE</StatusPill></div><div className="queue-toolbar"><input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search customer, case or failure..." /><span>{cases.length} visible</span></div><div className="table-wrap"><table><thead><tr><th>Case</th><th>Customer</th><th>Amount</th><th>Failure</th><th>Risk</th><th>Action</th><th>Status</th></tr></thead><tbody>{cases.map((item) => <tr key={item.id} onClick={() => onOpen(item)} className="clickable-row"><td>{item.id}</td><td>{item.customer?.name}</td><td className="amount">{money(item.amount)}</td><td>{item.failure_reason}</td><td><StatusPill type={item.risk_level}>{item.risk_level}</StatusPill></td><td>{prettyAction(item.recommended_action)}</td><td><StatusPill type={item.status}>{prettyAction(item.status)}</StatusPill></td></tr>)}</tbody></table></div></section>; }
-function AuditPage({ audit }) { return <section className="panel page-panel"><div className="panel-header"><div><h3>Audit trail</h3><p>Event history for the recovery workflow.</p></div><StatusPill type="SUCCESS">LOGGING ON</StatusPill></div><div className="timeline">{(audit.length ? audit : demoAudit).map((event) => <div className="timeline-item" key={event.id}><div className="timeline-dot" /><div className="timeline-body"><div className="timeline-top"><strong>{event.action || event.event_type}</strong><span>{event.timestamp}</span></div><p>{event.reason || 'Recovery workflow event recorded by the backend.'}</p><div className="timeline-meta"><span>{event.case_id}</span><span>{event.result || event.action}</span></div></div></div>)}</div></section>; }
-function PolicyPage() { return <section className="policy-grid"><div className="panel policy-card"><div className="panel-header"><div><h3>Automatic recovery guardrails</h3><p>These controls are enforced server-side.</p></div><StatusPill type="SUCCESS">ENFORCED</StatusPill></div><div className="policy-list"><div><span>Maximum retries</span><strong>2</strong></div><div><span>Test mode only</span><strong>ON</strong></div><div><span>Duplicate execution protection</span><strong>ON</strong></div><div><span>Human escalation</span><strong>ON</strong></div><div><span>Unknown failure handling</span><strong>ESCALATE</strong></div></div></div><div className="panel policy-card"><div className="panel-header"><div><h3>Agent authority</h3><p>LLM recommendations never bypass policy.</p></div></div><div className="authority-flow"><span>AI recommendation</span><b>→</b><span>Policy engine</span><b>→</b><span>Recovery executor</span><b>→</b><span>Razorpay Test Mode</span></div><div className="policy-note">The model recommends. The backend decides whether an action is permitted.</div></div></section>; }
-function CaseModal({ item, loading, onClose, onExecute }) { const decision = item.decision || {}; const terminal = ['RECOVERED', 'FAILED', 'ESCALATED'].includes(String(item.status).toUpperCase()); return <div className="modal-backdrop" onMouseDown={onClose}><div className="case-modal" onMouseDown={(e) => e.stopPropagation()}><div className="modal-header"><div><div className="eyebrow">Recovery case</div><h2>{item.id} · {item.customer?.name}</h2></div><button className="close-btn" onClick={onClose}>×</button></div><div className="case-summary"><div><span>Revenue at risk</span><strong>{money(item.amount)}</strong></div><div><span>Failure</span><strong>{item.failure_reason}</strong></div><div><span>Risk</span><strong>{item.risk_level}</strong></div><div><span>Status</span><strong>{prettyAction(item.status)}</strong></div></div><div className="modal-grid"><div className="decision-card"><div className="decision-label">AI recommendation</div><div className="decision-title">{prettyAction(decision.decision || item.recommended_action)}</div><p>{decision.reason || 'The recovery recommendation is based on available payment and customer evidence.'}</p><div className="checks">{(decision.evidence || ['Payment failure recorded', `Retry count ${item.retry_count ?? 0}/${item.max_retries ?? 2}`]).map((x) => <div key={x}><span className="check">✓</span>{x}</div>)}</div></div><div><div className="section-label">Policy checks</div><div className="policy-mini">{(decision.policy_checks || ['Test mode only', 'Retry limit enforced', 'Duplicate execution blocked']).map((x) => <div key={x}><span className="check">✓</span>{x}</div>)}</div></div></div><div className="modal-footer"><div className="audit-safe">Every action is bounded, logged and enforced by the backend.</div><button className="recover-btn" disabled={loading || terminal || item.demo} onClick={onExecute}>{terminal ? prettyAction(item.status) : loading ? 'Processing…' : `Execute ${prettyAction(item.recommended_action)}`}</button></div></div></div>; }
-
 createRoot(document.getElementById('root')).render(<App />);
