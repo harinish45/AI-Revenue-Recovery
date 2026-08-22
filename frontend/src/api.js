@@ -39,7 +39,8 @@ export const api = {
   getDashboard: () => request('/api/dashboard/summary'),
   getCases: () => request('/api/cases/').then(normalizeCases),
   getCase: (id) => request(`/api/cases/${id}`).then(normalizeCase),
-  executeRecovery: (id) => request('/api/execution/execute', { method: 'POST', body: JSON.stringify({ case_id: Number(id) }) }),
+  // Backend contract explicitly accepts JSON: { "case_id": "<OPEN_CASE_ID>" }.
+  executeRecovery: (id) => request('/api/execution/execute', { method: 'POST', body: JSON.stringify({ case_id: String(id) }) }),
   getAudit: () => request('/api/audit/').then(normalizeAudit),
   seedDemo: () => request('/api/demo/seed', { method: 'POST' }),
   resetDemo: () => request('/api/demo/reset', { method: 'POST' }),
