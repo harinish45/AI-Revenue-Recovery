@@ -1,13 +1,25 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
-from typing import List
-from app.database import get_db
-from app.models import AuditLog
-from app.schemas import AuditLogOut
+from typing import Optional
+from ..database import get_db
+from ..models import AuditLog
+from ..schemas import AuditLogOut, AuditListResponse
 
 router = APIRouter()
 
-@router.get("/", response_model=List[AuditLogOut])
-def list_audit_logs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    logs = db.query(AuditLog).order_by(AuditLog.timestamp.desc()).offset(skip).limit(limit).all()
-    return logs
+@router.get("/audit", response_model=AuditListResponse)
+def get_audit_logs(
+    case_id: Optional[str] = None,
+    page: int = 1,
+    limit: int = 50,
+    db: Session = Depends(get_db)
+):
+    query = db.query(AuditLog)
+    if case_id:
+        query = query.filter(AuditLog.case_id == case_id)
+        
+    query = query.order_by(AuditLog.timestamp.desc())
+    total = query.count()
+    logs = query.offset((page - 1) * limit).limit(limit).all()
+    
+    return AuditListResponse(items=logs, page=page, limit=limit, total=total)

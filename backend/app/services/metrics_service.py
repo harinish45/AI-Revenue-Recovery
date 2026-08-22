@@ -1,26 +1,31 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
-from app.models import Payment, RecoveryCase, RecoveryStatus, PaymentStatus
-from app.services.risk_calculator import calculate_revenue_at_risk, calculate_recovered_amount
+from ..models import Payment, RecoveryCase, Execution
 
-def get_dashboard_metrics(db: Session):
-    total_at_risk = calculate_revenue_at_risk(db)
-    total_recovered = calculate_recovered_amount(db)
+def get_metrics(db: Session):
+    total_transactions = db.query(Payment).count()
+    failed_payments = db.query(Payment).filter(Payment.status == "failed").count()
     
-    open_cases = db.query(RecoveryCase).filter(
-        RecoveryCase.status.in_([RecoveryStatus.OPEN, RecoveryStatus.NUDGED])
-    ).count()
+    total_revenue = db.query(func.sum(Payment.amount)).filter(Payment.status == "success").scalar() or 0.0
+    revenue_at_risk = db.query(func.sum(RecoveryCase.amount_at_risk)).filter(RecoveryCase.recovery_status == "pending").scalar() or 0.0
+    recovered_amount = db.query(func.sum(RecoveryCase.recovered_amount)).scalar() or 0.0
     
-    escalated_cases = db.query(RecoveryCase).filter(
-        RecoveryCase.status == RecoveryStatus.ESCALATED
-    ).count()
+    recovery_attempts = db.query(Execution).count()
+    successful_recoveries = db.query(RecoveryCase).filter(RecoveryCase.recovery_status == "recovered").count()
+    failed_recoveries = db.query(RecoveryCase).filter(RecoveryCase.recovery_status == "failed").count()
+    escalated_cases = db.query(RecoveryCase).filter(RecoveryCase.recovery_status.in_(["needs_human_review", "blocked"])).count()
     
-    recovery_rate = (total_recovered / (total_at_risk + total_recovered)) * 100 if (total_at_risk + total_recovered) > 0 else 0.0
-    
+    recovery_rate = (successful_recoveries / (successful_recoveries + failed_recoveries + escalated_cases) * 100) if (successful_recoveries + failed_recoveries + escalated_cases) > 0 else 0.0
+
     return {
-        "total_at_risk": total_at_risk,
-        "total_recovered": total_recovered,
-        "open_cases": open_cases,
-        "escalated_cases": escalated_cases,
-        "recovery_rate": round(recovery_rate, 2)
+        "total_revenue": total_revenue,
+        "revenue_at_risk": revenue_at_risk,
+        "recovered_amount": recovered_amount,
+        "recovery_rate": round(recovery_rate, 1),
+        "total_transactions": total_transactions,
+        "failed_payments": failed_payments,
+        "recovery_attempts": recovery_attempts,
+        "successful_recoveries": successful_recoveries,
+        "failed_recoveries": failed_recoveries,
+        "escalated_cases": escalated_cases
     }

@@ -1,42 +1,44 @@
 from fastapi.testclient import TestClient
-from app.main import app
-from app.database import Base, engine
 
-client = TestClient(app)
-
-def setup_module():
-    Base.metadata.create_all(bind=engine)
-
-def test_seed_data():
+def test_seed_and_dashboard(client):
     response = client.post("/api/demo/seed")
     assert response.status_code == 200
-    assert "Seeded 100" in response.json()["message"]
-
-def test_dashboard_summary():
+    assert response.json()["created_records"] == 100
+    
     response = client.get("/api/dashboard/summary")
     assert response.status_code == 200
     data = response.json()
-    assert "total_at_risk" in data
-    assert data["total_at_risk"] > 0
+    assert data["total_transactions"] == 100
+    assert data["failed_payments"] == 20
 
-def test_batch_process():
-    response = client.post("/api/batch/process")
+def test_execution_and_policy(client):
+    client.post("/api/demo/seed")
+    
+    cases = client.get("/api/recovery/cases").json()
+    assert len(cases["items"]) > 0
+    case_id = cases["items"][0]["id"]
+    
+    response = client.post(f"/api/recovery/cases/{case_id}/execute")
     assert response.status_code == 200
-    assert "new recovery cases created" in response.json()["message"]
+    assert response.json()["case_id"] == case_id
+    
+    logs = client.get("/api/recovery/audit").json()
+    assert len(logs["items"]) > 0
 
-def test_list_cases():
-    response = client.get("/api/cases/")
+def test_batch_recovery(client):
+    client.post("/api/demo/seed")
+    response = client.post("/api/demo/recovery-batch")
     assert response.status_code == 200
-    assert len(response.json()) > 0
+    data = response.json()
+    assert data["processed"] > 0
 
-def test_execute_recovery():
-    cases = client.get("/api/cases/").json()
-    case_id = cases[0]["id"]
-    response = client.post("/api/execution/execute", json={"case_id": case_id})
+def test_simulate_failure(client):
+    client.post("/api/demo/seed")
+    
+    response = client.post("/api/demo/simulate-failure")
     assert response.status_code == 200
-    assert response.json()["status"] in ["recovered", "nudged", "escalated"]
-
-def test_audit_logs():
-    response = client.get("/api/audit/")
+    case_id = response.json()["case_id"]
+    
+    response = client.post(f"/api/recovery/cases/{case_id}/execute")
     assert response.status_code == 200
-    assert len(response.json()) > 0
+    assert response.json()["status"] == "failed"

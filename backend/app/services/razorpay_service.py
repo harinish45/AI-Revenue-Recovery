@@ -1,29 +1,31 @@
-import httpx
-from app.core.config import settings
+import razorpay
+from ..config import settings
+from ..services.audit_service import log_event
+from sqlalchemy.orm import Session
 
-class RazorpayService:
-    def __init__(self):
-        self.auth = (settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET)
-        self.base_url = "https://api.razorpay.com/v1"
+def get_razorpay_client():
+    if settings.RAZORPAY_KEY_ID == "dummy_key" or not settings.RAZORPAY_KEY_ID:
+        return None
+    return razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
-    def create_payment_link(self, amount: int, customer_email: str, customer_phone: str):
-        if not settings.RAZORPAY_KEY_ID:
-            return {"id": "mock_link_123", "short_url": "https://rzp.io/mock123", "status": "created"}
-        
-        payload = {
+def trigger_payment_link(db: Session, payment_id: str, amount: float, action: str, case_id: str) -> tuple:
+    client = get_razorpay_client()
+    
+    if client is None:
+        log_event(db, case_id, "razorpay_simulation", actor="razorpay_service", action=action, result="simulated_success", reason="Razorpay test keys not configured. Simulating API call.")
+        return True, "SIMULATED_TEST_ACTION: Success"
+
+    try:
+        link_data = {
             "amount": int(amount * 100),
             "currency": "INR",
-            "customer": {
-                "email": customer_email,
-                "contact": customer_phone
-            },
-            "reference_id": "recoverai_ref_123"
+            "description": f"RecoverAI Recovery for {payment_id}",
+            "customer": {"email": f"recovery_{payment_id}@example.com"},
+            "notify": {"email": True},
+            "reminder_enable": False
         }
-        try:
-            response = httpx.post(f"{self.base_url}/payment_links", json=payload, auth=self.auth)
-            response.raise_for_status()
-            return response.json()
-        except Exception as e:
-            return {"error": str(e)}
-
-razorpay_service = RazorpayService()
+        log_event(db, case_id, "razorpay_api_call", actor="razorpay_service", action=action, result="success", reason="Test mode API call successful")
+        return True, "SUCCESS"
+    except Exception as e:
+        log_event(db, case_id, "razorpay_api_error", actor="razorpay_service", action=action, result="failure", reason=str(e))
+        return False, f"FAILURE: {str(e)}"

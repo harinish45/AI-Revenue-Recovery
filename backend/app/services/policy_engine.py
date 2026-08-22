@@ -1,24 +1,35 @@
+from ..models import RecoveryCase, Payment
 from sqlalchemy.orm import Session
-from app.models import RecoveryCase, RecoveryStatus, Payment
-from app.core.config import settings
 
-def check_policies(db: Session, case_id: int):
-    case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).first()
-    if not case:
-        return False, "Case not found"
-        
-    payment = case.payment
+MAX_RETRIES = 2
+MAX_AMOUNT = 50000.0
+
+def evaluate_policy(db: Session, case: RecoveryCase, payment: Payment) -> tuple:
+    checks = {
+        "max_retries_check": True,
+        "terminal_state_check": True,
+        "amount_limit_check": True,
+        "status_check": True
+    }
     
-    if case.retry_count >= settings.MAX_RETRIES:
-        return False, f"Max retries ({settings.MAX_RETRIES}) exceeded"
-        
-    if payment.amount > settings.MAX_AMOUNT:
-        return False, f"Amount {payment.amount} exceeds max allowed {settings.MAX_AMOUNT}"
-        
-    if case.status not in [RecoveryStatus.OPEN, RecoveryStatus.NUDGED]:
-        return False, f"Case status {case.status} is not eligible for execution"
-        
-    if payment.amount > settings.ESCALATION_THRESHOLD:
-        return False, "ESCALATE"
-        
-    return True, "Approved"
+    reasons = []
+
+    if case.recovery_status in ["recovered", "blocked", "needs_human_review"]:
+        checks["terminal_state_check"] = False
+        reasons.append(f"Case is in terminal state: {case.recovery_status}")
+
+    if case.retry_count >= MAX_RETRIES:
+        checks["max_retries_check"] = False
+        reasons.append("Max retries exceeded")
+
+    if payment.amount > MAX_AMOUNT:
+        checks["amount_limit_check"] = False
+        reasons.append("Amount exceeds safe automated threshold")
+
+    if payment.status not in ["failed", "abandoned"]:
+        checks["status_check"] = False
+        reasons.append(f"Payment status {payment.status} is not eligible")
+
+    allowed = all(checks.values())
+    
+    return allowed, checks, reasons

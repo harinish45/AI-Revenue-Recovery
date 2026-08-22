@@ -1,53 +1,110 @@
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
 from datetime import datetime
-from app.models import PaymentStatus, RecoveryStatus
-
-class PaymentBase(BaseModel):
-    razorpay_payment_id: str
-    customer_id: str
-    amount: float
-    status: PaymentStatus
-    failure_code: Optional[str] = None
-
-class PaymentOut(PaymentBase):
-    id: int
-    created_at: datetime
-    class Config:
-        from_attributes = True
-
-class RecoveryCaseBase(BaseModel):
-    payment_id: int
-    status: RecoveryStatus
-    retry_count: int
-    root_cause_diagnosis: Optional[str] = None
-    intervention_strategy: Optional[str] = None
-
-class RecoveryCaseOut(RecoveryCaseBase):
-    id: int
-    created_at: datetime
-    payment: Optional[PaymentOut] = None
-    class Config:
-        from_attributes = True
-
-class AuditLogOut(BaseModel):
-    id: int
-    recovery_case_id: int
-    action: str
-    details: Dict[str, Any]
-    timestamp: datetime
-    class Config:
-        from_attributes = True
+from typing import List, Optional, Dict, Any
 
 class DashboardSummary(BaseModel):
-    total_at_risk: float
-    total_recovered: float
-    open_cases: int
-    escalated_cases: int
+    total_revenue: float
+    revenue_at_risk: float
+    recovered_amount: float
     recovery_rate: float
+    total_transactions: int
+    failed_payments: int
+    recovery_attempts: int
+    successful_recoveries: int
+    failed_recoveries: int
+    escalated_cases: int
 
-class BatchProcessRequest(BaseModel):
-    limit: Optional[int] = 100
+class CaseOut(BaseModel):
+    id: str
+    payment_id: str
+    customer_id: str
+    customer_name: str
+    amount: float
+    currency: str
+    failure_category: str
+    failure_reason: Optional[str]
+    risk_level: str
+    recommended_action: str
+    action_status: str
+    recovery_status: str
+    recovered_amount: float
+    retry_count: int
+    created_at: datetime
 
-class ExecuteRecoveryRequest(BaseModel):
-    case_id: int
+    class Config:
+        from_attributes = True
+
+class CasesListResponse(BaseModel):
+    items: List[CaseOut]
+    page: int
+    limit: int
+    total: int
+
+class CaseDetailResponse(BaseModel):
+    id: str
+    payment_id: str
+    customer_id: str
+    customer_name: str
+    amount_at_risk: float
+    risk_level: str
+    failure_category: str
+    failure_reason: Optional[str]
+    recommended_action: str
+    reason: str
+    evidence: Dict[str, Any]
+    policy_checks: Dict[str, Any]
+    retry_count: int
+    max_retries: int
+    recovery_status: str
+    recovered_amount: float
+    created_at: datetime
+    updated_at: datetime
+    
+    class Config:
+        from_attributes = True
+
+class ExecuteResponse(BaseModel):
+    case_id: str
+    status: str
+    recovered_amount: float
+    message: str
+    audit_event_id: str
+
+class AuditLogOut(BaseModel):
+    id: str
+    case_id: Optional[str]
+    event_type: str
+    actor: str
+    decision: Optional[str]
+    reason: Optional[str]
+    action: Optional[str]
+    result: Optional[str]
+    timestamp: datetime
+
+    class Config:
+        from_attributes = True
+
+class AuditListResponse(BaseModel):
+    items: List[AuditLogOut]
+    page: int
+    limit: int
+    total: int
+
+class SeedResponse(BaseModel):
+    created_records: int
+    message: str
+
+class BatchResponse(BaseModel):
+    processed: int
+    successful: int
+    failed: int
+    escalated: int
+    recovered_amount: float
+
+class SimulateFailureResponse(BaseModel):
+    case_id: str
+    status: str
+    message: str
+
+class ErrorResponse(BaseModel):
+    error: Dict[str, str]
