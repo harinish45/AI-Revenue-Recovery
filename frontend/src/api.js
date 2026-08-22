@@ -6,7 +6,10 @@ async function request(path, options = {}) {
     ...options,
   });
   const payload = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(payload?.error?.message || 'Request failed.');
+  if (!response.ok) {
+    const message = payload?.detail || payload?.error?.message || payload?.message || 'Request failed.';
+    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  }
   return payload;
 }
 
@@ -19,17 +22,27 @@ const normalizeCase = (item) => ({
   status: String(item.status || item.recovery_status || item.action_status || '').toUpperCase(),
   max_retries: item.max_retries ?? 2,
 });
-const normalizeCases = (payload) => ({ ...payload, items: (payload?.items || []).map(normalizeCase) });
-const normalizeAudit = (payload) => ({ ...payload, items: (payload?.items || []).map((event) => ({ ...event, event_type: String(event.event_type || '').toUpperCase(), result: String(event.result || '').toUpperCase() })) });
+const normalizeCases = (payload) => {
+  const items = Array.isArray(payload) ? payload : (payload?.items || []);
+  return { ...(Array.isArray(payload) ? {} : payload), items: items.map(normalizeCase) };
+};
+const normalizeAudit = (payload) => {
+  const items = Array.isArray(payload) ? payload : (payload?.items || []);
+  return { ...(Array.isArray(payload) ? {} : payload), items: items.map((event) => ({
+    ...event,
+    event_type: String(event.event_type || '').toUpperCase(),
+    result: String(event.result || '').toUpperCase(),
+  })) };
+};
 
 export const api = {
   getDashboard: () => request('/dashboard/summary'),
-  getCases: (params = '') => request(`/recovery/cases${normalizeQuery(params)}`).then(normalizeCases),
-  getCase: (id) => request(`/recovery/cases/${id}`).then(normalizeCase),
-  executeRecovery: (id) => request(`/recovery/cases/${id}/execute`, { method: 'POST' }),
-  getAudit: (params = '') => request(`/recovery/audit${normalizeQuery(params)}`).then(normalizeAudit),
+  getCases: (params = '') => request(`/cases/${normalizeQuery(params)}`).then(normalizeCases),
+  getCase: (id) => request(`/cases/${id}`).then(normalizeCase),
+  executeRecovery: (id) => request('/execution/execute', { method: 'POST', body: JSON.stringify({ case_id: Number(id) }) }),
+  getAudit: (params = '') => request(`/audit/${normalizeQuery(params)}`).then(normalizeAudit),
   seedDemo: () => request('/demo/seed', { method: 'POST' }),
   resetDemo: () => request('/demo/reset', { method: 'POST' }),
-  runRecoveryBatch: () => request('/demo/recovery-batch', { method: 'POST' }),
+  runRecoveryBatch: () => request('/batch/recover', { method: 'POST' }),
   simulateFailure: () => request('/demo/simulate-failure', { method: 'POST' }),
 };
