@@ -28,11 +28,7 @@ const normalizeCases = (payload) => {
 };
 const normalizeAudit = (payload) => {
   const items = Array.isArray(payload) ? payload : (payload?.items || []);
-  return { ...(Array.isArray(payload) ? {} : payload), items: items.map((event) => ({
-    ...event,
-    event_type: String(event.event_type || '').toUpperCase(),
-    result: String(event.result || '').toUpperCase(),
-  })) };
+  return { ...(Array.isArray(payload) ? {} : payload), items: items.map((event) => ({ ...event, event_type: String(event.event_type || '').toUpperCase(), result: String(event.result || '').toUpperCase() })) };
 };
 
 export const api = {
@@ -43,6 +39,5 @@ export const api = {
   getAudit: (params = '') => request(`/audit/${normalizeQuery(params)}`).then(normalizeAudit),
   seedDemo: () => request('/demo/seed', { method: 'POST' }),
   resetDemo: () => request('/demo/reset', { method: 'POST' }),
-  runRecoveryBatch: () => request('/batch/recover', { method: 'POST' }),
-  simulateFailure: () => request('/demo/simulate-failure', { method: 'POST' }),
+  runRecoveryBatch: () => request('/batch/process', { method: 'POST', body: JSON.stringify({}) }),
 };
