@@ -33,14 +33,14 @@ From the repository root, use a terminal for the backend:
 ```powershell
 cd backend
 python -m venv .venv
-.\.venv\Scripts\Activate.ps1
+.\\.venv\\Scripts\\Activate.ps1
 pip install -r requirements.txt
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 The API will be available at `http://localhost:8000`.
 
-If the backend environment is already installed, the minimum startup command is:
+If the backend environment is already installed:
 
 ```powershell
 cd backend
@@ -57,38 +57,37 @@ npm install
 npm run dev
 ```
 
-Vite will normally serve the dashboard at `http://localhost:5173`.
+Open `http://localhost:5173`.
 
-The frontend connects to `http://localhost:8000` by default. To override it, create `frontend/.env` with:
+The frontend connects to `http://localhost:8000` by default. To override it:
 
 ```text
 VITE_API_BASE=http://localhost:8000
 ```
 
-### 3. Verify the production build
+### 3. Production build check
 
 ```powershell
 cd frontend
 npm run build
 ```
 
-### 4. Preview the production build locally
+### 4. Preview production build
 
 ```powershell
-cd frontend
 npm run preview
 ```
 
 ## 5-Minute Pitch Flow
 
-1. Open the dashboard and point out **Razorpay Hackathon Sandbox | Test Mode Active | Simulated Gateway**.
-2. Click **Seed Data**.
-3. Show the live risk, recovered amount, recovery rate, open cases and escalated cases.
-4. Click **Run Batch Recovery** and show the backend-returned recovery metrics.
-5. Click **Arm Failure Simulation**. The control turns red and warns that the next execution will escalate.
+1. Show **Razorpay Hackathon Sandbox | Test Mode Active | Simulated Gateway**.
+2. Click **Seed Data** and show the recovery queue.
+3. Point out live **At Risk**, **Recovered**, **Recovery Rate**, **Open Cases**, and **Escalated Cases**.
+4. Click **Run Batch Recovery** and show the returned metrics modal and recovery toast.
+5. Click **Arm Failure Simulation**. The control becomes red and explicitly says the next execution will escalate.
 6. Execute an OPEN case.
-7. Show the bright-red **ESCALATED TO HUMAN** state and the toast: **Escalated to Human Review due to gateway failure.**
-8. Click **View Compliance Audit** and show the backend audit events proving the gated workflow.
+7. Show the bright-red **ESCALATED TO HUMAN** badge and the human-review toast.
+8. Click **View Compliance Audit** and show the backend events proving diagnosis, policy gating, execution, and escalation.
 
 ## Verified API Contract
 
@@ -111,6 +110,6 @@ Execution payload:
 
 The deterministic failure simulation returns `status: "needs_human_review"` and is rendered by the frontend as **ESCALATED TO HUMAN**.
 
-## Development
+## Development Boundary
 
-Backend and frontend are developed independently against the shared API contract in `docs/api-contract.md`. The backend is locked for the final demo; frontend pitch polish lives on `frontend-dev`.
+Backend and frontend are developed independently against the shared API contract. The backend is locked for the final demo; all pitch UI work belongs on `frontend-dev`. Do not add production payment credentials or real money movement to this project.
