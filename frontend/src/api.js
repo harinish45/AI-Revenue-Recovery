@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
 
 async function request(path, options = {}) {
   const response = await fetch(`${API_BASE}${path}`, {
@@ -13,10 +13,10 @@ async function request(path, options = {}) {
   return payload;
 }
 
-const normalizeQuery = (params) => String(params || '').replaceAll('page_size=', 'limit=');
 const normalizeCase = (item) => ({
   ...item,
-  customer: item.customer || { id: item.customer_id, name: item.customer_name || 'Unknown' },
+  customer: item.customer || { id: item.customer_id, name: item.customer_name || item.payment?.customer_name || 'Unknown' },
+  amount: item.amount ?? item.payment?.amount ?? item.amount_at_risk ?? 0,
   risk_level: String(item.risk_level || '').toUpperCase(),
   recommended_action: String(item.recommended_action || '').toUpperCase(),
   status: String(item.status || item.recovery_status || item.action_status || '').toUpperCase(),
@@ -28,16 +28,21 @@ const normalizeCases = (payload) => {
 };
 const normalizeAudit = (payload) => {
   const items = Array.isArray(payload) ? payload : (payload?.items || []);
-  return { ...(Array.isArray(payload) ? {} : payload), items: items.map((event) => ({ ...event, event_type: String(event.event_type || '').toUpperCase(), result: String(event.result || '').toUpperCase() })) };
+  return { ...(Array.isArray(payload) ? {} : payload), items: items.map((event) => ({
+    ...event,
+    event_type: String(event.event_type || '').toUpperCase(),
+    result: String(event.result || '').toUpperCase(),
+  })) };
 };
 
 export const api = {
-  getDashboard: () => request('/dashboard/summary'),
-  getCases: (params = '') => request(`/cases/${normalizeQuery(params)}`).then(normalizeCases),
-  getCase: (id) => request(`/cases/${id}`).then(normalizeCase),
-  executeRecovery: (id) => request('/execution/execute', { method: 'POST', body: JSON.stringify({ case_id: Number(id) }) }),
-  getAudit: (params = '') => request(`/audit/${normalizeQuery(params)}`).then(normalizeAudit),
-  seedDemo: () => request('/demo/seed', { method: 'POST' }),
-  resetDemo: () => request('/demo/reset', { method: 'POST' }),
-  runRecoveryBatch: () => request('/batch/process', { method: 'POST', body: JSON.stringify({}) }),
+  getDashboard: () => request('/api/dashboard/summary'),
+  getCases: () => request('/api/cases/').then(normalizeCases),
+  getCase: (id) => request(`/api/cases/${id}`).then(normalizeCase),
+  executeRecovery: (id) => request('/api/execution/execute', { method: 'POST', body: JSON.stringify({ case_id: Number(id) }) }),
+  getAudit: () => request('/api/audit/').then(normalizeAudit),
+  seedDemo: () => request('/api/demo/seed', { method: 'POST' }),
+  resetDemo: () => request('/api/demo/reset', { method: 'POST' }),
+  runRecoveryBatch: () => request('/api/demo/recovery-batch', { method: 'POST' }),
+  simulateFailure: () => request('/api/demo/simulate-failure', { method: 'POST' }),
 };
