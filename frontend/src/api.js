@@ -13,13 +13,14 @@ async function request(path, options = {}) {
   return payload;
 }
 
+const toOpen = (s) => (String(s || '').toUpperCase() === 'PENDING' ? 'OPEN' : String(s || '').toUpperCase());
 const normalizeCase = (item) => ({
   ...item,
   customer: item.customer || { id: item.customer_id, name: item.customer_name || item.payment?.customer_name || 'Unknown' },
   amount: item.amount ?? item.payment?.amount ?? item.amount_at_risk ?? 0,
   risk_level: String(item.risk_level || '').toUpperCase(),
   recommended_action: String(item.recommended_action || '').toUpperCase(),
-  status: String(item.status || item.recovery_status || item.action_status || '').toUpperCase(),
+  status: toOpen(item.status || item.recovery_status || item.action_status || ''),
   max_retries: item.max_retries ?? 2,
 });
 const normalizeCases = (payload) => {
