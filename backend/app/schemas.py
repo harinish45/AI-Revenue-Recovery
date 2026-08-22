@@ -63,6 +63,9 @@ class CaseDetailResponse(BaseModel):
     class Config:
         from_attributes = True
 
+class ExecuteRequest(BaseModel):
+    case_id: str
+
 class ExecuteResponse(BaseModel):
     case_id: str
     status: str
@@ -95,11 +98,14 @@ class SeedResponse(BaseModel):
     message: str
 
 class BatchResponse(BaseModel):
-    processed: int
+    total_cases: int
+    attempted: int
     successful: int
     failed: int
     escalated: int
-    recovered_amount: float
+    amount_at_risk: float
+    amount_recovered: float
+    recovery_rate: float
 
 class SimulateFailureResponse(BaseModel):
     case_id: str

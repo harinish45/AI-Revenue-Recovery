@@ -13,7 +13,7 @@ def execute_recovery(db: Session, case: RecoveryCase):
         flag.simulate_failure_active = False
         db.commit()
         
-        case.recovery_status = "failed"
+        case.recovery_status = "needs_human_review"
         case.retry_count += 1
         db.commit()
         
@@ -22,7 +22,7 @@ def execute_recovery(db: Session, case: RecoveryCase):
         
         return {
             "case_id": case.id,
-            "status": "failed",
+            "status": "needs_human_review",
             "recovered_amount": 0.0,
             "message": "Simulated gateway failure handled gracefully. Escalated to human review.",
             "audit_event_id": f"AUD-{uuid.uuid4().hex[:6].upper()}"
@@ -38,7 +38,7 @@ def execute_recovery(db: Session, case: RecoveryCase):
         log_event(db, case.id, "policy_check_failed", reason="; ".join(reasons), action="blocked", result="blocked")
         return {
             "case_id": case.id,
-            "status": "blocked",
+            "status": case.recovery_status,
             "recovered_amount": 0.0,
             "message": f"Policy blocked: {'; '.join(reasons)}",
             "audit_event_id": f"AUD-{uuid.uuid4().hex[:6].upper()}"

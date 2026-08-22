@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .database import engine, Base
-from .routers import dashboard, cases, execution, audit, demo
+from .routers import dashboard, cases, execution, audit, demo, batch
 from .config import settings
 
 Base.metadata.create_all(bind=engine)
@@ -17,10 +17,19 @@ app.add_middleware(
 )
 
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
+
+# Recovery routes (Standard Contract)
 app.include_router(cases.router, prefix="/api/recovery", tags=["Recovery"])
-app.include_router(execution.router, prefix="/api/recovery", tags=["Recovery"])
-app.include_router(audit.router, prefix="/api/recovery", tags=["Recovery"])
+app.include_router(execution.router, prefix="/api/recovery", tags=["Recovery Execution"])
+app.include_router(audit.router, prefix="/api/recovery", tags=["Recovery Audit"])
+
+# Alt Routes (Final Prompt Requirements for guaranteed frontend compatibility)
+app.include_router(cases.router, prefix="/api", tags=["Cases Alt"])
+app.include_router(execution.router, prefix="/api/execution", tags=["Execution Alt"])
+app.include_router(audit.router, prefix="/api", tags=["Audit Alt"])
+
 app.include_router(demo.router, prefix="/api/demo", tags=["Demo"])
+app.include_router(batch.router, prefix="/api/batch", tags=["Batch"])
 
 @app.get("/")
 def root():
