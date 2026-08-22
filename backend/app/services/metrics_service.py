@@ -3,29 +3,22 @@ from sqlalchemy import func
 from ..models import Payment, RecoveryCase, Execution
 
 def get_metrics(db: Session):
-    total_transactions = db.query(Payment).count()
-    failed_payments = db.query(Payment).filter(Payment.status == "failed").count()
+    total_payments = db.query(Payment).count()
     
-    total_revenue = db.query(func.sum(Payment.amount)).filter(Payment.status == "success").scalar() or 0.0
-    revenue_at_risk = db.query(func.sum(RecoveryCase.amount_at_risk)).filter(RecoveryCase.recovery_status == "pending").scalar() or 0.0
-    recovered_amount = db.query(func.sum(RecoveryCase.recovered_amount)).scalar() or 0.0
+    total_at_risk = db.query(func.sum(Payment.amount)).filter(
+        Payment.status.in_(["failed", "abandoned"])
+    ).scalar() or 0.0
     
-    recovery_attempts = db.query(Execution).count()
-    successful_recoveries = db.query(RecoveryCase).filter(RecoveryCase.recovery_status == "recovered").count()
-    failed_recoveries = db.query(RecoveryCase).filter(RecoveryCase.recovery_status == "failed").count()
-    escalated_cases = db.query(RecoveryCase).filter(RecoveryCase.recovery_status.in_(["needs_human_review", "blocked"])).count()
+    total_recovered = db.query(func.sum(Execution.amount_recovered)).scalar() or 0.0
+    recovery_rate = (total_recovered / total_at_risk * 100) if total_at_risk > 0 else 0.0
+    open_cases = db.query(RecoveryCase).filter(RecoveryCase.status == "OPEN").count()
+    escalated_cases = db.query(RecoveryCase).filter(RecoveryCase.status == "ESCALATED").count()
     
-    recovery_rate = (successful_recoveries / (successful_recoveries + failed_recoveries + escalated_cases) * 100) if (successful_recoveries + failed_recoveries + escalated_cases) > 0 else 0.0
-
     return {
-        "total_revenue": total_revenue,
-        "revenue_at_risk": revenue_at_risk,
-        "recovered_amount": recovered_amount,
-        "recovery_rate": round(recovery_rate, 1),
-        "total_transactions": total_transactions,
-        "failed_payments": failed_payments,
-        "recovery_attempts": recovery_attempts,
-        "successful_recoveries": successful_recoveries,
-        "failed_recoveries": failed_recoveries,
+        "total_payments": total_payments,
+        "total_at_risk": total_at_risk,
+        "total_recovered": total_recovered,
+        "recovery_rate_percent": round(recovery_rate, 2),
+        "open_cases": open_cases,
         "escalated_cases": escalated_cases
     }

@@ -1,116 +1,53 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import Optional
 
-class DashboardSummary(BaseModel):
-    total_revenue: float
-    revenue_at_risk: float
-    recovered_amount: float
-    recovery_rate: float
-    total_transactions: int
-    failed_payments: int
-    recovery_attempts: int
-    successful_recoveries: int
-    failed_recoveries: int
-    escalated_cases: int
-
-class CaseOut(BaseModel):
-    id: str
-    payment_id: str
-    customer_id: str
-    customer_name: str
+class PaymentOut(BaseModel):
+    id: int
+    transaction_id: str
+    customer_email: str
+    customer_name: Optional[str] = None
     amount: float
-    currency: str
-    failure_category: str
-    failure_reason: Optional[str]
-    risk_level: str
-    recommended_action: str
-    action_status: str
-    recovery_status: str
-    recovered_amount: float
-    retry_count: int
-    created_at: datetime
-
-    class Config:
-        from_attributes = True
-
-class CasesListResponse(BaseModel):
-    items: List[CaseOut]
-    page: int
-    limit: int
-    total: int
-
-class CaseDetailResponse(BaseModel):
-    id: str
-    payment_id: str
-    customer_id: str
-    customer_name: str
-    amount_at_risk: float
-    risk_level: str
-    failure_category: str
-    failure_reason: Optional[str]
-    recommended_action: str
-    reason: str
-    evidence: Dict[str, Any]
-    policy_checks: Dict[str, Any]
-    retry_count: int
-    max_retries: int
-    recovery_status: str
-    recovered_amount: float
-    created_at: datetime
-    updated_at: datetime
-    
-    class Config:
-        from_attributes = True
-
-class ExecuteRequest(BaseModel):
-    case_id: str
-
-class ExecuteResponse(BaseModel):
-    case_id: str
     status: str
-    recovered_amount: float
-    message: str
-    audit_event_id: str
+    failure_code: str
+    timestamp: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class RecoveryCaseOut(BaseModel):
+    id: int
+    payment_id: int
+    status: str
+    retry_count: int
+    diagnosis: Optional[str] = None
+    recommended_action: Optional[str] = None
+    risk_level: Optional[str] = None
+    payment: Optional[PaymentOut] = None
+    model_config = ConfigDict(from_attributes=True)
 
 class AuditLogOut(BaseModel):
-    id: str
-    case_id: Optional[str]
+    id: int
+    case_id: Optional[int] = None
     event_type: str
-    actor: str
-    decision: Optional[str]
-    reason: Optional[str]
-    action: Optional[str]
-    result: Optional[str]
+    details: dict
     timestamp: datetime
+    model_config = ConfigDict(from_attributes=True)
 
-    class Config:
-        from_attributes = True
+class DashboardSummary(BaseModel):
+    total_payments: int
+    total_at_risk: float
+    total_recovered: float
+    recovery_rate_percent: float
+    open_cases: int
+    escalated_cases: int
 
-class AuditListResponse(BaseModel):
-    items: List[AuditLogOut]
-    page: int
-    limit: int
-    total: int
+class ExecuteRequest(BaseModel):
+    case_id: int
 
-class SeedResponse(BaseModel):
-    created_records: int
-    message: str
-
-class BatchResponse(BaseModel):
-    total_cases: int
-    attempted: int
-    successful: int
-    failed: int
-    escalated: int
-    amount_at_risk: float
+class ExecutionOut(BaseModel):
+    id: int
+    case_id: int
+    action_taken: str
+    result: str
     amount_recovered: float
-    recovery_rate: float
-
-class SimulateFailureResponse(BaseModel):
-    case_id: str
-    status: str
-    message: str
-
-class ErrorResponse(BaseModel):
-    error: Dict[str, str]
+    timestamp: datetime
+    model_config = ConfigDict(from_attributes=True)
