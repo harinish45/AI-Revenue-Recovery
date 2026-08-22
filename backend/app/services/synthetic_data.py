@@ -1,34 +1,25 @@
 import random
-import string
+from datetime import datetime, timedelta
+from ..models import Payment
 from sqlalchemy.orm import Session
-from app.models import Payment, PaymentStatus
 
-FAILURE_CODES = [
-    ("gateway_timeout", "Payment gateway timed out"),
-    ("insufficient_funds", "Customer has insufficient funds"),
-    ("bank_maintenance", "Bank under maintenance"),
-    ("network_error", "Network error during transaction"),
-    ("user_cancelled", "User cancelled the transaction"),
-    ("invalid_card", "Invalid card details"),
-]
-
-def generate_synthetic_data(db: Session, count: int = 100):
-    payments = []
-    for i in range(count):
-        code, reason = random.choice(FAILURE_CODES)
-        amount = round(random.uniform(100.0, 75000.0), 2)
-        payment = Payment(
-            razorpay_payment_id=f"pay_{''.join(random.choices(string.ascii_lowercase + string.digits, k=14))}",
-            customer_id=f"cust_{''.join(random.choices(string.ascii_lowercase + string.digits, k=14))}",
-            customer_email=f"customer{i}@example.com",
-            customer_phone=f"+9198765{random.randint(10000, 99999)}",
-            amount=amount,
-            status=PaymentStatus.FAILED,
-            failure_code=code,
-            failure_reason=reason,
-        )
-        payments.append(payment)
+def generate_synthetic_payments(db: Session, count: int = 100):
+    failure_codes = [
+        "insufficient_funds", "gateway_timeout", "bank_maintenance", 
+        "invalid_card", "user_cancelled", "expired_card"
+    ]
+    statuses = ["failed", "abandoned"]
     
-    db.add_all(payments)
+    for i in range(count):
+        tx_id = f"tx_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}_{i}"
+        payment = Payment(
+            transaction_id=tx_id,
+            customer_email=f"user{i}@example.com",
+            amount=round(random.uniform(500.0, 60000.0), 2),
+            status=random.choice(statuses),
+            failure_code=random.choice(failure_codes),
+            timestamp=datetime.utcnow() - timedelta(hours=random.randint(1, 48))
+        )
+        db.add(payment)
     db.commit()
-    return len(payments)
+    return count

@@ -1,24 +1,27 @@
+from ..models import RecoveryCase, Payment
+from ..services.audit_service import log_event
 from sqlalchemy.orm import Session
-from app.models import RecoveryCase, RecoveryStatus, Payment
-from app.core.config import settings
 
-def check_policies(db: Session, case_id: int):
-    case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).first()
-    if not case:
-        return False, "Case not found"
-        
-    payment = case.payment
+MAX_RETRIES = 3
+MAX_AMOUNT = 50000.0
+
+def evaluate_policy(db: Session, case: RecoveryCase, payment: Payment) -> tuple:
+    if case.status in ["RECOVERED", "HALTED", "ESCALATED"]:
+        return False, f"Policy blocked: Case already in terminal state {case.status}"
+
+    if case.retry_count >= MAX_RETRIES:
+        return False, "Policy blocked: Max retries exceeded"
+
+    if payment.amount > MAX_AMOUNT:
+        return False, "Policy blocked: High value transaction requires human escalation"
+
+    if payment.status not in ["failed", "abandoned"]:
+        return False, f"Policy blocked: Payment status {payment.status} is not eligible"
+
+    log_event(db, case.id, "POLICY_CHECK", {
+        "status": "APPROVED",
+        "retry_count": case.retry_count,
+        "amount": payment.amount
+    })
     
-    if case.retry_count >= settings.MAX_RETRIES:
-        return False, f"Max retries ({settings.MAX_RETRIES}) exceeded"
-        
-    if payment.amount > settings.MAX_AMOUNT:
-        return False, f"Amount {payment.amount} exceeds max allowed {settings.MAX_AMOUNT}"
-        
-    if case.status not in [RecoveryStatus.OPEN, RecoveryStatus.NUDGED]:
-        return False, f"Case status {case.status} is not eligible for execution"
-        
-    if payment.amount > settings.ESCALATION_THRESHOLD:
-        return False, "ESCALATE"
-        
-    return True, "Approved"
+    return True, "Policy approved"

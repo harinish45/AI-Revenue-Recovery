@@ -1,13 +1,15 @@
+from ..models import AuditLog
 from sqlalchemy.orm import Session
-from app.models import AuditLog
-from typing import Dict, Any
+from datetime import datetime
 
-def log_action(db: Session, case_id: int, action: str, details: Dict[str, Any]):
+def log_event(db: Session, case_id: int, event_type: str, details: dict):
     log = AuditLog(
-        recovery_case_id=case_id,
-        action=action,
-        details=details
+        case_id=case_id,
+        event_type=event_type,
+        details=details,
+        timestamp=datetime.utcnow()
     )
     db.add(log)
     db.commit()
+    db.refresh(log)
     return log

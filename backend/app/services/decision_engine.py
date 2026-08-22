@@ -1,28 +1,36 @@
+from ..models import Payment
+from ..services.audit_service import log_event
 from sqlalchemy.orm import Session
-from app.models import RecoveryCase, RecoveryStatus, Payment
 
-def diagnose_and_strategize(db: Session, case_id: int):
-    case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).first()
-    if not case:
-        return False, "Case not found"
-    
-    payment = case.payment
-    failure_code = payment.failure_code
-    
-    if failure_code == "insufficient_funds":
-        diagnosis = "Customer lacks funds at the moment. Best to offer EMI or a gentle reminder later."
-        strategy = "send_whatsapp_emi_offer"
-    elif failure_code == "gateway_timeout" or failure_code == "network_error":
-        diagnosis = "Technical failure on gateway or network. High chance of success on retry."
-        strategy = "send_1_click_retry_link"
-    elif failure_code == "user_cancelled":
-        diagnosis = "User intentionally dropped off. Might need a discount or assistance."
-        strategy = "send_assistance_offer"
+def diagnose_and_recommend(db: Session, payment: Payment) -> tuple:
+    code = payment.failure_code
+    diagnosis = ""
+    action = ""
+
+    if code == "insufficient_funds":
+        diagnosis = "Customer lacks funds. High intent, low liquidity."
+        action = "OFFER_SPLIT_PAYMENT"
+    elif code in ["gateway_timeout", "bank_maintenance"]:
+        diagnosis = "Transient banking/network issue."
+        action = "SEND_RETRY_LINK"
+    elif code == "invalid_card":
+        diagnosis = "Card details incorrect or fraudulent attempt."
+        action = "HALT_AND_ALERT"
+    elif code == "expired_card":
+        diagnosis = "Card on file is expired."
+        action = "REQUEST_CARD_UPDATE"
+    elif code == "user_cancelled":
+        diagnosis = "Customer abandoned checkout intentionally."
+        action = "SEND_REMINDER_NUDGE"
     else:
-        diagnosis = "Generic failure. Standard retry."
-        strategy = "send_generic_retry_link"
-        
-    case.root_cause_diagnosis = diagnosis
-    case.intervention_strategy = strategy
-    db.commit()
-    return True, "Diagnosed successfully"
+        diagnosis = "Unknown failure."
+        action = "ESCALATE_TO_HUMAN"
+
+    log_event(db, None, "LLM_DIAGNOSIS", {
+        "payment_id": payment.id,
+        "failure_code": code,
+        "diagnosis": diagnosis,
+        "recommended_action": action
+    })
+    
+    return diagnosis, action
