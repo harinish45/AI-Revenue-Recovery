@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: recoverai
+    runtime: python
+    buildCommand: "pip install -r requirements.txt && cd ../frontend && npm install && npm run build && cd ../backend"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    rootDir: backend
+    envVars:
+      - key: DATABASE_URL
+        value: sqlite:///./recoverai.db
+      - key: APP_ENV
+        value: production
+      - key: CORS_ORIGINS
+        value: "*"
+      # Optional: Add LLM provider keys in Render dashboard
+      # - key: GROQ_API_KEY
+      #   value: your_key

@@ -1,9 +1,11 @@
 fastapi
-uvicorn
+uvicorn[standard]
 sqlalchemy
 pydantic
 pydantic-settings
 python-dotenv
 razorpay
+httpx
 pytest
+pytest-asyncio
 httpx
