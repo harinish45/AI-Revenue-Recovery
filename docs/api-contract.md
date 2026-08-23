@@ -1,69 +1,40 @@
 # RecoverAI API Contract
 
-Base URL: `http://localhost:8000/api`
+## Base URL
+`http://localhost:8000`
 
-All responses are JSON. Financial actions are server-side gated. The frontend never performs payment actions directly.
+## Endpoints
 
-## Current backend routes
+### Demo Controls
+- `POST /api/demo/seed`
+  - Action: Wipes DB, generates 100 deterministic synthetic payments and recovery cases.
+  - Response: `{"message": "Successfully seeded 100 payments and generated recovery cases."}`
+- `POST /api/demo/reset`
+  - Action: Wipes DB.
+  - Response: `{"message": "Database reset complete."}`
+- `POST /api/demo/recovery-batch`
+  - Action: Executes recovery on all OPEN cases.
+  - Response: `{"total_cases": int, "attempted": int, "successful": int, "failed": int, "escalated": int, "amount_at_risk": float, "amount_recovered": float, "recovery_rate": float}`
+- `POST /api/demo/simulate-failure`
+  - Action: Arms a deterministic flag so the NEXT execution fails gracefully and escalates.
+  - Response: `{"status": "armed", "message": "Simulated gateway failure armed for the next recovery execute."}`
 
-The backend implementation on `backend-dev` currently exposes these routes:
+### Dashboard & Metrics
+- `GET /api/dashboard/summary`
+  - Response: `{"total_payments": int, "total_at_risk": float, "total_recovered": float, "recovery_rate_percent": float, "open_cases": int, "escalated_cases": int}`
 
-- `GET /dashboard/summary`
-- `GET /cases/?skip=0&limit=100`
-- `GET /cases/{case_id}`
-- `POST /execution/execute` with `{"case_id": <number>}`
-- `GET /audit/?skip=0&limit=100`
-- `POST /batch/process`
-- Demo routes under `/demo` as implemented by the backend
+### Cases
+- `GET /api/cases/`
+  - Response: Array of cases with nested payment details (including `customer_name` and `risk_level`).
+- `GET /api/cases/{case_id}`
+  - Response: Single case object.
 
-## GET /dashboard/summary
-Returns aggregate metrics for the current dataset.
+### Execution
+- `POST /api/execution/execute`
+  - Body: `{"case_id": int}`
+  - Response: `{"status": str, "action": str, "result": str, "amount_recovered": float}`
+  - Note: If failure simulation is armed, returns `{"status": "needs_human_review", "recovered_amount": 0.0, "message": "..."}`
 
-Expected metrics include total transactions, total revenue, failed payments, revenue at risk, recovered amount and recovery rate.
-
-## GET /cases/
-Optional query parameters: `skip`, `limit`.
-
-The current backend returns an array of `RecoveryCase` objects. The frontend adapter accepts either an array or the earlier `{items,total,...}` envelope.
-
-## GET /cases/{id}
-Returns one recovery case.
-
-## POST /execution/execute
-Request:
-
-```json
-{"case_id": 1}
-```
-
-The backend must enforce diagnosis, policy checks, retry bounds, duplicate protection and escalation before execution.
-
-## GET /audit/
-Optional query parameters: `skip`, `limit`.
-
-Returns audit events ordered newest first.
-
-## POST /batch/process
-Runs the backend batch case-generation workflow. The request body follows the backend `BatchProcessRequest` schema.
-
-## Demo
-
-Demo routes are backend-owned. Before final integration, Qwen must document the exact request/response for:
-
-- `POST /demo/seed`
-- `POST /demo/reset`
-- failure simulation, if implemented
-
-## Frontend normalization
-
-The frontend normalizes:
-
-- `customer_name` → `customer.name`
-- `risk_level` → uppercase
-- `recommended_action` → uppercase
-- `status` / `recovery_status` / `action_status` → `status`
-- array responses → `{items: [...]}` internally
-
-## Safety
-
-All financial actions are Test Mode only, bounded by backend policy, and auditable. Frontend validation is never the security boundary.
+### Audit
+- `GET /api/audit/`
+  - Response: Array of audit logs linked to `case_id`.
