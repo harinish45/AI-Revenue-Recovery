@@ -18,6 +18,34 @@ RecoverAI detects failed payments, determines a bounded recovery intervention, e
 
 All financial actions are limited to Razorpay Test Mode / simulated gateway behavior. No production money movement is used for the hackathon demo. Secrets must never be committed.
 
+## 🚀 Quick Start (one command)
+
+Requires **Node.js 18+** and **Python 3.10–3.12**. Everything else (venv, dependencies, `.env` files) is set up automatically on first run.
+
+**Windows:**
+```bat
+git clone https://github.com/harinish45/AI-Revenue-Recovery.git
+cd AI-Revenue-Recovery
+start.bat
+```
+
+**macOS / Linux:**
+```bash
+git clone https://github.com/harinish45/AI-Revenue-Recovery.git
+cd AI-Revenue-Recovery
+chmod +x start.sh
+./start.sh
+```
+
+The script starts both servers and opens your browser:
+
+| Service | URL |
+|---|---|
+| RecoverAI Web App | http://localhost:5173 |
+| FastAPI + Swagger docs | http://localhost:8000/docs |
+
+Then in the UI: click **Seed Data → Run Batch Recovery → Arm Failure Simulation → Execute** an open case.
+
 ## Architecture
 
 ```text
