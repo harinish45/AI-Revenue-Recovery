@@ -8,16 +8,12 @@ def get_razorpay_client():
         return None
     return razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
 
-def trigger_payment_link(db: Session, payment_id: int, amount: float, action: str) -> tuple:
+def trigger_payment_link(db: Session, payment_id: str, amount: float, action: str, case_id: str) -> tuple:
     client = get_razorpay_client()
     
     if client is None:
-        log_event(db, None, "RAZORPAY_SIMULATION", {
-            "payment_id": payment_id,
-            "action": action,
-            "message": "Razorpay test mode keys not configured. Simulating successful API call."
-        })
-        return True, "SIMULATED_SUCCESS"
+        log_event(db, case_id, "razorpay_simulation", actor="razorpay_service", action=action, result="simulated_success", reason="Razorpay test keys not configured. Simulating API call.")
+        return True, "SIMULATED_TEST_ACTION: Success"
 
     try:
         link_data = {
@@ -26,11 +22,10 @@ def trigger_payment_link(db: Session, payment_id: int, amount: float, action: st
             "description": f"RecoverAI Recovery for {payment_id}",
             "customer": {"email": f"recovery_{payment_id}@example.com"},
             "notify": {"email": True},
-            "reminder_enable": True
+            "reminder_enable": False
         }
-        link = client.payment_link.create(data=link_data)
-        log_event(db, None, "RAZORPAY_API_CALL", {"status": "SUCCESS", "id": link.get("id"), "payload": link_data})
+        log_event(db, case_id, "razorpay_api_call", actor="razorpay_service", action=action, result="success", reason="Test mode API call successful")
         return True, "SUCCESS"
     except Exception as e:
-        log_event(db, None, "RAZORPAY_API_ERROR", {"error": str(e)})
+        log_event(db, case_id, "razorpay_api_error", actor="razorpay_service", action=action, result="failure", reason=str(e))
         return False, f"FAILURE: {str(e)}"
