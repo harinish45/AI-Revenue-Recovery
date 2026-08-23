@@ -1,40 +1,111 @@
 import random
-from datetime import datetime, timedelta, timezone
-from ..models import Payment
+from datetime import datetime, timedelta
+from ..models import Customer, Payment, RecoveryCase, AuditLog, DemoFlag
 from sqlalchemy.orm import Session
+import uuid
+from .decision_engine import diagnose_and_recommend
+from .audit_service import log_event
 
-FIRST_NAMES = ["Aarav", "Vivaan", "Aditya", "Vihaan", "Arjun", "Sai", "Reyansh", "Ayaan", "Krishna", "Ishaan",
-               "Ananya", "Diya", "Myra", "Sara", "Aadhya", "Kiara", "Siya", "Ahana", "Navya", "Riya"]
-LAST_NAMES = ["Sharma", "Verma", "Singh", "Kumar", "Patel", "Reddy", "Nair", "Iyer", "Gupta", "Mehta"]
+INDIAN_NAMES = ["Arjun Kumar", "Priya Sharma", "Rahul Verma", "Anjali Nair", "Vikram Singh", "Sneha Patel", "Rohan Gupta", "Kavya Reddy", "Amit Joshi", "Deepika Rao"]
+FAILURE_REASONS = [
+    ("gateway_timeout", "Gateway timeout", "temporary_gateway_failure"),
+    ("insufficient_funds", "Insufficient funds", "customer_liquidity_issue"),
+    ("bank_declined", "Bank declined transaction", "bank_rejection"),
+    ("invalid_card", "Invalid card details", "invalid_instrument"),
+    ("user_abandoned", "User abandoned checkout", "user_abandonment")
+]
 
-def generate_synthetic_payments(db: Session, count: int = 100):
-    failure_codes = [
-        "insufficient_funds", "gateway_timeout", "bank_maintenance", 
-        "invalid_card", "user_cancelled", "expired_card",
-        "3ds_authentication_failed", "upi_pin_retry_limit", "mandate_revoked"
-    ]
-    statuses = ["failed", "abandoned"]
-    
-    random.seed(42)
-    
-    for i in range(count):
-        first = random.choice(FIRST_NAMES)
-        last = random.choice(LAST_NAMES)
-        name = f"{first} {last}"
-        email = f"{first.lower()}.{last.lower()}{i}@example.com"
-        
-        tx_id = f"pay_demo_{i+1:04d}"
-        status = random.choice(statuses)
-        
-        payment = Payment(
-            transaction_id=tx_id,
-            customer_email=email,
-            customer_name=name,
-            amount=round(random.uniform(500.0, 60000.0), 2),
-            status=status,
-            failure_code=random.choice(failure_codes),
-            timestamp=datetime.now(timezone.utc) - timedelta(hours=random.randint(1, 48))
-        )
-        db.add(payment)
+def generate_synthetic_data(db: Session):
+    db.query(AuditLog).delete()
+    db.query(RecoveryCase).delete()
+    db.query(Payment).delete()
+    db.query(Customer).delete()
+    db.query(DemoFlag).delete()
     db.commit()
-    return count
+
+    flag = DemoFlag(id=1, simulate_failure_active=False)
+    db.add(flag)
+
+    customers = []
+    for i in range(20):
+        c = Customer(
+            id=f"cus_{i+1:03d}",
+            name=random.choice(INDIAN_NAMES),
+            email=f"user{i+1}@example.com",
+            phone=f"+9198{random.randint(10000000, 99999999)}"
+        )
+        customers.append(c)
+    db.add_all(customers)
+    db.commit()
+
+    payments = []
+    for i in range(70):
+        p = Payment(
+            id=f"pay_success_{i+1:03d}",
+            customer_id=random.choice(customers).id,
+            amount=round(random.uniform(500, 15000), 2),
+            status="success",
+            timestamp=datetime.utcnow() - timedelta(days=random.randint(1, 30))
+        )
+        payments.append(p)
+        
+    for i in range(20):
+        reason_code, reason_text, category = random.choice(FAILURE_REASONS)
+        p = Payment(
+            id=f"pay_fail_{i+1:03d}",
+            customer_id=random.choice(customers).id,
+            amount=round(random.uniform(1000, 25000), 2),
+            status="failed",
+            failure_reason=reason_text,
+            timestamp=datetime.utcnow() - timedelta(hours=random.randint(1, 48))
+        )
+        payments.append(p)
+        
+    for i in range(10):
+        p = Payment(
+            id=f"pay_other_{i+1:03d}",
+            customer_id=random.choice(customers).id,
+            amount=round(random.uniform(500, 5000), 2),
+            status=random.choice(["pending", "abandoned"]),
+            failure_reason="User abandoned checkout" if random.random() > 0.5 else None,
+            timestamp=datetime.utcnow() - timedelta(hours=random.randint(1, 24))
+        )
+        payments.append(p)
+        
+    db.add_all(payments)
+    db.commit()
+
+    cases_created = 0
+    failed_or_abandoned = db.query(Payment).filter(Payment.status.in_(["failed", "abandoned"])).all()
+    
+    for payment in failed_or_abandoned:
+        customer = db.query(Customer).filter(Customer.id == payment.customer_id).first()
+        category, action, reason, evidence, risk_level, failure_cat = diagnose_and_recommend(db, payment, customer)
+        
+        case = RecoveryCase(
+            id=f"RC-{payment.id[-6:].upper()}",
+            payment_id=payment.id,
+            customer_id=customer.id,
+            customer_name=customer.name,
+            amount_at_risk=payment.amount,
+            risk_level=risk_level,
+            failure_category=category,
+            recommended_action=action,
+            reason=reason,
+            evidence=evidence,
+            policy_checks={}, 
+            retry_count=0,
+            max_retries=2,
+            recovery_status="pending",
+            recovered_amount=0.0,
+            action_status="eligible",
+            created_at=payment.timestamp
+        )
+        db.add(case)
+        
+        log_event(db, case.id, "payment_failure_detected", reason="Payment failed or abandoned", action="case_created")
+        log_event(db, case.id, "analysis_completed", decision=action, reason=reason, action="diagnosis")
+        cases_created += 1
+
+    db.commit()
+    return len(payments), cases_created

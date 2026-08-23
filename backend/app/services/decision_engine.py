@@ -1,26 +1,47 @@
-from ..models import Payment
-from .llm_provider_chain import chain
+from ..models import Payment, Customer
+from sqlalchemy.orm import Session
 
-def diagnose_and_recommend(db, payment: Payment) -> tuple:
-    payment_data = {
-        "id": payment.id,
-        "amount": payment.amount,
-        "failure_code": payment.failure_code,
-        "status": payment.status
-    }
-    # In a real scenario, history would be fetched from DB
-    history = {"previous_success": 5, "previous_failures": 1}
+def diagnose_and_recommend(db: Session, payment: Payment, customer: Customer) -> tuple:
+    total_payments = db.query(Payment).filter(Payment.customer_id == customer.id).count()
+    successful_payments = db.query(Payment).filter(Payment.customer_id == customer.id, Payment.status == "success").count()
+    previous_failures = db.query(Payment).filter(Payment.customer_id == customer.id, Payment.status == "failed").count()
     
-    decision = chain.get_decision(payment_data, history)
+    success_rate = (successful_payments / total_payments * 100) if total_payments > 0 else 0
     
-    # Map LLM decision to existing action strings used by recovery_executor
-    action_map = {
-        "RETRY_PAYMENT": "SEND_RETRY_LINK",
-        "PAYMENT_LINK": "OFFER_SPLIT_PAYMENT",
-        "CUSTOMER_REMINDER": "SEND_REMINDER_NUDGE",
-        "HUMAN_REVIEW": "ESCALATE_TO_HUMAN"
+    reason_code = payment.failure_reason.lower() if payment.failure_reason else ""
+    
+    evidence = {
+        "total_payments": total_payments,
+        "successful_payments": successful_payments,
+        "previous_failures": previous_failures,
+        "success_rate_percent": round(success_rate, 1),
+        "current_retry_count": 0
     }
     
-    action = action_map.get(decision.decision, "ESCALATE_TO_HUMAN")
-    
-    return decision.reason, action
+    if "gateway" in reason_code or "timeout" in reason_code:
+        category = "temporary_gateway_failure"
+        risk_level = "low"
+        action = "retry_payment"
+        reason = "Transient gateway issue. Customer has good history. Safe to retry."
+    elif "insufficient" in reason_code:
+        category = "customer_liquidity_issue"
+        risk_level = "medium"
+        action = "payment_link" 
+        reason = "Customer lacks funds currently. Send payment link for deferred payment."
+    elif "bank" in reason_code:
+        category = "bank_rejection"
+        risk_level = "high"
+        action = "needs_human_review"
+        reason = "Bank declined. Requires manual verification or alternate payment method."
+    elif "invalid" in reason_code:
+        category = "invalid_instrument"
+        risk_level = "high"
+        action = "needs_human_review"
+        reason = "Invalid card details. Potential fraud or typo. Escalate."
+    else:
+        category = "user_abandonment"
+        risk_level = "low"
+        action = "customer_reminder"
+        reason = "User abandoned checkout. Gentle reminder might recover."
+        
+    return category, action, reason, evidence, risk_level, category
