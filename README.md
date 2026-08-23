@@ -1,124 +1,115 @@
-# RecoverAI — AI Revenue Recovery Platform
+# RecoverAI
 
-[![Razorpay Hackathon](https://img.shields.io/badge/Razorpay_Hackathon-Track_03-3d5af1.svg)](https://razorpay.com)
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-009688.svg)](https://fastapi.tiangolo.com)
-[![React 18](https://img.shields.io/badge/React-18-61dafb.svg)](https://react.dev)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+AI-powered revenue recovery for Razorpay Test Mode.
 
-> **RecoverAI** is an intelligent revenue recovery control center designed for **Razorpay Track 03 — AI Revenue Recovery**.
-> It transforms unstructured payment failure signals into diagnosed root causes, executes policy-guarded recovery interventions, and produces an immutable compliance audit trail.
+## Hackathon Track
 
----
+**Track 03 — AI Revenue Recovery**
 
-## 🌟 Pitch & Core Design Philosophy
+RecoverAI detects failed payments, determines a bounded recovery intervention, executes a safe recovery workflow, measures recovered revenue, and records an auditable trail.
 
-> **"We use AI strictly where unstructured text or error parsing is needed to diagnose root causes. For actual recovery execution, we intentionally built a deterministic, rules-based state machine."**
+## Repository Ownership
 
-1. **AI Intake & Diagnosis Layer**: Multi-provider LLM chain parses raw gateway failure codes and customer metrics into structured diagnosis, confidence, and recommended interventions.
-2. **Deterministic Policy Safety Layer**: Financial guardrails prevent unsafe retries (e.g. invalid cards, high-risk amounts, PCI compliance limits). The AI recommends; the policy engine decides.
-3. **Bounded Recovery Executor**: Executes retry links, split payments, card updates, or escalations via Razorpay adapter.
-4. **Immutable Audit Trail**: Every AI decision, policy check, and gateway interaction is logged for judge inspection and financial compliance.
+- `frontend/` — ChatGPT-owned frontend work
+- `backend/` — Qwen-owned backend work
+- `docs/` — shared architecture and API contract
 
----
+## Safety Boundary
 
-## ⚡ Multi-Provider AI Fallback Chain
+All financial actions are limited to Razorpay Test Mode / simulated gateway behavior. No production money movement is used for the hackathon demo. Secrets must never be committed.
 
-RecoverAI features zero-downtime AI diagnosis via a failover chain:
+## Architecture
 
-```
-[Payment Failure]
-       ↓
- 1. Groq (llama-3.1-70b-versatile)
-       ↓ (if 429 rate limit / timeout / no key)
- 2. OpenRouter (llama-3.1-70b-instruct)
-       ↓ (if unavailable)
- 3. Nvidia NIM (llama-3.1-70b-instruct)
-       ↓ (if unavailable)
- 4. OpenAI (gpt-4o-mini)
-       ↓ (if all unavailable)
- 5. Deterministic Fallback Engine (Zero API Keys Needed)
+```text
+Failed Payment → Detect → Diagnose → Decide → Policy Gate → Recovery Action → Result → Audit → Metrics
 ```
 
-- **Works 100% locally with ZERO API keys** (falls back gracefully to deterministic diagnosis engine).
-- **Supports API keys** for Groq, OpenRouter, Nvidia NIM, or OpenAI in `backend/.env`.
+## Run the Demo
 
----
+### 1. Start the backend
 
-## 🚀 One-Command Quickstart
+From the repository root, use a terminal for the backend:
 
-### Prerequisites
-- Node.js 18+
-- Python 3.10+
-
-### Run Demo (One Command)
-```bash
-npm run demo
-```
-This script automatically:
-1. Verifies Python & Node environments.
-2. Installs backend (`requirements.txt`) and frontend (`package.json`) dependencies.
-3. Starts the FastAPI backend on port `8000`.
-4. Starts the Vite React dashboard on port `5173`.
-5. Performs a health check on both services.
-
-Access the platform at:
-- **Dashboard**: [http://localhost:5173](http://localhost:5173)
-- **Backend API**: [http://localhost:8000](http://localhost:8000)
-- **Interactive Swagger Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
-- **Health Check**: [http://localhost:8000/health](http://localhost:8000/health)
-
----
-
-## 🎛️ Demo Controls (Dashboard)
-
-- **Seed Demo Data**: Generates 100 deterministic payment failures with complete customer metadata.
-- **Run Batch Recovery**: Executes policy-guarded AI recovery across all open cases in one click.
-- **Arm Failure Simulation**: Simulates gateway infrastructure failure to demonstrate automatic escalation to human review (`NEEDS_HUMAN_REVIEW`).
-- **View Compliance Audit**: Inspect real-time audit logs detailing LLM provider used, policy check outcomes, and execution details.
-- **Reset Demo**: Clears all database tables and resets simulation state.
-
----
-
-## 🧪 Testing
-
-Run backend pytest suite (44 unit & integration tests):
-```bash
+```powershell
 cd backend
-python -m pytest tests/ -v
+python -m venv .venv
+.\\.venv\\Scripts\\Activate.ps1
+pip install -r requirements.txt
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
----
+The API will be available at `http://localhost:8000`.
 
-## 📁 Repository Structure
+If the backend environment is already installed:
 
-```
-.
-├── backend/
-│   ├── app/
-│   │   ├── core/           # Core configuration & settings
-│   │   ├── models.py       # SQLAlchemy ORM schemas
-│   │   ├── schemas.py      # Pydantic v2 validation models
-│   │   ├── database.py     # SQLite connection & session
-│   │   ├── main.py         # FastAPI app & routing
-│   │   ├── routers/        # API endpoints (cases, dashboard, execution, audit, demo)
-│   │   └── services/       # AI provider chain, policy engine, recovery executor
-│   ├── tests/              # Pytest test suite (44 tests)
-│   └── requirements.txt
-├── frontend/
-│   ├── src/                # React dashboard (Inter font, dark fintech theme)
-│   │   ├── components/     # MetricsGrid, ActionCenter, CasesTable, AuditDrawer, etc.
-│   │   └── services/api.js # Normalized API client
-│   └── package.json
-├── scripts/
-│   └── start-demo.js       # One-command demo launcher
-├── railway.toml            # Railway.app PaaS deployment config
-├── render.yaml             # Render.com PaaS deployment config
-└── package.json            # Root npm orchestration
+```powershell
+cd backend
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
----
+### 2. Start the frontend
 
-## 🛡️ License
+Open a second terminal:
 
-MIT License. Developed for Razorpay Hackathon Track 03.
+```powershell
+cd frontend
+npm install
+npm run dev
+```
+
+Open `http://localhost:5173`.
+
+The frontend connects to `http://localhost:8000` by default. To override it:
+
+```text
+VITE_API_BASE=http://localhost:8000
+```
+
+### 3. Production build check
+
+```powershell
+cd frontend
+npm run build
+```
+
+### 4. Preview production build
+
+```powershell
+npm run preview
+```
+
+## 5-Minute Pitch Flow
+
+1. Show **Razorpay Hackathon Sandbox | Test Mode Active | Simulated Gateway**.
+2. Click **Seed Data** and show the recovery queue.
+3. Point out live **At Risk**, **Recovered**, **Recovery Rate**, **Open Cases**, and **Escalated Cases**.
+4. Click **Run Batch Recovery** and show the returned metrics modal and recovery toast.
+5. Click **Arm Failure Simulation**. The control becomes red and explicitly says the next execution will escalate.
+6. Execute an OPEN case.
+7. Show the bright-red **ESCALATED TO HUMAN** badge and the human-review toast.
+8. Click **View Compliance Audit** and show the backend events proving diagnosis, policy gating, execution, and escalation.
+
+## Verified API Contract
+
+```text
+POST /api/demo/seed
+POST /api/demo/reset
+GET  /api/dashboard/summary
+GET  /api/cases/
+POST /api/demo/recovery-batch
+POST /api/demo/simulate-failure
+POST /api/execution/execute
+GET  /api/audit/
+```
+
+Execution payload:
+
+```json
+{"case_id":"<OPEN_CASE_ID>"}
+```
+
+The deterministic failure simulation returns `status: "needs_human_review"` and is rendered by the frontend as **ESCALATED TO HUMAN**.
+
+## Development Boundary
+
+Backend and frontend are developed independently against the shared API contract. The backend is locked for the final demo; all pitch UI work belongs on `frontend-dev`. Do not add production payment credentials or real money movement to this project.

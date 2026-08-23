@@ -1,154 +1,69 @@
-# RecoverAI API Contract v1
+# RecoverAI API Contract
 
 Base URL: `http://localhost:8000/api`
 
-JSON requests/responses unless otherwise noted.
+All responses are JSON. Financial actions are server-side gated. The frontend never performs payment actions directly.
+
+## Current backend routes
+
+The backend implementation on `backend-dev` currently exposes these routes:
+
+- `GET /dashboard/summary`
+- `GET /cases/?skip=0&limit=100`
+- `GET /cases/{case_id}`
+- `POST /execution/execute` with `{"case_id": <number>}`
+- `GET /audit/?skip=0&limit=100`
+- `POST /batch/process`
+- Demo routes under `/demo` as implemented by the backend
 
 ## GET /dashboard/summary
-Returns aggregate metrics calculated from backend data.
+Returns aggregate metrics for the current dataset.
 
-Response:
+Expected metrics include total transactions, total revenue, failed payments, revenue at risk, recovered amount and recovery rate.
+
+## GET /cases/
+Optional query parameters: `skip`, `limit`.
+
+The current backend returns an array of `RecoveryCase` objects. The frontend adapter accepts either an array or the earlier `{items,total,...}` envelope.
+
+## GET /cases/{id}
+Returns one recovery case.
+
+## POST /execution/execute
+Request:
+
 ```json
-{
-  "total_revenue": 124500,
-  "revenue_at_risk": 18750,
-  "recovered_amount": 7250,
-  "recovery_rate": 38.7,
-  "total_transactions": 100,
-  "failed_payments": 20,
-  "recovery_attempts": 15,
-  "successful_recoveries": 9,
-  "failed_recoveries": 6,
-  "escalated_cases": 3
-}
+{"case_id": 1}
 ```
 
-## GET /recovery/cases
-Optional query params: `status`, `risk_level`, `search`, `page`, `limit`.
+The backend must enforce diagnosis, policy checks, retry bounds, duplicate protection and escalation before execution.
 
-Response:
-```json
-{
-  "items": [
-    {
-      "id": "RC-001",
-      "payment_id": "pay_demo_001",
-      "customer_id": "cus_001",
-      "customer_name": "Arjun Kumar",
-      "amount": 2499,
-      "currency": "INR",
-      "failure_category": "temporary_gateway_failure",
-      "failure_reason": "Gateway timeout",
-      "risk_level": "high",
-      "recommended_action": "retry_payment",
-      "action_status": "eligible",
-      "recovery_status": "pending",
-      "recovered_amount": 0,
-      "retry_count": 0,
-      "created_at": "2026-08-22T18:00:00Z"
-    }
-  ],
-  "page": 1,
-  "limit": 20,
-  "total": 1
-}
-```
+## GET /audit/
+Optional query parameters: `skip`, `limit`.
 
-## GET /recovery/cases/{id}
-Returns case details, customer/payment context, decision explanation, policy checks, and audit events.
+Returns audit events ordered newest first.
 
-## POST /recovery/cases/{id}/execute
-Executes the bounded recovery action selected by the backend policy engine.
+## POST /batch/process
+Runs the backend batch case-generation workflow. The request body follows the backend `BatchProcessRequest` schema.
 
-Response:
-```json
-{
-  "case_id": "RC-001",
-  "status": "recovered",
-  "recovered_amount": 2499,
-  "message": "Recovery succeeded in Razorpay Test Mode.",
-  "audit_event_id": "AUD-001"
-}
-```
+## Demo
 
-Possible status values: `recovered`, `failed`, `needs_human_review`, `blocked`.
+Demo routes are backend-owned. Before final integration, Qwen must document the exact request/response for:
 
-## GET /recovery/audit
-Optional query params: `case_id`, `page`, `limit`.
+- `POST /demo/seed`
+- `POST /demo/reset`
+- failure simulation, if implemented
 
-Response:
-```json
-{
-  "items": [
-    {
-      "id": "AUD-001",
-      "case_id": "RC-001",
-      "event_type": "recovery_executed",
-      "actor": "recoverai-agent",
-      "decision": "retry_payment",
-      "reason": "Customer has successful payment history and retry limit is not reached.",
-      "action": "retry_payment",
-      "result": "success",
-      "timestamp": "2026-08-22T18:01:00Z"
-    }
-  ],
-  "page": 1,
-  "limit": 50,
-  "total": 1
-}
-```
+## Frontend normalization
 
-## POST /demo/seed
-Creates deterministic synthetic demo data. No request body required.
+The frontend normalizes:
 
-Response:
-```json
-{
-  "created_records": 100,
-  "message": "Demo dataset seeded."
-}
-```
+- `customer_name` → `customer.name`
+- `risk_level` → uppercase
+- `recommended_action` → uppercase
+- `status` / `recovery_status` / `action_status` → `status`
+- array responses → `{items: [...]}` internally
 
-## POST /demo/reset
-Resets the demo dataset.
+## Safety
 
-## POST /demo/recovery-batch
-Processes eligible recovery cases using backend policy rules.
-
-Response:
-```json
-{
-  "processed": 20,
-  "successful": 9,
-  "failed": 6,
-  "escalated": 3,
-  "recovered_amount": 7250
-}
-```
-
-## POST /demo/simulate-failure
-Creates or triggers one deterministic recovery failure for the pitch demo.
-
-Response:
-```json
-{
-  "case_id": "RC-FAIL-001",
-  "status": "failed",
-  "message": "Simulated gateway failure handled gracefully."
-}
-```
-
-## Error format
-
-All non-2xx responses should use:
-```json
-{
-  "error": {
-    "code": "RECOVERY_EXECUTION_FAILED",
-    "message": "Human-readable explanation.",
-    "request_id": "req_123"
-  }
-}
-```
-
-Critical financial policy enforcement is backend-only. The frontend must never assume that a recovery is allowed merely because a button is visible.
+All financial actions are Test Mode only, bounded by backend policy, and auditable. Frontend validation is never the security boundary.
