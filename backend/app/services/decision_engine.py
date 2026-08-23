@@ -1,27 +1,26 @@
 from ..models import Payment
+from .llm_provider_chain import chain
 
 def diagnose_and_recommend(db, payment: Payment) -> tuple:
-    code = payment.failure_code
-    diagnosis = ""
-    action = ""
-
-    if code == "insufficient_funds":
-        diagnosis = "Customer lacks funds. High intent, low liquidity."
-        action = "OFFER_SPLIT_PAYMENT"
-    elif code in ["gateway_timeout", "bank_maintenance"]:
-        diagnosis = "Transient banking/network issue."
-        action = "SEND_RETRY_LINK"
-    elif code == "invalid_card":
-        diagnosis = "Card details incorrect or fraudulent attempt."
-        action = "HALT_AND_ALERT"
-    elif code == "expired_card":
-        diagnosis = "Card on file is expired."
-        action = "REQUEST_CARD_UPDATE"
-    elif code == "user_cancelled":
-        diagnosis = "Customer abandoned checkout intentionally."
-        action = "SEND_REMINDER_NUDGE"
-    else:
-        diagnosis = "Unknown failure."
-        action = "ESCALATE_TO_HUMAN"
+    payment_data = {
+        "id": payment.id,
+        "amount": payment.amount,
+        "failure_code": payment.failure_code,
+        "status": payment.status
+    }
+    # In a real scenario, history would be fetched from DB
+    history = {"previous_success": 5, "previous_failures": 1}
     
-    return diagnosis, action
+    decision = chain.get_decision(payment_data, history)
+    
+    # Map LLM decision to existing action strings used by recovery_executor
+    action_map = {
+        "RETRY_PAYMENT": "SEND_RETRY_LINK",
+        "PAYMENT_LINK": "OFFER_SPLIT_PAYMENT",
+        "CUSTOMER_REMINDER": "SEND_REMINDER_NUDGE",
+        "HUMAN_REVIEW": "ESCALATE_TO_HUMAN"
+    }
+    
+    action = action_map.get(decision.decision, "ESCALATE_TO_HUMAN")
+    
+    return decision.reason, action

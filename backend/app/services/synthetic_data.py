@@ -10,7 +10,8 @@ LAST_NAMES = ["Sharma", "Verma", "Singh", "Kumar", "Patel", "Reddy", "Nair", "Iy
 def generate_synthetic_payments(db: Session, count: int = 100):
     failure_codes = [
         "insufficient_funds", "gateway_timeout", "bank_maintenance", 
-        "invalid_card", "user_cancelled", "expired_card"
+        "invalid_card", "user_cancelled", "expired_card",
+        "3ds_authentication_failed", "upi_pin_retry_limit", "mandate_revoked"
     ]
     statuses = ["failed", "abandoned"]
     

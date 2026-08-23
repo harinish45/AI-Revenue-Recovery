@@ -14,9 +14,9 @@ def evaluate_policy(db: Session, case: RecoveryCase, payment: Payment) -> tuple:
     
     reasons = []
 
-    if case.recovery_status in ["recovered", "blocked", "needs_human_review"]:
+    if case.status in ["RECOVERED", "HALTED", "needs_human_review", "blocked", "ESCALATED"]:
         checks["terminal_state_check"] = False
-        reasons.append(f"Case is in terminal state: {case.recovery_status}")
+        reasons.append(f"Case is in terminal state: {case.status}")
 
     if case.retry_count >= MAX_RETRIES:
         checks["max_retries_check"] = False
@@ -32,4 +32,4 @@ def evaluate_policy(db: Session, case: RecoveryCase, payment: Payment) -> tuple:
 
     allowed = all(checks.values())
     
-    return allowed, checks, reasons
+    return allowed, reasons
