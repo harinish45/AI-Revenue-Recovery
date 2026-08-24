@@ -1,6 +1,8 @@
-from pydantic import BaseModel
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import Any, Dict, List, Literal, Optional
+
+from pydantic import BaseModel, ConfigDict
+
 
 class DashboardSummary(BaseModel):
     total_revenue: float
@@ -13,6 +15,7 @@ class DashboardSummary(BaseModel):
     successful_recoveries: int
     failed_recoveries: int
     escalated_cases: int
+
 
 class CaseOut(BaseModel):
     id: str
@@ -31,14 +34,15 @@ class CaseOut(BaseModel):
     retry_count: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class CasesListResponse(BaseModel):
     items: List[CaseOut]
     page: int
     limit: int
     total: int
+
 
 class CaseDetailResponse(BaseModel):
     id: str
@@ -59,12 +63,13 @@ class CaseDetailResponse(BaseModel):
     recovered_amount: float
     created_at: datetime
     updated_at: datetime
-    
-    class Config:
-        from_attributes = True
+
+    model_config = ConfigDict(from_attributes=True)
+
 
 class ExecuteRequest(BaseModel):
     case_id: str
+
 
 class ExecuteResponse(BaseModel):
     case_id: str
@@ -72,6 +77,7 @@ class ExecuteResponse(BaseModel):
     recovered_amount: float
     message: str
     audit_event_id: str
+
 
 class AuditLogOut(BaseModel):
     id: str
@@ -84,8 +90,8 @@ class AuditLogOut(BaseModel):
     result: Optional[str]
     timestamp: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
 
 class AuditListResponse(BaseModel):
     items: List[AuditLogOut]
@@ -93,9 +99,11 @@ class AuditListResponse(BaseModel):
     limit: int
     total: int
 
+
 class SeedResponse(BaseModel):
     created_records: int
     message: str
+
 
 class BatchResponse(BaseModel):
     total_cases: int
@@ -107,10 +115,29 @@ class BatchResponse(BaseModel):
     amount_recovered: float
     recovery_rate: float
 
+
 class SimulateFailureResponse(BaseModel):
     case_id: str
     status: str
     message: str
 
+
 class ErrorResponse(BaseModel):
     error: Dict[str, str]
+
+
+class VoiceEventRequest(BaseModel):
+    event_type: Literal[
+        "voice_call_started",
+        "voice_call_ended",
+        "voice_promise_captured",
+        "voice_dispute_raised",
+    ]
+    intent: Optional[str] = None
+    transcript: Optional[str] = None
+
+
+class VoiceEventResponse(BaseModel):
+    audit_event_id: str
+    case_id: str
+    event_type: str

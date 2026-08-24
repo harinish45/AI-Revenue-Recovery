@@ -1,1568 +1,1059 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RecoverAI — Autonomous Revenue Recovery</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E%E2%9A%A1%3C/text%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
-/* ============================= RESET & TOKENS ============================= */
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-:root{
-  --bg:#000000; --bg-1:#0a0a0a; --bg-2:#111214; --bg-3:#17181b; --bg-4:#1f2023;
-  --border:#26272b; --border-soft:#1b1c1f;
-  --text-hi:#f5f6f7; --text:#c9cbd1; --text-dim:#8b8d94; --text-faint:#5a5c62;
-  --accent:#7c5cff; --accent-2:#4f8cff; --accent-soft:rgba(124,92,255,.14);
-  --green:#22c55e; --green-soft:rgba(34,197,94,.14);
-  --red:#f4515f; --red-soft:rgba(244,81,95,.14);
-  --amber:#f5a623; --amber-soft:rgba(245,166,35,.14);
-  --cyan:#2dd4d4; --cyan-soft:rgba(45,212,212,.14);
-  --radius:10px; --radius-lg:16px;
-  --font-head:'Space Grotesk',system-ui,sans-serif;
-  --font-body:'Manrope',system-ui,sans-serif;
-  --font-mono:'JetBrains Mono',ui-monospace,Consolas,monospace;
-  --shadow-lg:0 20px 60px rgba(0,0,0,.6);
-}
-html,body{height:100%;}
-body{
-  background:var(--bg); color:var(--text); font-family:var(--font-body);
-  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
-  overflow:hidden;
-}
-h1,h2,h3,h4{font-family:var(--font-head);color:var(--text-hi);font-weight:600;letter-spacing:-.01em;}
-button{font-family:inherit;cursor:pointer;}
-input,select,textarea{font-family:inherit;color:var(--text-hi);}
-::selection{background:var(--accent-soft);color:#fff;}
-::-webkit-scrollbar{width:8px;height:8px;}
-::-webkit-scrollbar-track{background:transparent;}
-::-webkit-scrollbar-thumb{background:var(--border);border-radius:8px;}
-::-webkit-scrollbar-thumb:hover{background:#3a3b40;}
-.mono{font-family:var(--font-mono);}
-a{color:inherit;}
-
-/* ============================= APP SHELL ============================= */
-#app{display:grid;grid-template-columns:248px 1fr;height:100vh;width:100vw;}
-
-/* ---------- Sidebar ---------- */
-.sidebar{background:var(--bg-1);border-right:1px solid var(--border-soft);display:flex;flex-direction:column;overflow-y:auto;}
-.brand{display:flex;align-items:center;gap:10px;padding:20px 18px 16px;border-bottom:1px solid var(--border-soft);}
-.brand-mark{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;box-shadow:0 0 0 1px rgba(255,255,255,.06) inset;}
-.brand-name{font-family:var(--font-head);font-weight:700;font-size:15.5px;color:var(--text-hi);letter-spacing:-.02em;}
-.brand-sub{font-size:10.5px;color:var(--text-faint);font-family:var(--font-mono);letter-spacing:.02em;}
-.nav{padding:14px 10px;flex:1;}
-.nav-group{margin-bottom:18px;}
-.nav-label{font-size:10.5px;text-transform:uppercase;letter-spacing:.09em;color:var(--text-faint);padding:0 10px 6px;font-weight:600;}
-.nav-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;color:var(--text-dim);font-size:13.2px;font-weight:500;cursor:pointer;transition:background .12s,color .12s;position:relative;margin-bottom:1px;}
-.nav-item:hover{background:var(--bg-3);color:var(--text-hi);}
-.nav-item.active{background:var(--accent-soft);color:var(--text-hi);}
-.nav-item.active::before{content:'';position:absolute;left:-10px;top:8px;bottom:8px;width:3px;border-radius:3px;background:var(--accent);}
-.nav-icon{width:16px;text-align:center;font-size:13.5px;opacity:.9;}
-.nav-badge{margin-left:auto;font-family:var(--font-mono);font-size:10px;background:var(--bg-4);color:var(--text-dim);padding:1px 6px;border-radius:10px;}
-.nav-badge.warn{background:var(--red-soft);color:var(--red);}
-.sidebar-foot{padding:12px 14px;border-top:1px solid var(--border-soft);}
-.kbd-hint{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--text-faint);background:var(--bg-2);border:1px solid var(--border-soft);border-radius:8px;padding:7px 10px;cursor:pointer;}
-.kbd-hint kbd{font-family:var(--font-mono);background:var(--bg-4);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-size:10px;color:var(--text-dim);}
-
-/* ---------- Main ---------- */
-.main{display:flex;flex-direction:column;overflow:hidden;background:radial-gradient(1200px 500px at 100% -10%, rgba(124,92,255,.05), transparent);}
-.topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 26px;border-bottom:1px solid var(--border-soft);flex-shrink:0;}
-.topbar-title{display:flex;flex-direction:column;gap:2px;}
-.topbar-title h1{font-size:19px;}
-.topbar-sub{font-size:12px;color:var(--text-dim);}
-.topbar-actions{display:flex;gap:8px;align-items:center;}
-.view-scroll{flex:1;overflow-y:auto;padding:24px 26px 60px;}
-
-/* ---------- Buttons ---------- */
-.btn{display:inline-flex;align-items:center;gap:7px;padding:8px 14px;border-radius:9px;border:1px solid var(--border);background:var(--bg-3);color:var(--text-hi);font-size:12.8px;font-weight:600;transition:all .12s;white-space:nowrap;}
-.btn:hover{background:var(--bg-4);border-color:#3a3b40;}
-.btn:active{transform:translateY(1px);}
-.btn:disabled{opacity:.45;cursor:not-allowed;}
-.btn-primary{background:linear-gradient(135deg,var(--accent),var(--accent-2));border:none;color:#fff;box-shadow:0 4px 16px rgba(124,92,255,.25);}
-.btn-primary:hover{filter:brightness(1.08);}
-.btn-danger{background:var(--red-soft);border-color:rgba(244,81,95,.3);color:var(--red);}
-.btn-ghost{background:transparent;border-color:transparent;color:var(--text-dim);}
-.btn-ghost:hover{background:var(--bg-3);color:var(--text-hi);}
-.btn-sm{padding:5px 10px;font-size:11.5px;border-radius:7px;}
-.btn-icon{width:32px;height:32px;padding:0;justify-content:center;}
-
-/* ---------- Cards / grid ---------- */
-.grid{display:grid;gap:14px;}
-.grid-4{grid-template-columns:repeat(4,1fr);}
-.grid-3{grid-template-columns:repeat(3,1fr);}
-.grid-2{grid-template-columns:repeat(2,1fr);}
-@media(max-width:1200px){.grid-4{grid-template-columns:repeat(2,1fr);}.grid-3{grid-template-columns:repeat(1,1fr);}}
-.card{background:var(--bg-2);border:1px solid var(--border-soft);border-radius:var(--radius-lg);padding:18px;}
-.card-title{font-size:12px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);font-weight:600;margin-bottom:10px;}
-.stat-card{position:relative;overflow:hidden;}
-.stat-value{font-family:var(--font-mono);font-size:26px;font-weight:700;color:var(--text-hi);letter-spacing:-.02em;}
-.stat-delta{font-size:11.5px;margin-top:6px;color:var(--text-dim);display:flex;align-items:center;gap:5px;}
-.stat-delta.up{color:var(--green);}
-.stat-delta.down{color:var(--red);}
-.section-title{display:flex;align-items:center;justify-content:space-between;margin:26px 0 12px;}
-.section-title:first-child{margin-top:0;}
-.section-title h2{font-size:15px;}
-
-/* ---------- Badges / pills ---------- */
-.pill{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:20px;font-family:var(--font-mono);white-space:nowrap;text-transform:uppercase;letter-spacing:.02em;}
-.pill-dot{width:5px;height:5px;border-radius:50%;background:currentColor;}
-.pill-green{background:var(--green-soft);color:var(--green);}
-.pill-red{background:var(--red-soft);color:var(--red);}
-.pill-amber{background:var(--amber-soft);color:var(--amber);}
-.pill-blue{background:rgba(79,140,255,.14);color:var(--accent-2);}
-.pill-gray{background:var(--bg-4);color:var(--text-dim);}
-.pill-cyan{background:var(--cyan-soft);color:var(--cyan);}
-
-/* ---------- Table ---------- */
-.table-wrap{background:var(--bg-2);border:1px solid var(--border-soft);border-radius:var(--radius-lg);overflow:hidden;}
-table{width:100%;border-collapse:collapse;}
-thead th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-faint);font-weight:600;padding:11px 14px;border-bottom:1px solid var(--border-soft);background:var(--bg-1);position:sticky;top:0;}
-tbody td{padding:11px 14px;border-bottom:1px solid var(--border-soft);font-size:13px;vertical-align:middle;}
-tbody tr:last-child td{border-bottom:none;}
-tbody tr{transition:background .1s;}
-tbody tr.clickable{cursor:pointer;}
-tbody tr.clickable:hover{background:var(--bg-3);}
-.cell-amount{font-family:var(--font-mono);font-weight:600;color:var(--text-hi);}
-.cell-id{font-family:var(--font-mono);color:var(--accent-2);font-weight:600;}
-.empty-state{padding:50px 20px;text-align:center;color:var(--text-faint);}
-
-/* ---------- Filters bar ---------- */
-.filters-bar{display:flex;gap:8px;align-items:center;margin-bottom:14px;flex-wrap:wrap;}
-.select,.text-input{background:var(--bg-3);border:1px solid var(--border);color:var(--text-hi);border-radius:8px;padding:7px 10px;font-size:12.5px;outline:none;}
-.select:focus,.text-input:focus{border-color:var(--accent);}
-.text-input{min-width:220px;}
-.search-input{position:relative;flex:1;max-width:320px;}
-
-/* ---------- Modal / Drawer ---------- */
-.overlay-bg{position:fixed;inset:0;background:rgba(0,0,0,.65);backdrop-filter:blur(3px);z-index:60;display:flex;align-items:center;justify-content:center;animation:fadeIn .15s ease;}
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
-.drawer{position:fixed;top:0;right:0;bottom:0;width:440px;background:var(--bg-1);border-left:1px solid var(--border);z-index:61;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;animation:slideIn .18s ease;}
-@keyframes slideIn{from{transform:translateX(30px);opacity:0}to{transform:translateX(0);opacity:1}}
-.drawer-head{padding:18px 20px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between;}
-.drawer-body{padding:20px;overflow-y:auto;flex:1;}
-.drawer-foot{padding:16px 20px;border-top:1px solid var(--border-soft);display:flex;gap:8px;}
-.modal{background:var(--bg-1);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);width:520px;max-width:92vw;animation:popIn .15s ease;}
-@keyframes popIn{from{transform:scale(.97);opacity:0}to{transform:scale(1);opacity:1}}
-
-/* ---------- Command palette ---------- */
-.palette{width:560px;max-width:92vw;background:var(--bg-1);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-lg);overflow:hidden;}
-.palette-input{width:100%;padding:16px 18px;background:transparent;border:none;border-bottom:1px solid var(--border-soft);color:var(--text-hi);font-size:15px;outline:none;}
-.palette-list{max-height:360px;overflow-y:auto;padding:6px;}
-.palette-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;font-size:13px;color:var(--text-dim);cursor:pointer;}
-.palette-item.sel{background:var(--accent-soft);color:var(--text-hi);}
-.palette-item .k{margin-left:auto;font-family:var(--font-mono);font-size:10px;color:var(--text-faint);}
-
-/* ---------- Toasts ---------- */
-#toast-root{position:fixed;bottom:18px;right:18px;z-index:80;display:flex;flex-direction:column;gap:8px;width:340px;}
-.toast{background:var(--bg-3);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:10px;padding:11px 14px;display:flex;gap:10px;align-items:flex-start;box-shadow:var(--shadow-lg);animation:toastIn .18s ease;}
-@keyframes toastIn{from{transform:translateX(20px);opacity:0}to{transform:translateX(0);opacity:1}}
-.toast.success{border-left-color:var(--green);}
-.toast.error{border-left-color:var(--red);}
-.toast.warning{border-left-color:var(--amber);}
-.toast-msg{font-size:12.5px;color:var(--text-hi);flex:1;line-height:1.4;}
-.toast-close{color:var(--text-faint);font-size:14px;line-height:1;}
-
-/* ---------- Execution overlay (4-step pipeline) ---------- */
-.exec-overlay{position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:70;display:flex;align-items:center;justify-content:center;}
-.exec-panel{width:520px;max-width:90vw;background:var(--bg-1);border:1px solid var(--border);border-radius:16px;padding:28px;box-shadow:var(--shadow-lg);}
-.exec-case{font-family:var(--font-mono);font-size:12px;color:var(--text-dim);text-align:center;margin-bottom:22px;}
-.exec-steps{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
-.exec-step{display:flex;flex-direction:column;align-items:center;gap:8px;flex:1;position:relative;}
-.exec-step .dot{width:34px;height:34px;border-radius:50%;background:var(--bg-3);border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--text-faint);transition:all .25s;z-index:2;}
-.exec-step .lbl{font-size:10.5px;color:var(--text-faint);font-weight:600;text-transform:uppercase;letter-spacing:.04em;}
-.exec-step.active .dot{background:var(--accent-soft);border-color:var(--accent);color:var(--accent);box-shadow:0 0 0 4px rgba(124,92,255,.12);}
-.exec-step.active .lbl{color:var(--text-hi);}
-.exec-step.done .dot{background:var(--green-soft);border-color:var(--green);color:var(--green);}
-.exec-step.done .lbl{color:var(--green);}
-.exec-line{position:absolute;top:17px;left:50%;width:100%;height:1.5px;background:var(--border);z-index:1;}
-.exec-step.done .exec-line{background:var(--green);}
-.exec-step:last-child .exec-line{display:none;}
-.exec-msg{text-align:center;font-size:12.5px;color:var(--text-dim);min-height:18px;font-family:var(--font-mono);}
-
-/* ---------- Batch terminal ---------- */
-.terminal{background:#050505;border:1px solid var(--border-soft);border-radius:var(--radius-lg);font-family:var(--font-mono);font-size:12px;padding:14px 16px;height:340px;overflow-y:auto;display:flex;flex-direction:column-reverse;}
-.term-line{padding:2px 0;color:var(--text-dim);white-space:pre-wrap;word-break:break-word;}
-.term-line .t{color:var(--text-faint);}
-.term-line.ok{color:var(--green);}
-.term-line.fail{color:var(--red);}
-.term-line.esc{color:var(--amber);}
-.term-line.skip{color:var(--text-faint);}
-.term-line.info{color:var(--accent-2);}
-
-/* ---------- Progress bar ---------- */
-.progress-bar{height:5px;background:var(--bg-4);border-radius:6px;overflow:hidden;}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--accent-2));transition:width .25s ease;}
-
-/* ---------- Policy check list ---------- */
-.policy-check{display:flex;align-items:center;gap:8px;padding:8px 0;font-size:12.5px;border-bottom:1px solid var(--border-soft);}
-.policy-check:last-child{border-bottom:none;}
-.policy-check .ic{width:18px;text-align:center;}
-.policy-check.pass .ic{color:var(--green);}
-.policy-check.fail .ic{color:var(--red);}
-.policy-check .lbl{color:var(--text-dim);flex:1;}
-.policy-check .val{font-family:var(--font-mono);color:var(--text-hi);font-size:11.5px;}
-
-/* ---------- Playbook cards ---------- */
-.playbook-card{background:var(--bg-2);border:1px solid var(--border-soft);border-radius:var(--radius-lg);padding:18px;display:flex;flex-direction:column;gap:10px;}
-.playbook-head{display:flex;align-items:center;gap:10px;}
-.playbook-num{width:30px;height:30px;border-radius:8px;background:var(--bg-4);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-weight:700;color:var(--accent-2);font-size:13px;flex-shrink:0;}
-.playbook-desc{font-size:12.5px;color:var(--text-dim);line-height:1.55;flex:1;}
-.playbook-foot{display:flex;align-items:center;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border-soft);font-size:11.5px;color:var(--text-faint);}
-
-/* ---------- Voice UI ---------- */
-.voice-layout{display:grid;grid-template-columns:320px 1fr;gap:18px;}
-.voice-panel{background:var(--bg-2);border:1px solid var(--border-soft);border-radius:var(--radius-lg);padding:22px;display:flex;flex-direction:column;align-items:center;gap:16px;}
-.mic-ring{width:120px;height:120px;border-radius:50%;display:flex;align-items:center;justify-content:center;position:relative;background:var(--bg-3);border:2px solid var(--border);transition:all .2s;}
-.mic-ring .core{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;background:var(--bg-4);}
-.mic-ring.idle{border-color:var(--green);box-shadow:0 0 0 0 rgba(34,197,94,.4);}
-.mic-ring.listening{border-color:var(--red);animation:pulseRed 1.1s infinite;}
-.mic-ring.speaking{border-color:var(--accent);animation:pulsePurple 1.1s infinite;}
-.mic-ring.processing{border-color:var(--amber);}
-@keyframes pulseRed{0%{box-shadow:0 0 0 0 rgba(244,81,95,.45)}70%{box-shadow:0 0 0 16px rgba(244,81,95,0)}100%{box-shadow:0 0 0 0 rgba(244,81,95,0)}}
-@keyframes pulsePurple{0%{box-shadow:0 0 0 0 rgba(124,92,255,.45)}70%{box-shadow:0 0 0 16px rgba(124,92,255,0)}100%{box-shadow:0 0 0 0 rgba(124,92,255,0)}}
-.mic-state-label{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-dim);}
-.call-timer{font-family:var(--font-mono);font-size:22px;color:var(--text-hi);font-weight:600;}
-.chips{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;}
-.chip{background:var(--bg-3);border:1px solid var(--border);color:var(--text-dim);padding:5px 10px;border-radius:20px;font-size:11.5px;}
-.chip:hover{color:var(--text-hi);border-color:var(--accent);}
-.voice-chat{background:var(--bg-2);border:1px solid var(--border-soft);border-radius:var(--radius-lg);display:flex;flex-direction:column;height:560px;}
-.voice-chat-head{padding:14px 18px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;justify-content:space-between;}
-.voice-chat-body{flex:1;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:10px;}
-.bubble{max-width:78%;padding:10px 13px;border-radius:14px;font-size:13px;line-height:1.5;}
-.bubble.agent{align-self:flex-start;background:var(--bg-3);border:1px solid var(--border-soft);border-bottom-left-radius:4px;}
-.bubble.user{align-self:flex-end;background:var(--accent-soft);border:1px solid rgba(124,92,255,.25);border-bottom-right-radius:4px;color:var(--text-hi);}
-.bubble .meta{font-size:9.5px;color:var(--text-faint);margin-top:4px;font-family:var(--font-mono);}
-.interim{align-self:flex-end;font-size:12px;color:var(--text-faint);font-style:italic;padding:0 4px;}
-.voice-chat-foot{padding:12px 16px;border-top:1px solid var(--border-soft);display:flex;gap:8px;}
-.voice-chat-foot input{flex:1;background:var(--bg-3);border:1px solid var(--border);border-radius:9px;padding:9px 12px;outline:none;font-size:12.5px;}
-
-/* ---------- Audit ---------- */
-.audit-row{display:grid;grid-template-columns:150px 90px 110px 1fr;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border-soft);font-size:12px;align-items:center;}
-.audit-row:hover{background:var(--bg-3);}
-.audit-row .ts{font-family:var(--font-mono);color:var(--text-faint);font-size:11px;}
-.audit-row .msg{color:var(--text-dim);}
-.audit-row .msg b{color:var(--text-hi);font-weight:600;}
-
-/* ---------- Settings ---------- */
-.settings-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border-soft);gap:20px;}
-.settings-row:last-child{border-bottom:none;}
-.settings-row .lbl{font-size:13px;color:var(--text-hi);font-weight:500;}
-.settings-row .hint{font-size:11.5px;color:var(--text-faint);margin-top:2px;}
-.switch{width:40px;height:22px;border-radius:20px;background:var(--bg-4);border:1px solid var(--border);position:relative;cursor:pointer;flex-shrink:0;transition:background .15s;}
-.switch.on{background:var(--accent);border-color:var(--accent);}
-.switch .knob{position:absolute;top:1px;left:1px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .15s;}
-.switch.on .knob{transform:translateX(18px);}
-.num-input{width:110px;background:var(--bg-3);border:1px solid var(--border);border-radius:8px;padding:6px 9px;font-family:var(--font-mono);color:var(--text-hi);text-align:right;}
-
-/* ---------- Misc ---------- */
-.divider{height:1px;background:var(--border-soft);margin:16px 0;}
-.flex-between{display:flex;align-items:center;justify-content:space-between;}
-.muted{color:var(--text-faint);}
-.progress-mini{display:flex;align-items:center;gap:8px;}
-.progress-mini .progress-bar{flex:1;}
-.spin{display:inline-block;animation:spin 1s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg)}}
-.hidden{display:none !important;}
-.k-list{display:flex;gap:5px;}
-.k-list kbd{font-family:var(--font-mono);font-size:10px;background:var(--bg-4);border:1px solid var(--border);border-radius:4px;padding:2px 5px;color:var(--text-dim);}
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#000;--p1:#0a0a0b;--p2:#101012;--p3:#161619;--ln:#1e1e23;--ln2:#2a2a31;--tx:#f4f4f5;--mut:#9d9da6;--dim:#63636c;--grn:#22c55e;--grn2:#4ade80;--red:#ef4444;--red2:#f87171;--amb:#f59e0b;--amb2:#fbbf24;--blu:#3b82f6;--blu2:#60a5fa;--vio:#8b5cf6;--vio2:#a78bfa;--pink:#ec4899;--fd:'Space Grotesk',sans-serif;--fb:'Manrope',sans-serif;--fm:'JetBrains Mono',monospace}
+html{color-scheme:dark}
+body{background:var(--bg);color:var(--tx);font-family:var(--fb);font-size:13.5px;line-height:1.55;overflow-x:hidden}
+::selection{background:rgba(34,197,94,.25)}
+:focus-visible{outline:2px solid var(--grn);outline-offset:2px;border-radius:4px}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-thumb{background:#232328;border-radius:8px;border:2px solid #000}::-webkit-scrollbar-track{background:transparent}
+button{font-family:inherit;color:inherit;background:none;border:none;cursor:pointer}
+input,select{font-family:inherit;color:var(--tx)}
+.mono{font-family:var(--fm)}
+.tstrip{display:flex;align-items:center;justify-content:center;gap:8px;padding:6px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--amb2);background:#0c0a04;border-bottom:1px solid #26200a}
+.tstrip i{width:6px;height:6px;border-radius:50%;background:var(--amb);animation:blk 2s infinite}
+@keyframes blk{50%{opacity:.4}}
+.shell{display:grid;grid-template-columns:230px 1fr;min-height:calc(100vh - 28px)}
+.side{border-right:1px solid var(--ln);padding:14px 12px;display:flex;flex-direction:column;position:sticky;top:0;height:calc(100vh - 28px);overflow-y:auto;background:var(--bg)}
+.brand{display:flex;gap:11px;align-items:center;padding:2px 8px 14px}
+.brand b{font-family:var(--fd);font-size:15px;font-weight:700;letter-spacing:-.01em}
+.brand b em{font-style:normal;color:var(--grn)}
+.brand span{font-size:9px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;font-weight:600}
+.nav{display:flex;flex-direction:column;gap:2px;flex:1}
+.ncap{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);padding:10px 12px 4px;font-weight:800}
+.nav button{display:flex;align-items:center;gap:11px;width:100%;padding:8px 12px;border-radius:8px;color:var(--mut);font-size:13px;font-weight:600;transition:.12s;text-align:left;min-height:36px}
+.nav button:hover{color:var(--tx);background:var(--p2)}
+.nav button.on{color:var(--tx);background:var(--p2)}
+.nav button.on svg{color:var(--grn)}
+.nav button svg{width:15px;height:15px;flex:none;color:var(--mut)}
+.nav .nbadge{margin-left:auto;font-family:var(--fm);font-size:10px;padding:1px 7px;border-radius:99px;background:var(--p3);color:var(--mut);border:1px solid var(--ln2)}
+.side-foot{margin-top:auto;padding:10px 8px 0;border-top:1px solid var(--ln);display:flex;flex-direction:column;gap:6px}
+.conn{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--grn2)}
+.conn.demo{color:var(--amb2)}
+.conn.bad{color:var(--red2)}
+.conn i{width:7px;height:7px;border-radius:50%;background:currentColor;animation:blk 2s infinite}
+.side-foot small{color:var(--dim);font-size:10px}
+.mainwrap{min-width:0;display:flex;flex-direction:column}
+.top{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;padding:10px 20px;background:rgba(0,0,0,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--ln)}
+.crumb b{font-size:15px;font-weight:700;font-family:var(--fd)}
+.crumb span{font-size:11px;color:var(--dim);font-family:var(--fm)}
+.top-r{margin-left:auto;display:flex;align-items:center;gap:6px}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:700;border:1px solid transparent;transition:.12s;min-height:34px;white-space:nowrap;cursor:pointer}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-p{background:var(--grn);color:#04150c}.btn-p:hover:not(:disabled){background:var(--grn2)}
+.btn-g{background:var(--p2);border-color:var(--ln2);color:var(--tx)}.btn-g:hover:not(:disabled){background:var(--p3)}
+.btn-r{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.5);color:var(--red2)}
+.btn-v{background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.4);color:var(--vio2)}
+.btn-sm{padding:5px 10px;font-size:11px;min-height:28px;border-radius:6px}
+main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
+.page{display:flex;flex-direction:column;gap:14px;animation:fin .2s ease}
+@keyframes fin{from{opacity:0;transform:translateY(4px)}}
+.card{background:var(--p1);border:1px solid var(--ln);border-radius:12px}
+.chead{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--ln)}
+.chead h3{font-size:12px;font-weight:600;font-family:var(--fd)}
+.chead .hint{margin-left:auto;font-family:var(--fm);font-size:10px;color:var(--dim)}
+.cbody{padding:14px}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.kpi{background:var(--p1);border:1px solid var(--ln);border-radius:12px;padding:12px 14px;transition:.12s;text-align:left}
+.kpi:hover{border-color:var(--ln2)}
+.kpi .kl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mut)}
+.kpi .kv{font-family:var(--fd);font-size:22px;font-weight:700;letter-spacing:-.02em;margin:4px 0 1px;font-variant-numeric:tabular-nums}
+.kpi .ks{font-size:10px;color:var(--dim)}
+.ovgrid{display:grid;grid-template-columns:2fr 1fr;gap:14px;align-items:start}
+.actrow{display:flex;gap:8px;align-items:baseline;padding:8px 14px;border-bottom:1px solid var(--ln);font-size:12px}
+.actrow:last-child{border-bottom:none}
+.actrow .lt{font-family:var(--fm);font-size:10px;color:var(--dim);flex:none;width:56px}
+.actrow .tag{flex:none;font-family:var(--fm);font-size:9px;font-weight:600;padding:1px 6px;border-radius:4px;background:var(--p3);color:var(--mut)}
+.actrow .tag.g{color:var(--grn2)}.actrow .tag.r{color:var(--red2)}.actrow .tag.a{color:var(--amb2)}.actrow .tag.b{color:var(--blu2)}.actrow .tag.v{color:var(--vio2)}
+.actrow .ax{color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.swrow{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--p2);border:1px solid var(--ln2);border-radius:8px;padding:10px 12px;cursor:pointer}
+.swrow b{display:block;font-size:12px}.swrow small{color:var(--dim);font-size:11px}
+.sw{position:relative;width:36px;height:20px;border-radius:99px;background:var(--p3);border:1px solid var(--ln2);transition:.18s;flex:none}
+.sw::after{content:"";position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:var(--mut);transition:.18s}
+.sw.on{background:rgba(239,68,68,.25);border-color:var(--red)}.sw.on::after{left:18px;background:var(--red)}
+.sw.armed-pulse{animation:ap 1.4s infinite}
+@keyframes ap{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
+.actcol{display:flex;flex-direction:column;gap:8px}.actcol .btn{width:100%;justify-content:flex-start}
+.glist{display:flex;flex-direction:column;gap:5px;margin-top:10px}
+.glist div{display:flex;gap:7px;font-size:11px;color:var(--mut)}
+.tbl{width:100%;border-collapse:collapse;font-size:12.5px;min-width:700px}
+.tbl thead th{text-align:left;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:700;padding:9px 12px;border-bottom:1px solid var(--ln);white-space:nowrap}
+.tbl tbody td{padding:10px 12px;border-bottom:1px solid var(--ln);vertical-align:middle}
+.tbl tbody tr{transition:background .1s;cursor:pointer}
+.tbl tbody tr:hover{background:var(--p2)}
+.cust{display:flex;align-items:center;gap:9px}
+.ava{width:26px;height:26px;border-radius:6px;display:grid;place-items:center;font-family:var(--fd);font-size:9px;font-weight:700;background:var(--p3);border:1px solid var(--ln2);color:var(--mut);flex:none}
+.cust{min-width:0}
+.cust>div{min-width:0}
+.cust b{display:block;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cust span{display:block;font-size:10px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.amt{font-family:var(--fm);font-weight:600;font-variant-numeric:tabular-nums}
+.rb,.sb{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:99px;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
+.rb i,.sb i{width:5px;height:5px;border-radius:50%;background:currentColor}
+.rb.low{background:rgba(34,197,94,.1);color:var(--grn2)}.rb.medium{background:rgba(245,158,11,.1);color:var(--amb2)}.rb.high{background:rgba(239,68,68,.1);color:var(--red2)}
+.sb.open{background:rgba(59,130,246,.1);color:var(--blu2)}.sb.recovered{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.escalated{background:rgba(239,68,68,.12);color:var(--red2)}.sb.closed{background:rgba(255,255,255,.05);color:var(--mut)}.sb.pending{background:rgba(245,158,11,.1);color:var(--amb2)}.sb.fulfilled{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.broken{background:rgba(239,68,68,.1);color:var(--red2)}
+.toolbar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--ln);flex-wrap:wrap}
+.srch{flex:1;max-width:280px;min-width:140px}
+.srch input{width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--ln2);background:var(--p1);font-size:12px;color:var(--tx)}
+.srch input:focus{outline:none;border-color:var(--grn)}
+.chip{padding:5px 10px;border-radius:99px;font-size:11px;font-weight:700;border:1px solid var(--ln2);color:var(--mut);transition:.12s;cursor:pointer;min-height:28px;display:inline-flex;align-items:center}
+.chip:hover{color:var(--tx)}.chip.on{background:var(--p3);border-color:#3d3d46;color:var(--tx)}
+.empty{padding:40px 16px;text-align:center;color:var(--mut)}
+.pbgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.pbcard{background:var(--p1);border:1px solid var(--ln);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;transition:.12s;text-align:left;width:100%;cursor:pointer}
+.pbcard:hover{border-color:var(--ln2)}
+.pbcard .top{display:flex;align-items:center;gap:9px}
+.pbic{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:none}
+.pbcard h3{font-size:12.5px;font-family:var(--fd)}.pbcard p{font-size:11px;color:var(--dim)}
+.pbcard .st{margin-left:auto;font-size:9px;font-weight:800;padding:2px 8px;border-radius:99px;background:var(--p3);color:var(--mut)}
+.pbcard .st.done{color:var(--grn2);background:rgba(34,197,94,.1)}
+.pbcard .go{color:var(--mut);font-size:11px;font-weight:700}
+.pbcard:hover .go{color:var(--tx)}
+.pbcard .lr{font-size:10px;color:var(--grn2);font-family:var(--fm)}
+.pbcard .eligible{font-size:10px;color:var(--blu2);font-family:var(--fm)}
+.vgrid{display:grid;grid-template-columns:5fr 7fr;gap:14px;align-items:start}
+.vlang{display:flex;gap:5px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--ln)}
+.vlang button{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid transparent;color:var(--mut);cursor:pointer;transition:.12s}
+.vlang button.on{background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.3);color:var(--vio2)}
+.vlang button:hover{color:var(--tx)}
+.vchat{display:flex;flex-direction:column;gap:10px;padding:14px;max-height:340px;overflow-y:auto;min-height:280px}
+.vmsg{display:flex;gap:8px;max-width:85%}
+.vmsg.agent{align-self:flex-start}
+.vmsg.user{align-self:flex-end;flex-direction:row-reverse}
+.vbub{padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5}
+.vmsg.agent .vbub{background:var(--p2);border:1px solid var(--ln2);border-top-left-radius:4px}
+.vmsg.user .vbub{background:rgba(139,92,246,.1);border:1px solid rgba(139,92,246,.25);border-top-right-radius:4px}
+.vmsg.agent .vbub .role{display:block;font-family:var(--fm);font-size:9px;font-weight:700;color:var(--vio2);margin-bottom:3px;text-transform:uppercase}
+.vcontrols{display:flex;align-items:center;gap:8px;padding:12px 14px;border-top:1px solid var(--ln)}
+.micbtn{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;flex:none;cursor:pointer;transition:.2s;border:1px solid}
+.micbtn.idle{background:rgba(16,185,129,.12);border-color:rgba(16,185,129,.35);color:var(--grn2)}
+.micbtn.speaking{background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.4);color:var(--vio2);animation:micp 1.2s infinite}
+.micbtn.listening{background:rgba(239,68,68,.15);border-color:rgba(239,68,68,.4);color:var(--red2);animation:micp 1.2s infinite}
+@keyframes micp{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+.vstatus{font-size:11px;color:var(--mut);font-weight:600}
+.vinterim{font-size:11px;color:var(--dim);font-style:italic;min-height:16px;flex:1}
+.vquick{display:flex;gap:5px;flex-wrap:wrap;padding:0 14px 12px}
+.vquick button{padding:4px 9px;border-radius:99px;font-size:10px;font-weight:600;background:var(--p2);border:1px solid var(--ln2);color:var(--mut);cursor:pointer;transition:.12s}
+.vquick button:hover{color:var(--tx)}
+.vtimer{font-family:var(--fm);font-size:11px;color:var(--vio2);font-weight:600}
+.tl{position:relative;padding-left:18px}
+.tl::before{content:"";position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:var(--ln)}
+.tlev{position:relative;margin-bottom:10px;background:var(--p1);border:1px solid var(--ln);border-radius:8px;padding:10px 12px;transition:.12s;cursor:pointer}
+.tlev:hover{border-color:var(--ln2)}
+.tlev::before{content:"";position:absolute;left:-16px;top:14px;width:8px;height:8px;border-radius:50%;background:var(--evc,var(--grn));box-shadow:0 0 0 3px var(--bg);z-index:1}
+.tlt{display:flex;align-items:center;gap:7px}
+.tltype{font-family:var(--fm);font-size:9.5px;font-weight:600;color:var(--evc,var(--grn));background:var(--p2);padding:2px 7px;border-radius:5px;border:1px solid var(--ln)}
+.tltime{margin-left:auto;font-family:var(--fm);font-size:10px;color:var(--dim)}
+.tlreason{font-size:12px;margin-top:5px;color:var(--mut)}
+.tlmeta{font-size:10px;color:var(--dim);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap}
+.tljson{display:none;margin-top:8px;background:#050506;border:1px solid var(--ln);border-radius:6px;padding:10px;font-family:var(--fm);font-size:10px;color:#9db4d8;overflow-x:auto;white-space:pre}
+.tlev.raw .tljson{display:block}
+.blog{font-family:var(--fm);font-size:11px;background:#050506;border:1px solid var(--ln);border-radius:8px;padding:10px 12px;height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:3px}
+.blog .ln{color:var(--mut)}
+.blog .ok{color:var(--grn2)}.blog .bad{color:var(--red2)}.blog .skip{color:var(--amb2)}.blog .lt{color:var(--dim)}
+.bmrow{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+.bm{background:var(--p2);border:1px solid var(--ln);border-radius:8px;padding:10px;text-align:center}
+.bm b{display:block;font-family:var(--fd);font-size:16px;font-weight:700;font-variant-numeric:tabular-nums}
+.bm span{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.pbar{height:4px;border-radius:99px;background:var(--p3);overflow:hidden;margin:10px 0}
+.pbar i{display:block;height:100%;width:0;background:var(--grn);transition:width .3s}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.dcell{background:var(--p2);border:1px solid var(--ln);border-radius:8px;padding:10px 12px}
+.dcell span{display:block;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--dim);margin-bottom:3px;font-weight:700}
+.dcell b{font-size:12px;font-weight:700}
+.diag{margin-top:10px;border-radius:8px;padding:12px 14px;border:1px solid rgba(59,130,246,.25);background:rgba(59,130,246,.05)}
+.diag h4{font-size:10px;color:var(--blu2);letter-spacing:.08em;text-transform:uppercase;margin-bottom:5px;font-family:var(--fd)}
+.conf{display:flex;align-items:center;gap:8px;margin-top:8px;font-size:11px;color:var(--mut)}
+.meter{flex:1;height:4px;border-radius:99px;background:var(--p3);overflow:hidden}
+.meter i{display:block;height:100%;border-radius:99px}
+.polnote{margin-top:10px;border-radius:8px;padding:10px 12px;border:1px solid rgba(34,197,94,.25);background:rgba(34,197,94,.05);display:flex;gap:8px;font-size:11px;color:var(--mut)}
+.res{margin-top:12px;border-radius:12px;padding:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.res.ok{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.4)}
+.res.bad{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.5)}
+.escb{display:inline-flex;align-items:center;gap:7px;padding:7px 12px;border-radius:8px;background:var(--red);color:#fff;font-weight:700;font-size:11px}
+.escb.ok{background:var(--grn)}
+.split{display:flex;height:6px;border-radius:99px;gap:2px;overflow:hidden;margin-top:10px}
+.split i.a{background:var(--grn)}.split i.c{background:var(--amb)}.split i.d{background:var(--red)}
+.dlegend{font-size:10px;color:var(--dim);font-family:var(--fm);margin-top:6px}
+.dlegend i{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:2px}
+.vtog{display:flex;border:1px solid var(--ln2);border-radius:8px;overflow:hidden}
+.vtog button{padding:6px 12px;font-size:11px;font-weight:600;min-height:30px;color:var(--dim);cursor:pointer;transition:.12s}
+.vtog button.on{background:var(--p3);color:var(--tx)}
+.ovl{position:fixed;inset:0;z-index:100;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.88);backdrop-filter:blur(6px)}
+.ovl.show{display:flex}
+.ovl.top{align-items:flex-start;padding-top:8vh}
+.exec{background:var(--p1);border:1px solid var(--ln2);border-radius:14px;width:100%;max-width:460px;padding:20px;max-height:90vh;overflow-y:auto}
+.ehead{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.espin{width:30px;height:30px;border-radius:50%;border:3px solid var(--p3);border-top-color:var(--grn);animation:rot .9s linear infinite;flex:none}
+@keyframes rot{to{transform:rotate(360deg)}}
+.etitle{font-family:var(--fm);font-size:13px;font-weight:600}
+.esub{font-size:11px;color:var(--dim)}
+.esteps{list-style:none}
+.esteps li{display:flex;gap:10px;position:relative;padding-bottom:14px}
+.esteps li::before{content:"";position:absolute;left:11px;top:24px;bottom:0;width:2px;background:var(--ln)}
+.esteps li:last-child::before{display:none}
+.sdot{width:23px;height:23px;border-radius:50%;border:2px solid var(--ln2);display:grid;place-items:center;color:var(--dim);background:var(--p2);z-index:1;transition:.2s;flex:none;font-size:9px;font-weight:700;font-family:var(--fm)}
+.esteps li.act .sdot{border-color:var(--grn);color:var(--grn2)}
+.esteps li.done .sdot{border-color:var(--grn);background:rgba(34,197,94,.1);color:var(--grn2)}
+.esteps li.done::before{background:rgba(34,197,94,.35)}
+.stx b{display:block;font-size:12px}.stx span{font-size:11px;color:var(--dim)}
+.efoot{display:flex;justify-content:flex-end;gap:6px;margin-top:14px}
+.pal{max-width:560px;width:100%;background:var(--p1);border:1px solid var(--ln2);border-radius:12px;overflow:hidden}
+.pal input{width:100%;padding:12px 14px;background:transparent;border:none;outline:none;border-bottom:1px solid var(--ln);font-size:13px;color:var(--tx)}
+.pal-list{max-height:320px;overflow-y:auto;padding:5px}
+.pal-group{padding:8px 12px 3px;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:800}
+.pal-item{display:flex;gap:9px;align-items:center;padding:8px 12px;border-radius:7px;cursor:pointer;font-size:12.5px;font-weight:600;color:var(--mut)}
+.pal-item:hover,.pal-item.sel{background:var(--p3);color:var(--tx)}
+.twrap2{position:fixed;top:50px;right:14px;z-index:300;display:flex;flex-direction:column;gap:8px;width:min(360px,calc(100vw - 28px))}
+.toast{display:flex;gap:10px;align-items:flex-start;background:var(--p1);border:1px solid var(--ln2);border-left:3px solid var(--blu);border-radius:9px;padding:11px 13px;box-shadow:0 12px 36px -8px rgba(0,0,0,.8);animation:ti .3s cubic-bezier(.2,1.1,.4,1)}
+@keyframes ti{from{transform:translateY(-10px);opacity:0}}
+.toast .tic{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;flex:none}
+.toast .tic svg{width:14px;height:14px}
+.toast b{display:block;font-size:12px}.toast p{font-size:11px;color:var(--mut);margin-top:1px}
+.toast.s{border-left-color:var(--grn)}.toast.s .tic{background:rgba(34,197,94,.12);color:var(--grn2)}
+.toast.e{border-left-color:var(--red)}.toast.e .tic{background:rgba(239,68,68,.14);color:var(--red2)}
+.toast.w{border-left-color:var(--amb)}.toast.w .tic{background:rgba(245,158,16,.12);color:var(--amb2)}
+.toast.i .tic{background:rgba(59,130,246,.12);color:var(--blu2)}
+@media(max-width:1150px){.kpis{grid-template-columns:repeat(3,1fr)}.ovgrid{grid-template-columns:1fr}.pbgrid{grid-template-columns:1fr 1fr}.vgrid{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
+@media(max-width:900px){.shell{grid-template-columns:56px 1fr}.brand div,.nav .nl,.nav .nbadge,.ncap,.side-foot small,.conn span{display:none}.brand{justify-content:center}.nav button{justify-content:center}.kpis{grid-template-columns:1fr 1fr}}
+@media(max-width:620px){.shell{grid-template-columns:1fr}.side{position:fixed;bottom:0;left:0;right:0;top:auto;height:56px;flex-direction:row;align-items:center;z-index:80;background:#000;border-top:1px solid var(--ln);overflow-y:hidden}.brand,.side-foot{display:none}.nav{flex-direction:row;flex:1;gap:2px;overflow-x:auto;padding:0 6px}.nav button{flex:none;min-width:48px;justify-content:center;padding:6px}main{padding-bottom:76px}.kpis{grid-template-columns:1fr}.pbgrid{grid-template-columns:1fr}.bmrow{grid-template-columns:repeat(2,1fr)}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
-<div id="app"></div>
-<div id="toast-root"></div>
-<div id="overlay-root"></div>
+
+<div class="tstrip"><i></i> Test Mode · Razorpay Sandbox · No real money moves</div>
+
+<div class="shell">
+  <aside class="side">
+    <div class="brand"><div><b>Recover<em>AI</em></b><br><span>Revenue Agent</span></div></div>
+    <nav class="nav" id="nav" aria-label="Primary">
+      <span class="ncap">Main</span>
+      <button class="on" data-pg="overview" title="Overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span class="nl">Overview</span></button>
+      <button data-pg="cases" title="Cases"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg><span class="nl">Cases</span><span class="nbadge" id="qBadge">0</span></button>
+      <button data-pg="batch" title="Batch Run"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="nl">Batch Run</span></button>
+      <span class="ncap">Growth Suite</span>
+      <button data-pg="playbooks" title="Playbooks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg><span class="nl">Playbooks</span></button>
+      <button data-pg="voice" title="Voice Agent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v4"/><path d="M8 23h8"/></svg><span class="nl">Voice Agent</span></button>
+      <button data-pg="promises" title="Promises"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="nl">Promises</span></button>
+      <span class="ncap">System</span>
+      <button data-pg="audit" title="Audit Trail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span class="nl">Audit Trail</span></button>
+      <button data-pg="settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span class="nl">Settings</span></button>
+    </nav>
+    <div class="side-foot">
+      <span class="conn demo" id="connWrap"><i></i><span id="connTxt">Probing…</span></span>
+      <small class="mono">v5.2 · live backend</small>
+    </div>
+  </aside>
+  <div class="mainwrap">
+    <header class="top">
+      <div class="crumb"><b id="ptitle">Overview</b><br><span id="psub">Revenue at a glance</span></div>
+      <div class="top-r">
+        <button class="btn btn-g btn-sm" id="searchBtn" title="Command palette (Ctrl/⌘+K)">⌘K Search</button>
+        <button class="btn btn-g btn-sm" id="seedBtn">Seed Data</button>
+      </div>
+    </header>
+    <main>
+      <div class="page" id="content"><div class="empty" style="padding:60px"><h4>Loading…</h4></div></div>
+    </main>
+  </div>
+</div>
+
+<div class="ovl top" id="palOvl"><div class="pal"><input id="palInput" autocomplete="off" placeholder="Search or command…" aria-label="Command palette"><div class="pal-list" id="palList"></div></div></div>
+<div class="ovl" id="execOvl"><div class="exec" id="execContent" role="dialog" aria-modal="true"></div></div>
+<div class="twrap2" id="toastWrap" aria-live="polite"></div>
 
 <script>
-'use strict';
-/* =========================================================================
-   RecoverAI — Autonomous Revenue Recovery Agent
-   Single-file, zero-backend, zero-cost demo for Razorpay Track 03.
-   ========================================================================= */
-
-/* ---------------------------- Utilities ---------------------------- */
-const $  = (sel, root=document) => root.querySelector(sel);
-const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
-const uid = (p='ID') => p + '-' + Math.random().toString(36).slice(2,8).toUpperCase();
-const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-const clamp = (n,a,b) => Math.max(a, Math.min(b, n));
-const rand = (a,b) => a + Math.random()*(b-a);
-const randInt = (a,b) => Math.floor(rand(a,b+1));
-const pick = (arr) => arr[randInt(0, arr.length-1)];
-const fmtINR = (n) => '₹' + Math.round(n).toLocaleString('en-IN');
-const escapeHtml = (s='') => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-function nowTs(){ return Date.now(); }
-function fmtTime(ts){
-  const d = new Date(ts);
-  return d.toTimeString().slice(0,8);
-}
-function fmtDate(ts){
-  const d = new Date(ts);
-  return d.toLocaleDateString('en-IN', {day:'2-digit', month:'short', year:'numeric'});
-}
-function fmtDateTime(ts){ return fmtDate(ts) + ' ' + fmtTime(ts); }
-function currentHour(){ return new Date().getHours(); }
-
-/* ---------------------------- Constants ---------------------------- */
-const PLAYBOOK_META = {
-  payment_degradation: {name:'Payment Degradation Scan', icon:'⚡', num:'01', color:'blue',
-    desc:'Detects gateway timeouts and auth declines in real time, then reroutes traffic to a backup PSP or intelligently delays the retry window.'},
-  checkout_dropoff: {name:'Checkout Drop-off Recovery', icon:'🛒', num:'02', color:'cyan',
-    desc:'Targets abandoned carts and sends a smart recovery link tailored to the exact step where the customer dropped off.'},
-  subscription_dunning: {name:'Failed-Subscription Recovery', icon:'🔁', num:'03', color:'amber',
-    desc:'Runs a smart retry ladder (T+0, T+2d, T+5d) for insufficient-funds and UPI failures on recurring subscriptions.'},
-  b2b_receivables: {name:'B2B Receivables Chaser', icon:'📄', num:'04', color:'red',
-    desc:'Walks aging buckets (30/60/90 days) and escalates tone and channel automatically as an invoice ages.'},
-  mandate_retry: {name:'Mandate Retry Sequencer', icon:'🔐', num:'05', color:'green',
-    desc:'Sequences UPI AutoPay / eNACH retries into intelligent windows to maximize authorization success.'},
-  voice_recovery: {name:'Hinglish Voice Recovery', icon:'🎙️', num:'06', color:'blue',
-    desc:'An AI voice agent calls high-risk customers, understands Hindi-English code-switching, and negotiates a promise-to-pay live.'},
-  promise_to_pay: {name:'Promise-to-Pay Tracker', icon:'✅', num:'07', color:'cyan',
-    desc:'Captures verbal/written commitments, tracks due dates, and automatically marks them fulfilled or broken.'}
-};
-const FAILURE_REASONS = {
-  payment_degradation: ['GATEWAY_TIMEOUT','AUTH_DECLINED','NETWORK_ERROR','ISSUER_UNAVAILABLE'],
-  checkout_dropoff: ['ABANDONED_AT_CART','ABANDONED_AT_ADDRESS','ABANDONED_AT_PAYMENT','ABANDONED_AT_OTP'],
-  subscription_dunning: ['INSUFFICIENT_FUNDS','UPI_MANDATE_FAIL','CARD_EXPIRED','ISSUER_DECLINE'],
-  b2b_receivables: ['INVOICE_OVERDUE'],
-  mandate_retry: ['MANDATE_AUTH_FAIL','MANDATE_EXPIRED_WINDOW'],
-  voice_recovery: ['HIGH_RISK_SILENT','REPEATED_SOFT_DECLINE'],
-  promise_to_pay: ['AWAITING_COMMITMENT']
-};
-const DROPOFF_STEPS = ['cart','address','payment_method','otp'];
-const GATEWAYS = ['razorpay_primary','razorpay_backup','upi_switch'];
-const CUSTOMER_POOL = [
-  ['Rohan Mehta','+91 98200 11223'],['Ananya Iyer','+91 90040 55621'],['Vikram Shah','+91 99870 44120'],
-  ['Priya Nair','+91 97650 88132'],['Karthik Reddy','+91 63456 90211'],['Sneha Kulkarni','+91 88997 21341'],
-  ['Arjun Malhotra','+91 70123 45678'],['Divya Krishnan','+91 96432 10987'],['Farhan Sheikh','+91 81234 56789'],
-  ['Meera Pillai','+91 74109 87654'],['Aditya Verma','+91 93456 78012'],['Lakshmi Rao','+91 89765 43210'],
-  ['Nikhil Bose','+91 95432 10678'],['Kavya Menon','+91 82109 87345'],['Suresh Babu','+91 76543 21098'],
-  ['Ritu Chawla','+91 91234 56780'],['Manish Agarwal','+91 87654 32109'],['Pooja Desai','+91 90876 54321'],
-  ['Rajesh Kumar','+91 99001 12233'],['Sanya Kapoor','+91 88112 23344']
-];
-const COMPANY_POOL = ['Vertex Textiles Pvt Ltd','Bluepeak Logistics','Northstar Traders','Orbit Manufacturing','Solace Retail Group'];
-
-/* ---------------------------- Policy Engine ---------------------------- */
-const Policy = {
-  autoCap: 25000,
-  maxRetries: 3,
-  confidenceThreshold: 0.75,
-  quietStart: 22,
-  quietEnd: 8,
-  simFailure: false,
-
-  isQuietHours(){
-    const h = currentHour();
-    if (this.quietStart > this.quietEnd) return (h >= this.quietStart || h < this.quietEnd);
-    return (h >= this.quietStart && h < this.quietEnd);
-  },
-
-  /** Returns {allowed, checks:[{label,pass,val}], reason} */
-  evaluate(kase, action){
-    const checks = [];
-    let allowed = true;
-    let reason = '';
-
-    const capOk = kase.amount <= this.autoCap;
-    checks.push({label:'Auto-execution cap', pass:capOk, val: fmtINR(kase.amount)+' ≤ '+fmtINR(this.autoCap)});
-    if (!capOk){ allowed = false; reason = 'Amount exceeds auto-execution cap of '+fmtINR(this.autoCap); }
-
-    const retryOk = kase.attempts < this.maxRetries;
-    checks.push({label:'Stopping rule (retries)', pass:retryOk, val: kase.attempts+' / '+this.maxRetries+' used'});
-    if (!retryOk){ allowed = false; reason = reason || ('Max retry attempts ('+this.maxRetries+') exhausted'); }
-
-    const confOk = kase.confidence >= this.confidenceThreshold;
-    checks.push({label:'Confidence threshold', pass:confOk, val: Math.round(kase.confidence*100)+'% ≥ '+Math.round(this.confidenceThreshold*100)+'%'});
-    if (!confOk){ allowed = false; reason = reason || ('Confidence below '+Math.round(this.confidenceThreshold*100)+'% threshold'); }
-
-    const isVelocityChannel = (action === 'voice_call' || action === 'sms');
-    const quiet = this.isQuietHours();
-    const velocityOk = !(isVelocityChannel && quiet);
-    checks.push({label:'Velocity / quiet hours', pass:velocityOk, val: quiet ? 'Quiet hours active ('+this.quietStart+':00–'+this.quietEnd+':00)' : 'Outside quiet hours'});
-    if (!velocityOk){ allowed = false; reason = reason || 'Quiet hours block outbound voice/SMS (22:00–08:00)'; }
-
-    if (this.simFailure){
-      checks.push({label:'Gateway health', pass:false, val:'SIMULATED OUTAGE ARMED'});
-      allowed = false;
-      reason = reason || 'Gateway failure simulation is armed';
-    }
-
-    return {allowed, checks, reason};
-  }
-};
-
-/* ---------------------------- Global State ---------------------------- */
-const S = {
-  cases: [],
-  audit: [],
-  promises: [],
-  view: 'overview',
-  batch: {running:false, processed:0, total:0, recovered:0, recoveredAmt:0, escalated:0, skipped:0, failed:0, log:[]},
-  voice: {status:'idle', transcript:'', interim:'', history:[], activeCaseId:null, callSeconds:0, timerHandle:null, recognizer:null},
-  filters: {casesType:'all', casesStatus:'all', casesQuery:'', auditQuery:'', auditType:'all'},
-  ui: {paletteOpen:false, drawerCaseId:null, execOverlay:null},
-};
-
-const STORAGE_KEY = 'recoverai_state_v1';
-
-function persist(){
-  try{
-    const payload = {
-      cases: S.cases, audit: S.audit, promises: S.promises,
-      policy: {autoCap:Policy.autoCap, maxRetries:Policy.maxRetries, confidenceThreshold:Policy.confidenceThreshold,
-               quietStart:Policy.quietStart, quietEnd:Policy.quietEnd, simFailure:Policy.simFailure}
-    };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  }catch(e){ /* storage unavailable — demo continues in-memory */ }
-}
-function restore(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return false;
-    const p = JSON.parse(raw);
-    if (!p.cases || !p.cases.length) return false;
-    S.cases = p.cases; S.audit = p.audit || []; S.promises = p.promises || [];
-    if (p.policy){ Object.assign(Policy, p.policy); }
-    return true;
-  }catch(e){ return false; }
-}
-
-/* ---------------------------- Seed Data Generator ---------------------------- */
-function genCase(type, idx){
-  const [name, phone] = pick(CUSTOMER_POOL);
-  const reason = pick(FAILURE_REASONS[type]);
-  const createdAt = nowTs() - randInt(1, 20) * 3600*1000 - randInt(0,59)*60000;
-  const base = {
-    id: 'RC-' + (1000 + idx),
-    type, customer: {name, phone, email: name.toLowerCase().replace(/\s+/g,'.') + '@example.com'},
-    failureReason: reason,
-    gateway: pick(GATEWAYS),
-    attempts: randInt(0,2),
-    maxAttempts: Policy.maxRetries,
-    confidence: +rand(0.55, 0.97).toFixed(2),
-    status: 'open',
-    createdAt,
-    lastAttemptAt: null,
-    history: [],
-  };
-  if (type === 'payment_degradation'){
-    base.amount = randInt(400, 22000);
-  } else if (type === 'checkout_dropoff'){
-    base.amount = randInt(300, 15000);
-    base.dropoffStep = pick(DROPOFF_STEPS);
-  } else if (type === 'subscription_dunning'){
-    base.amount = pick([499, 999, 1499, 2499, 4999]);
-    base.planName = pick(['Pro Monthly','Team Annual','Starter Plus','Business Growth']);
-  } else if (type === 'b2b_receivables'){
-    base.amount = randInt(18000, 240000);
-    base.customer.name = pick(COMPANY_POOL);
-    base.customer.email = 'accounts@' + base.customer.name.toLowerCase().replace(/[^a-z]/g,'').slice(0,10) + '.com';
-    base.agingDays = pick([31, 42, 58, 65, 91, 104]);
-    base.invoiceId = 'INV-' + randInt(20000,29999);
-  } else if (type === 'mandate_retry'){
-    base.amount = pick([199, 349, 599, 999, 1999]);
-    base.mandateType = pick(['UPI_AUTOPAY','ENACH']);
-  } else if (type === 'voice_recovery'){
-    base.amount = randInt(800, 24000);
-    base.riskScore = +rand(0.6,0.95).toFixed(2);
-  } else if (type === 'promise_to_pay'){
-    base.amount = randInt(500, 18000);
-    base.promisedDate = nowTs() - randInt(0,3)*86400000;
-    base.dueDate = nowTs() + randInt(-1, 4) * 86400000;
-  }
-  return base;
-}
-
-function seedData(){
-  const types = ['payment_degradation','checkout_dropoff','subscription_dunning','b2b_receivables','mandate_retry','voice_recovery','promise_to_pay'];
-  const cases = [];
-  let idx = 1;
-  // ensure at least 2-3 of every type, total ~20
-  const counts = {payment_degradation:3, checkout_dropoff:3, subscription_dunning:3, b2b_receivables:3, mandate_retry:3, voice_recovery:3, promise_to_pay:2};
-  types.forEach(t => {
-    for (let i=0;i<counts[t];i++){ cases.push(genCase(t, idx++)); }
+/* ═══ STATE ═══
+   S.cases / S.audit are always the real backend rows (normalized onto the
+   field names the render*() functions below expect). Nothing here is
+   client-generated — see Api + normalizeCase/normalizeAuditEntry. */
+var S={page:'overview',cases:[],audit:[],dashboard:null,live:false,loading:true,loadError:null,armed:false,running:false,filter:'all',search:'',caseView:'table',
+voiceCase:null,voiceLang:'hi-IN',voiceActive:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceTimer:null,voiceStartTime:0,
+auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
+/* Mirrors backend/app/config.py Settings exactly — not editable here, this
+   panel just displays what the server actually enforces. */
+var POLICY={maxAmount:50000,maxRetries:2,rateExecute:'20/minute',rateDemo:'10/minute'};
+function fmtINR(n){return 'Rs.'+Math.round(n).toLocaleString('en-IN');}
+function fmt(n){if(n>=100000)return 'Rs.'+(n/100000).toFixed(1)+'L';if(n>=1000)return 'Rs.'+(n/1000).toFixed(1)+'K';return 'Rs.'+Math.round(n).toLocaleString('en-IN');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function norm(s){return String(s).toLowerCase().replace(/[^\w\s']/g,' ').replace(/\s+/g,' ').trim();}
+function pretty(s){return String(s||'').replace(/_/g,' ');}
+function nowTs(){return new Date().toTimeString().slice(0,8);}
+function relTime(iso){if(!iso)return '—';var ms=Date.now()-new Date(iso).getTime();var h=Math.floor(ms/3600000);if(h<1)return 'just now';if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
+/* ═══ API CLIENT — every call below hits the real FastAPI backend ═══ */
+var API_BASE=window.RECOVERAI_API_BASE||'';
+function apiRequest(method,path,body){
+ return fetch(API_BASE+path,{method:method,headers:{'Content-Type':'application/json'},body:body!==undefined?JSON.stringify(body):undefined})
+  .then(function(r){
+   return r.json().catch(function(){return {};}).then(function(data){
+    if(!r.ok){var msg=(data&&data.error&&data.error.message)||data.detail||('HTTP '+r.status);var e=new Error(msg);e.status=r.status;throw e;}
+    return data;
+   });
   });
-  S.cases = cases;
-  S.audit = [];
-  S.promises = [];
-
-  // seed promise records for promise_to_pay cases + a couple already resolved for realism
-  S.cases.filter(c=>c.type==='promise_to_pay').forEach(c=>{
-    S.promises.push({
-      id: uid('PR'), caseId: c.id, customerName: c.customer.name, amount: c.amount,
-      promisedDate: c.promisedDate, dueDate: c.dueDate, status: 'pending', channel: pick(['voice','sms','whatsapp'])
-    });
-  });
-
-  logAudit({type:'system', caseId:null, message:'Demo data seeded: <b>'+S.cases.length+' cases</b> generated across 7 playbooks.'});
-  persist();
 }
-
-/* ---------------------------- Audit Trail ---------------------------- */
-function logAudit(entry){
-  const row = {
-    id: uid('AU'),
-    ts: nowTs(),
-    type: entry.type || 'system',       // policy | execution | escalation | voice | promise | system
-    caseId: entry.caseId || null,
-    message: entry.message || '',
-    meta: entry.meta || null,
-  };
-  S.audit.unshift(row);
-  if (S.audit.length > 2000) S.audit.length = 2000;
-  return row;
-}
-
-/* ---------------------------- Toasts ---------------------------- */
-function toast(message, type='info', ms=4200){
-  const root = $('#toast-root');
-  const el = document.createElement('div');
-  el.className = 'toast ' + type;
-  const icon = {success:'✅', error:'⛔', warning:'⚠️', info:'ℹ️'}[type] || 'ℹ️';
-  el.innerHTML = '<div>'+icon+'</div><div class="toast-msg">'+message+'</div><div class="toast-close" data-action="dismiss-toast">✕</div>';
-  root.appendChild(el);
-  const kill = () => { if(el.parentNode){ el.style.transition='opacity .2s'; el.style.opacity='0'; setTimeout(()=>el.remove(), 200);} };
-  el.querySelector('.toast-close').addEventListener('click', kill);
-  setTimeout(kill, ms);
-}
-
-/* ---------------------------- Playbooks ---------------------------- */
-const Playbooks = {
-  payment_degradation: {
-    decide(kase){
-      const action = kase.gateway === 'razorpay_primary' ? 'reroute_backup_psp' : 'delay_retry';
-      const label = action === 'reroute_backup_psp' ? 'Reroute to backup PSP' : 'Delay retry by 15 minutes';
-      return {action, label};
-    },
-    execute(kase, decision){
-      const successProb = clamp(kase.confidence - kase.attempts*0.08, 0.05, 0.95);
-      const success = Math.random() < successProb;
-      return success
-        ? {outcome:'RECOVERED', amountRecovered: kase.amount, note: decision.label + ' → authorization succeeded'}
-        : {outcome:'FAILED', amountRecovered:0, note: decision.label + ' → issuer declined again'};
-    }
-  },
-  checkout_dropoff: {
-    decide(kase){
-      const stepWeight = {cart:0.25, address:0.4, payment_method:0.6, otp:0.75}[kase.dropoffStep] || 0.4;
-      const channel = kase.amount > 5000 ? 'whatsapp' : 'sms';
-      return {action:'send_recovery_link', label:'Send smart recovery link ('+kase.dropoffStep+' → '+channel+')', channel, stepWeight};
-    },
-    execute(kase, decision){
-      const success = Math.random() < decision.stepWeight;
-      return success
-        ? {outcome:'RECOVERED', amountRecovered:kase.amount, note:'Customer completed checkout via recovery link'}
-        : {outcome:'FAILED', amountRecovered:0, note:'Recovery link sent, no conversion yet'};
-    }
-  },
-  subscription_dunning: {
-    decide(kase){
-      const ladder = ['Immediate retry (T+0)', 'Retry + reminder email (T+2d)', 'Final retry + escalation warning (T+5d)'];
-      const label = ladder[clamp(kase.attempts,0,2)];
-      return {action:'dunning_retry', label};
-    },
-    execute(kase, decision){
-      const successProb = clamp(0.55 - kase.attempts*0.12, 0.1, 0.8);
-      const success = Math.random() < successProb;
-      return success
-        ? {outcome:'RECOVERED', amountRecovered:kase.amount, note: decision.label + ' → card charged successfully'}
-        : {outcome:'FAILED', amountRecovered:0, note: decision.label + ' → insufficient funds'};
-    }
-  },
-  b2b_receivables: {
-    decide(kase){
-      let tone, channel;
-      if (kase.agingDays >= 90){ tone='Formal notice'; channel='legal-escalation'; }
-      else if (kase.agingDays >= 60){ tone='Firm reminder'; channel='email+call'; }
-      else { tone='Polite reminder'; channel='email'; }
-      return {action:'chase_receivable', label: tone+' via '+channel+' ('+kase.agingDays+'d overdue)', channel};
-    },
-    execute(kase, decision){
-      if (decision.channel === 'legal-escalation'){
-        return {outcome:'ESCALATED', amountRecovered:0, note:'90+ day invoice — routed to collections / human review'};
-      }
-      const successProb = clamp(0.5 - kase.agingDays/300, 0.08, 0.6);
-      const success = Math.random() < successProb;
-      return success
-        ? {outcome:'RECOVERED', amountRecovered:kase.amount, note: decision.label + ' → payment received'}
-        : {outcome:'FAILED', amountRecovered:0, note: decision.label + ' → no response yet'};
-    }
-  },
-  mandate_retry: {
-    decide(kase){
-      const window = kase.mandateType === 'UPI_AUTOPAY' ? 'next-day 10:00 AM window' : 'next eNACH clearing cycle';
-      return {action:'schedule_mandate_retry', label:'Schedule retry — '+window};
-    },
-    execute(kase, decision){
-      const successProb = clamp(0.6 - kase.attempts*0.15, 0.1, 0.85);
-      const success = Math.random() < successProb;
-      return success
-        ? {outcome:'RECOVERED', amountRecovered:kase.amount, note: decision.label + ' → mandate authorized'}
-        : {outcome:'FAILED', amountRecovered:0, note: decision.label + ' → mandate auth failed'};
-    }
-  },
-  voice_recovery: {
-    decide(kase){
-      return {action:'voice_call', label:'Outbound Hinglish voice call to '+kase.customer.name};
-    },
-    execute(kase, decision){
-      if (Policy.isQuietHours()){
-        return {outcome:'SKIPPED', amountRecovered:0, note:'Blocked — quiet hours (22:00–08:00)'};
-      }
-      const roll = Math.random();
-      if (roll < kase.riskScore * 0.5){
-        return {outcome:'PROMISED', amountRecovered:0, note:'Customer verbally committed — promise-to-pay captured'};
-      } else if (roll < 0.85){
-        return {outcome:'FAILED', amountRecovered:0, note:'No answer / call not conclusive'};
-      }
-      return {outcome:'RECOVERED', amountRecovered:kase.amount, note:'Customer paid live during call via link'};
-    }
-  },
-  promise_to_pay: {
-    decide(kase){
-      return {action:'check_promise', label:'Check commitment status'};
-    },
-    execute(kase, decision){
-      const promise = S.promises.find(p => p.caseId === kase.id);
-      if (!promise) return {outcome:'SKIPPED', amountRecovered:0, note:'No linked promise record'};
-      if (nowTs() < promise.dueDate) return {outcome:'SKIPPED', amountRecovered:0, note:'Due date not yet reached'};
-      const fulfilled = Math.random() < 0.65;
-      if (fulfilled){
-        promise.status = 'fulfilled';
-        return {outcome:'RECOVERED', amountRecovered:kase.amount, note:'Promise fulfilled — payment received on time'};
-      }
-      promise.status = 'broken';
-      return {outcome:'ESCALATED', amountRecovered:0, note:'Promise broken — re-entering dunning ladder'};
-    }
-  }
+var Api={
+ seed:function(){return apiRequest('POST','/api/demo/seed');},
+ reset:function(){return apiRequest('POST','/api/demo/reset');},
+ dashboard:function(){return apiRequest('GET','/api/dashboard/summary');},
+ cases:function(qs){return apiRequest('GET','/api/cases'+(qs?('?'+qs):''));},
+ case:function(id){return apiRequest('GET','/api/cases/'+encodeURIComponent(id));},
+ execute:function(id){return apiRequest('POST','/api/execution/execute',{case_id:String(id)});},
+ audit:function(qs){return apiRequest('GET','/api/audit'+(qs?('?'+qs):''));},
+ batch:function(){return apiRequest('POST','/api/demo/recovery-batch');},
+ simulateFailure:function(){return apiRequest('POST','/api/demo/simulate-failure');},
+ recordVoiceEvent:function(caseId,body){return apiRequest('POST','/api/cases/'+encodeURIComponent(caseId)+'/voice-events',body);}
 };
-
-const ACTION_BY_TYPE = {
-  payment_degradation:'gateway_retry', checkout_dropoff:'sms', subscription_dunning:'gateway_retry',
-  b2b_receivables:'email', mandate_retry:'gateway_retry', voice_recovery:'voice_call', promise_to_pay:'check'
+/* ═══ NORMALIZATION — real API shapes → the field names render*() expects ═══ */
+var CATEGORY_META={
+ temporary_gateway_failure:{code:'GW_TIMEOUT',name:'Gateway Timeout'},
+ invalid_instrument:{code:'INVALID_CARD',name:'Invalid Card Details'},
+ customer_liquidity_issue:{code:'INSUF',name:'Insufficient Funds'},
+ bank_rejection:{code:'BANK_DECLINE',name:'Bank Rejection'},
+ user_abandonment:{code:'ABANDON',name:'Checkout Abandoned'}
 };
-
-/** Runs a single case through its playbook with full policy gating. Returns result summary. Mutates state + audit. */
-function processCase(kase){
-  const pb = Playbooks[kase.type];
-  const action = ACTION_BY_TYPE[kase.type];
-  const decision = pb.decide(kase);
-  const evalResult = Policy.evaluate(kase, action);
-
-  logAudit({type:'policy', caseId:kase.id, message:'Policy check for <b>'+kase.id+'</b>: '+(evalResult.allowed?'PASS':'BLOCKED — '+evalResult.reason), meta:evalResult.checks});
-
-  if (!evalResult.allowed){
-    kase.status = 'escalated';
-    kase.lastAttemptAt = nowTs();
-    kase.history.push({ts:nowTs(), action:'policy_block', note:evalResult.reason});
-    logAudit({type:'escalation', caseId:kase.id, message:'<b>'+kase.id+'</b> escalated to human review — '+evalResult.reason});
-    return {outcome:'ESCALATED', amountRecovered:0, note: evalResult.reason, decision};
-  }
-
-  const result = pb.execute(kase, decision);
-  kase.attempts += 1;
-  kase.lastAttemptAt = nowTs();
-  kase.history.push({ts:nowTs(), action:decision.label, note:result.note, outcome:result.outcome});
-
-  if (result.outcome === 'RECOVERED'){
-    kase.status = 'recovered';
-  } else if (result.outcome === 'PROMISED'){
-    kase.status = 'promise_pending';
-    if (!S.promises.find(p=>p.caseId===kase.id)){
-      S.promises.push({id:uid('PR'), caseId:kase.id, customerName:kase.customer.name, amount:kase.amount,
-        promisedDate:nowTs(), dueDate: nowTs()+2*86400000, status:'pending', channel:'voice'});
-    }
-  } else if (result.outcome === 'ESCALATED'){
-    kase.status = 'escalated';
-  } else if (result.outcome === 'SKIPPED'){
-    // status unchanged, remains open for next batch window
-  } else { // FAILED
-    kase.status = kase.attempts >= kase.maxAttempts ? 'escalated' : 'open';
-    if (kase.status === 'escalated'){
-      logAudit({type:'escalation', caseId:kase.id, message:'<b>'+kase.id+'</b> escalated — max retry attempts exhausted'});
-    }
-  }
-
-  logAudit({type:'execution', caseId:kase.id, message:'<b>'+kase.id+'</b> — '+decision.label+' → <b>'+result.outcome+'</b>'+(result.amountRecovered?' ('+fmtINR(result.amountRecovered)+')':'')});
-  return Object.assign({decision}, result);
+var STATUS_MAP={pending:'open',failed:'open',recovered:'recovered',needs_human_review:'escalated',blocked:'escalated'};
+function normalizeCase(item){
+ var cm=CATEGORY_META[item.failure_category]||{code:'UNKNOWN',name:pretty(item.failure_category||'unknown')};
+ var risk=(item.risk_level||'medium').toLowerCase();
+ return {id:item.id,customer:item.customer_name||'Unknown',amount:item.amount!=null?item.amount:(item.amount_at_risk||0),
+  risk:risk,category:{code:cm.code,name:cm.name,risk:risk},failure_category:item.failure_category,
+  status:STATUS_MAP[item.recovery_status]||'open',recovery_status:item.recovery_status,
+  action:pretty(item.recommended_action),recommended_action:item.recommended_action,
+  txn:item.payment_id,created:relTime(item.created_at),createdAt:item.created_at,
+  attempts:item.retry_count||0,maxAttempts:item.max_retries!=null?item.max_retries:POLICY.maxRetries,
+  recovered_amount:item.recovered_amount||0};
 }
-
-function eligibleCases(){
-  return S.cases.filter(c => c.status === 'open');
+/* Every backend event_type maps onto one of the 6 audit lanes below — VOICE
+   is the one lane with no analogue in the original design (added since the
+   voice agent's real actions are persisted as real audit rows too). */
+var EVENT_MAP={
+ payment_failure_detected:{type:'DETECTION',color:'#3b82f6'},
+ analysis_completed:{type:'DIAGNOSIS',color:'#8b5cf6'},
+ policy_check_passed:{type:'DECISION',color:'#f59e0b'},
+ policy_check_failed:{type:'DECISION',color:'#f59e0b'},
+ recovery_attempted:{type:'EXECUTION',color:'#22c55e'},
+ recovery_succeeded:{type:'EXECUTION',color:'#22c55e'},
+ recovery_failed:{type:'EXECUTION',color:'#22c55e'},
+ escalated_to_human:{type:'ESCALATION',color:'#ef4444'},
+ demo_reset:{type:'DECISION',color:'#f59e0b'},
+ failure_simulation_armed:{type:'DECISION',color:'#f59e0b'},
+ voice_call_started:{type:'VOICE',color:'#ec4899'},
+ voice_call_ended:{type:'VOICE',color:'#ec4899'},
+ voice_promise_captured:{type:'VOICE',color:'#ec4899'},
+ voice_dispute_raised:{type:'VOICE',color:'#ec4899'}
+};
+function normalizeAuditEntry(item){
+ var m=EVENT_MAP[item.event_type]||{type:'DECISION',color:'#9d9da6'};
+ var desc=(item.case_id||'system')+' — '+pretty(item.event_type||'event');
+ if(item.reason)desc+=': '+item.reason;
+ var result=item.result?String(item.result).toUpperCase():(m.type==='ESCALATION'?'ESCALATED':(item.event_type==='policy_check_failed'?'BLOCKED':'SUCCESS'));
+ return {id:item.id,type:m.type,color:m.color,desc:desc,actor:item.actor||'system',decision:item.decision||'—',
+  reason:item.reason||'',result:result,ts:item.timestamp?new Date(item.timestamp).toTimeString().slice(0,8):nowTs(),caseId:item.case_id||null,raw:item};
 }
-
-/* ---------------------------- Batch Engine ---------------------------- */
-async function runBatch(){
-  if (S.batch.running) return;
-  const targets = eligibleCases();
-  if (!targets.length){ toast('No eligible open cases to process.', 'warning'); return; }
-
-  S.batch = {running:true, processed:0, total:targets.length, recovered:0, recoveredAmt:0, escalated:0, skipped:0, failed:0, log:[]};
-  render();
-  termPush('info', 'Batch run started — ' + targets.length + ' eligible cases queued.');
-  logAudit({type:'system', caseId:null, message:'Batch execution started across <b>'+targets.length+'</b> eligible cases.'});
-
-  for (const kase of targets){
-    if (!S.batch.running) break; // allow future cancel hook
-    await showExecOverlay(kase);
-    const result = processCase(kase);
-    S.batch.processed++;
-    if (result.outcome === 'RECOVERED'){ S.batch.recovered++; S.batch.recoveredAmt += result.amountRecovered; termPush('ok', 'RECOVERED: '+kase.id+' — '+fmtINR(result.amountRecovered)+' ('+kase.customer.name+')'); }
-    else if (result.outcome === 'ESCALATED'){ S.batch.escalated++; termPush('esc', 'ESCALATED: '+kase.id+' — '+result.note); }
-    else if (result.outcome === 'SKIPPED'){ S.batch.skipped++; termPush('skip', 'SKIPPED: '+kase.id+' — '+result.note); }
-    else if (result.outcome === 'PROMISED'){ S.batch.recovered += 0; termPush('info', 'PROMISE CAPTURED: '+kase.id+' — '+kase.customer.name); }
-    else { S.batch.failed++; termPush('fail', 'FAILED: '+kase.id+' — '+result.note); }
-    render();
-    await sleep(140);
-  }
-
-  hideExecOverlay();
-  S.batch.running = false;
-  persist();
-  render();
-  toast('Batch complete — '+S.batch.recovered+' recovered, '+fmtINR(S.batch.recoveredAmt)+' total.', 'success', 6000);
-  logAudit({type:'system', caseId:null, message:'Batch execution finished. Recovered '+fmtINR(S.batch.recoveredAmt)+' across '+S.batch.processed+' cases ('+S.batch.escalated+' escalated, '+S.batch.skipped+' skipped, '+S.batch.failed+' failed).'});
+function trackMetric(key,val){var h=S.history[key];if(!h)return;h.push(val);if(h.length>20)h.shift();}
+/* ═══ DATA LOADING ═══ */
+function pendingCases(){return S.cases.filter(function(c){return c.recovery_status==='pending';});}
+function openCount(){return S.cases.filter(function(c){return c.status==='open';}).length;}
+function updateConnBadge(){
+ var wrap=document.getElementById('connWrap'),txt=document.getElementById('connTxt');
+ if(!wrap)return;
+ wrap.classList.remove('demo','bad');
+ if(S.live){txt.textContent='API Connected';}
+ else{wrap.classList.add('bad');txt.textContent='Backend Unavailable';}
 }
-function termPush(cls, msg){
-  S.batch.log.unshift({cls, msg, ts:nowTs()});
-  if (S.batch.log.length > 400) S.batch.log.length = 400;
+function refreshCasesAndAudit(){
+ return Promise.all([Api.cases('limit=100'),Api.audit('limit=200')]).then(function(r){
+  S.cases=(r[0].items||[]).map(normalizeCase);
+  S.audit=(r[1].items||[]).map(normalizeAuditEntry);
+ });
 }
-
-/* ---------------------------- Execution Overlay (4-step pipeline) ---------------------------- */
-async function showExecOverlay(kase){
-  const root = $('#overlay-root');
-  const steps = ['Detect','Diagnose','Decide','Execute'];
-  root.innerHTML =
-    '<div class="exec-overlay"><div class="exec-panel">'+
-      '<div class="exec-case">Processing <b class="mono" style="color:var(--text-hi)">'+kase.id+'</b> — '+escapeHtml(kase.customer.name)+' — '+fmtINR(kase.amount)+'</div>'+
-      '<div class="exec-steps">'+
-        steps.map((s,i)=>'<div class="exec-step" data-i="'+i+'"><div class="exec-line"></div><div class="dot">'+(i+1)+'</div><div class="lbl">'+s+'</div></div>').join('')+
-      '</div>'+
-      '<div class="exec-msg" id="exec-msg">Scanning case signals…</div>'+
-    '</div></div>';
-  const stepEls = $$('.exec-step', root);
-  const msgs = ['Scanning case signals…','Running root-cause diagnosis…','Checking policy guardrails…','Executing recovery action…'];
-  for (let i=0;i<steps.length;i++){
-    stepEls.forEach((el,j)=>{ el.classList.toggle('active', j===i); el.classList.toggle('done', j<i); });
-    $('#exec-msg', root).textContent = msgs[i];
-    await sleep(160);
-  }
-  stepEls.forEach(el=>el.classList.add('done'));
-  await sleep(90);
+function refreshDashboard(){
+ return Api.dashboard().then(function(d){
+  S.dashboard=d;
+  trackMetric('risk',d.revenue_at_risk);trackMetric('recovered',d.recovered_amount);trackMetric('rate',d.recovery_rate);
+  trackMetric('open',S.cases.filter(function(c){return c.status==='open';}).length);
+  trackMetric('escalated',S.cases.filter(function(c){return c.status==='escalated';}).length);
+ });
 }
-function hideExecOverlay(){ $('#overlay-root').innerHTML = ''; }
-
-/* ---------------------------- Voice Agent ---------------------------- */
-const VOICE_INTENTS = [
-  {intent:'PROMISE_TO_PAY', kw:['haan bilkul','payment kar dunga','kar dunga','pay kar dunga','main pay','i will pay','will pay','pay kardunga','katuren','kattutha','kodthini','kodthene','settle pannuven','pannuven','definitely pay','sure i will','haan pay','ok pay']},
-  {intent:'NEED_TIME', kw:['thoda baad','baad mein','abhi nahi','salary nahi aaya','next week','agle hafte','kuch din','thoda time','naalai','konjam time','konchem time',' willbe late','later','not now']},
-  {intent:'ALREADY_PAID', kw:['already paid','maine pay kar diya','kar diya tha','paid already','payment ho gaya','ho chuka','seri pannitten','already kattesa']},
-  {intent:'DISPUTE', kw:['galat charge','wrong charge','not my transaction','maine nahi kiya','dispute','fraud','galat hai','yeh sahi nahi']},
-  {intent:'CANNOT_PAY', kw:['nahi kar sakta','can\'t pay','cannot pay','no money','paisa nahi hai','affordable nahi','mushkil hai']},
-  {intent:'WRONG_NUMBER', kw:['wrong number','galat number','who is this','yeh number','not me']},
-  {intent:'ANGRY', kw:['stop calling','harass','pareshaan','baar baar','irritat','angry','gussa']},
-  {intent:'DECLINE', kw:['nahi','no ','nope','never','mat karo']},
-  {intent:'GREETING', kw:['hello','hi ','namaste','vanakkam','namaskar']},
-  {intent:'GOODBYE', kw:['bye','thik hai bye','dhanyavad','thank you','ok bye','theek hai']},
+function loadInitialData(){
+ S.loading=true;S.loadError=null;renderShell();
+ Api.cases('limit=1').then(function(probe){
+  return probe.total?Promise.resolve():Api.seed();
+ }).then(function(){
+  return refreshCasesAndAudit();
+ }).then(function(){
+  return refreshDashboard();
+ }).then(function(){
+  S.live=true;S.loading=false;updateConnBadge();
+  go('overview');
+ }).catch(function(err){
+  S.live=false;S.loading=false;S.loadError=err.message||String(err);updateConnBadge();renderShell();
+ });
+}
+function renderShell(){
+ var el=document.getElementById('content');if(!el)return;
+ if(S.loading){el.innerHTML='<div class="card"><div class="empty" style="padding:60px"><h4>Loading RecoverAI…</h4><p>Connecting to the backend and seeding demo data if needed.</p></div></div>';return;}
+ if(!S.live){el.innerHTML='<div class="card"><div class="empty" style="padding:60px"><h4 style="color:var(--red2)">Backend unavailable</h4><p>'+esc(S.loadError||'Could not reach the RecoverAI API.')+'</p><p style="margin-top:6px">Start it with <span class="mono">uvicorn app.main:app --port 8000</span> from <span class="mono">backend/</span>, then retry.</p><button class="btn btn-p" style="margin-top:14px" data-act="retry-load">Retry</button></div></div>';}
+}
+/* ═══ CONSTANTS (structural — playbook copy/labels only, not data) ═══ */
+var PLAYBOOKS=[
+ {id:'degradation',name:'Payment Degradation Scan',desc:'Detects gateway timeouts and invalid-instrument declines, retries via the recommended action',color:'#22c55e',
+  filterFn:function(c){return c.status==='open'&&(c.failure_category==='temporary_gateway_failure'||c.failure_category==='invalid_instrument');}},
+ {id:'checkout',name:'Checkout Recovery',desc:'Sends smart payment links / reminders for abandoned checkouts',color:'#3b82f6',
+  filterFn:function(c){return c.status==='open'&&c.failure_category==='user_abandonment';}},
+ {id:'dunning',name:'Subscription Dunning',desc:'Smart retry ladder for insufficient-funds failures',color:'#8b5cf6',
+  filterFn:function(c){return c.status==='open'&&c.failure_category==='customer_liquidity_issue';}},
+ {id:'receivables',name:'B2B Receivables Chaser',desc:'Escalating chaser sequence for high-value open cases',color:'#f59e0b',
+  filterFn:function(c){return c.status==='open'&&c.amount>5000;}},
+ {id:'mandate',name:'Mandate Retry Sequencer',desc:'Sequences retries for bank-rejected mandates into safe windows',color:'#3b82f6',
+  filterFn:function(c){return c.status==='open'&&c.failure_category==='bank_rejection';}},
+ {id:'voice',name:'Hinglish Voice Recovery',desc:'AI voice agent calls customers in their language and negotiates a promise-to-pay',color:'#ec4899',
+  filterFn:function(c){return c.status==='open';}}
 ];
-function detectIntent(text){
-  const t = (' '+text.toLowerCase()+' ');
-  let best = {intent:'UNCLEAR', score:0};
-  for (const row of VOICE_INTENTS){
-    let score = 0;
-    for (const kw of row.kw){ if (t.indexOf(kw.toLowerCase()) !== -1) score++; }
-    if (score > best.score) best = {intent: row.intent, score};
-  }
-  return best.intent;
-}
-const VOICE_RESPONSES = {
-  PROMISE_TO_PAY: [
-    'Perfect sir! Main abhi ek secure payment link WhatsApp pe bhej rahi hoon. Aap kal tak clear kar dijiye please.',
-    'Great, thank you! I\'m sending a secure payment link right now — aap 24 ghante ke andar complete kar dijiyega.'
-  ],
-  NEED_TIME: [
-    'Samajh sakti hoon sir. Main aapko 3 din ka extension de sakti hoon — kya woh theek rahega?',
-    'No problem, main note kar leti hoon. Naye due date ke baare mein confirm kar dijiye — 3 din baad theek hai?'
-  ],
-  ALREADY_PAID: [
-    'Oh I see, let me just verify that on our system… agar payment already reflect ho chuka hai toh main is case ko turant close kar dungi.',
-    'Samajh gayi, verifying now. Aap apna transaction ID share kar sakte hain confirmation ke liye?'
-  ],
-  DISPUTE: [
-    'I understand your concern sir. Main is transaction ko dispute team ko forward kar rahi hoon — 24-48 hours mein review hoga.',
-    'Okay, main aapki dispute note kar leti hoon aur isse humari review team ko bhej deti hoon.'
-  ],
-  CANNOT_PAY: [
-    'Samajhti hoon ki mushkil time hai. Kya hum isse chhote installments mein split kar sakte hain?',
-    'I understand. Let\'s see agar hum kisi partial payment plan pe aa sakte hain — aapke liye kya kaam karega?'
-  ],
-  WRONG_NUMBER: [
-    'Oh I apologize for the confusion! Main is number ko apne records se hata deti hoon. Have a good day.',
-    'Sorry sir, galti se call chala gaya. Main abhi ke abhi correct kar deti hoon.'
-  ],
-  ANGRY: [
-    'I completely understand sir, and I apologize for the inconvenience. Main aapko human agent se connect kar deti hoon.',
-    'Maaf kijiye sir, main aapki baat samajh sakti hoon. Escalating to a senior agent right away.'
-  ],
-  DECLINE: [
-    'Theek hai, koi baat nahi. Main baad mein follow-up karungi. Have a great day sir.',
-    'Understood, no pressure. Main aapko ek reminder bhej dungi later.'
-  ],
-  GREETING: [
-    'Namaste sir! Main RecoverAI se baat kar rahi hoon regarding your pending payment. Kya aap 2 minute baat kar sakte hain?',
-    'Hello! This is RecoverAI calling about a pending payment on your account. Do you have a moment?'
-  ],
-  GOODBYE: [
-    'Dhanyavad sir, aapka time dene ke liye. Have a wonderful day, take care!',
-    'Thank you so much for your time. Goodbye, take care!'
-  ],
-  UNCLEAR: [
-    'Maaf kijiye, main thoda clearly samajh nahi payi. Kya aap phir se bata sakte hain?',
-    'Sorry, could you please repeat that? I want to make sure I understand correctly.'
-  ]
+/* ═══ VOICE BRAINS (code-switch tolerant) — real browser SpeechRecognition
+   + SpeechSynthesis; the dialogue itself is a deterministic keyword-matched
+   script, same in kind as any rule-based IVR/chatbot. Real outcomes
+   (promise captured, call ended) are persisted via Api.recordVoiceEvent. ═══ */
+var VOICE_BRAIN={
+ 'hi-IN':{label:'Hindi',name:'Hindi / Hinglish',
+  greeting:function(c){return 'Namaste '+c.customer.split(' ')[0]+' ji, main RecoverAI team se bol rahi hoon. Aapke payment ke regarding baat karni thi. Kya abhi 2 minute hain?';},
+  context:function(c){return 'Sir, aapka payment of '+fmtINR(c.amount)+' fail ho gaya tha. Reason hai '+c.category.name+'.';},
+  patterns:[
+   {m:['haan','yes','theek','thik','ok','bolo','kar dunga','payment kar','sure','ho jayega'],r:function(){return{say:'Perfect sir! Main abhi ek secure payment link WhatsApp pe bhej rahi hoon.',stage:'link_sent',outcome:'PROMISE_TO_PAY'};}},
+   {m:['balance nahi','paisa nahi','paise nahi','abhi nahi','salary','khali','no money','no balance'],r:function(){return{say:'Koi baat nahi sir. Main 2 din baad automatic retry laga rahi hoon.',stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},
+   {m:['baad me','baad mein','later','kal','aaj nahi','busy','tarvata'],r:function(){return{say:'Bilkul sir, koi problem nahi. Main WhatsApp pe message bhej rahi hoon.',stage:'closed',outcome:'CALLBACK_LATER'};}},
+   {m:['nahi','no ','man nahi','mat karo','wrong number','vendam','ledu'],r:function(){return{say:'Theek hai sir, sorry for disturbing. WhatsApp pe details bhej rahi hoon.',stage:'closed',outcome:'SOFT_REFUSAL'};}},
+   {m:['kya hua','problem','kyun fail','link bhej','dobara','bhej do','send link'],r:function(){return{say:'Bilkul sir! Main abhi fresh secure payment link bhej rahi hoon.',stage:'closed',outcome:'LINK_SENT'};}},
+   {m:['dhanyavaad','thank','shukriya','thanks','bye'],r:function(){return{say:'Dhanyavaad sir! Aapka din shubh rahe.',stage:'closed',outcome:'POLITE_END'};}}],
+  fallback:function(){return{say:'Sir, main theek se samajh nahi payi. Kya aap payment abhi kar sakte hain? Ya main link bhej doon?',stage:'objection'};},
+  quickReplies:['Haan bolo','Balance nahi hai','Payment kar dunga','Baad me call karo','Link bhej do']},
+ 'en-IN':{label:'English',name:'English',
+  greeting:function(c){return 'Hello '+c.customer.split(' ')[0]+', this is the RecoverAI team. Do you have 2 minutes to discuss your pending payment?';},
+  context:function(c){return 'Your payment of '+fmtINR(c.amount)+' failed due to '+c.category.name+'.';},
+  patterns:[
+   {m:['yes','ok','sure','tell me','go ahead','fine','do it','send it','haan'],r:function(){return{say:'Great! I will send a secure payment link to your WhatsApp right now.',stage:'link_sent',outcome:'PROMISE_TO_PAY'};}},
+   {m:['no money','no balance','not now','later','salary','busy','cannot','paisa nahi'],r:function(){return{say:'No problem at all. I will schedule an automatic retry for 2 days from now.',stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},
+   {m:['no','dont','stop','wrong number','not interested','nahi'],r:function(){return{say:'No problem, sorry for the inconvenience. I will send details via WhatsApp.',stage:'closed',outcome:'SOFT_REFUSAL'};}},
+   {m:['send link','payment link','new link','resend','link bhej'],r:function(){return{say:'Absolutely! I am sending a fresh secure payment link right now.',stage:'closed',outcome:'LINK_SENT'};}},
+   {m:['thank','thanks','bye','shukriya'],r:function(){return{say:'Thank you for your time! Have a great day.',stage:'closed',outcome:'POLITE_END'};}}],
+  fallback:function(){return{say:'I did not quite catch that. Can you make the payment now? Or should I send a link?',stage:'objection'};},
+  quickReplies:['Yes tell me','No balance','I will pay','Call later','Send link']},
+ 'ta-IN':{label:'Tamil',name:'Tamil',
+  greeting:function(c){return 'Vanakkam '+c.customer.split(' ')[0]+', naan RecoverAI team pesugiren. Ungal payment pathi pesa 2 nimidam undo?';},
+  context:function(c){return 'Ungal '+fmtINR(c.amount)+' payment failed aagiyulladhu. Kaaranam '+c.category.name+'.';},
+  patterns:[
+   {m:['aam','sari','ok','yes','seiren','haan'],r:function(){return{say:'Nandri! Naan ippo secure payment link ungal WhatsApp anuppen.',stage:'link_sent',outcome:'PROMISE_TO_PAY'};}},
+   {m:['panam illai','balance illai','ippo illai','salary','later','no balance'],r:function(){return{say:'Paravailai. Naan 2 naal apparam automatic retry vaippen.',stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},
+   {m:['illai','vendam','wrong number','no'],r:function(){return{say:'Sari, thandara seiyathirku mannikka. WhatsApp details anuppen.',stage:'closed',outcome:'SOFT_REFUSAL'};}},
+   {m:['link anuppu','send link'],r:function(){return{say:'Ninchayamaga! Puthiya secure payment link anuppen.',stage:'closed',outcome:'LINK_SENT'};}},
+   {m:['nandri','thanks','thank'],r:function(){return{say:'Ungal nerathirku nandri! Nalla naal vazhthukiren.',stage:'closed',outcome:'POLITE_END'};}}],
+  fallback:function(){return{say:'Sariyaaga kelvigillai. Payment ippo seyya mudiyuma? Allathu link anuppattuma?',stage:'objection'};},
+  quickReplies:['Aam sollunk','Panam illai','Seiren','Piragu','Link anuppu']},
+ 'kn-IN':{label:'Kannada',name:'Kannada',
+  greeting:function(c){return 'Namaskara '+c.customer.split(' ')[0]+', naanu RecoverAI team inda matanaduttiddene. Nimma payment bagge matanadalu 2 nimisha ideya?';},
+  context:function(c){return 'Nimma '+fmtINR(c.amount)+' payment failed aagide. Karana '+c.category.name+'.';},
+  patterns:[
+   {m:['haudu','sari','ok','yes','madi','haan'],r:function(){return{say:'Dhanyavadada! Naanu ippo ondu secure payment link nimma WhatsApp ge kaluhisuttiddene.',stage:'link_sent',outcome:'PROMISE_TO_PAY'};}},
+   {m:['hana illa','balance illa','ippu illa','salary','mattu','no balance'],r:function(){return{say:'Paravagilla. Naanu 2 dina muktavu automatic retry hakuttiddene.',stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},
+   {m:['beda','illa','wrong number','no'],r:function(){return{say:'Sari, tondarage talpa madi. WhatsApp details kaluhisuttiddene.',stage:'closed',outcome:'SOFT_REFUSAL'};}},
+   {m:['link kaluhisu','send link'],r:function(){return{say:'Khandita! Hos secure payment link kaluhisuttiddene.',stage:'closed',outcome:'LINK_SENT'};}},
+   {m:['dhanyavadada','thanks','thank'],r:function(){return{say:'Nimma samayakkagi dhanyavadada!',stage:'closed',outcome:'POLITE_END'};}}],
+  fallback:function(){return{say:'Sariyagi keluvudilla. Payment ippu madaballira? Allava link kaluhisaliya?',stage:'objection'};},
+  quickReplies:['Haudu heli','Hana illa','Madtini','Mettu','Link kaluhisu']},
+ 'te-IN':{label:'Telugu',name:'Telugu',
+  greeting:function(c){return 'Namaste '+c.customer.split(' ')[0]+', nenu RecoverAI team nunche matladtunnanu. Mee payment gurinchi matladataniki 2 nimisham unnaya?';},
+  context:function(c){return 'Mee '+fmtINR(c.amount)+' payment failed ayyindi. Karanam '+c.category.name+'.';},
+  patterns:[
+   {m:['avunu','sare','ok','yes','chestanu','haan'],r:function(){return{say:'Dhanyavadalu! Nenu ippo oka secure payment link mee WhatsApp ki pampistunnanu.',stage:'link_sent',outcome:'PROMISE_TO_PAY'};}},
+   {m:['dabbu ledu','balance ledu','ippu ledu','salary','tarvata','no balance'],r:function(){return{say:'Parvaledu. Nenu 2 rojulu tarvata automatic retry pedtanu.',stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},
+   {m:['ledu','vaddu','wrong number','no'],r:function(){return{say:'Sare, disturb chesina anukuni kshaminchandi. WhatsApp details pampistunnanu.',stage:'closed',outcome:'SOFT_REFUSAL'};}},
+   {m:['link pampu','send link'],r:function(){return{say:'Tappakunda! Kotta secure payment link pampistunnanu.',stage:'closed',outcome:'LINK_SENT'};}},
+   {m:['dhanyavadalu','thanks','thank'],r:function(){return{say:'Mee samayam kosam dhanyavadalu!',stage:'closed',outcome:'POLITE_END'};}}],
+  fallback:function(){return{say:'Sariga vinapadaledu. Payment ippu cheyagalaro? Leda link pampana?',stage:'objection'};},
+  quickReplies:['Avunu cheppu','Dabbu ledu','Chestanu','Tarvata','Link pampu']}
 };
-function agentReply(intent){ return pick(VOICE_RESPONSES[intent] || VOICE_RESPONSES.UNCLEAR); }
-
-let recognizer = null;
-function getRecognizer(){
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) return null;
-  if (recognizer) return recognizer;
-  recognizer = new SR();
-  recognizer.lang = 'hi-IN';
-  recognizer.continuous = false;
-  recognizer.interimResults = true;
-  recognizer.maxAlternatives = 1;
-  recognizer.onresult = (e) => {
-    let interim = '', final = '';
-    for (let i = e.resultIndex; i < e.results.length; i++){
-      const t = e.results[i][0].transcript;
-      if (e.results[i].isFinal) final += t; else interim += t;
-    }
-    S.voice.interim = interim;
-    if (final){ handleVoiceUserUtterance(final.trim()); }
-    else { renderVoiceInterim(); }
-  };
-  recognizer.onerror = () => { S.voice.status = 'idle'; S.voice.interim=''; render(); };
-  recognizer.onend = () => {
-    if (S.voice.status === 'listening'){ S.voice.status = 'idle'; S.voice.interim=''; render(); }
-  };
-  return recognizer;
+/* ═══ HELPERS ═══ */
+var TICONS={s:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>',e:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h16.9a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',w:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg>'};
+function toast(type,title,msg,dur){dur=dur||4000;var cls={s:'s',e:'e',w:'w',i:'i'}[type]||'i';var el=document.createElement('div');el.className='toast '+cls;
+ el.innerHTML='<div class="tic">'+(TICONS[cls]||TICONS.i)+'</div><div><b>'+esc(title)+'</b>'+(msg?'<p>'+esc(msg)+'</p>':'')+'</div>';
+ document.getElementById('toastWrap').appendChild(el);
+ setTimeout(function(){el.style.opacity='0';el.style.transition='opacity .3s';setTimeout(function(){el.remove();},300);},dur);}
+function spark(data,color){
+ if(!data||data.length===0)data=[0,0];
+ if(data.length===1)data=[data[0],data[0]];
+ var w=100,h=28,max=Math.max.apply(null,data),min=Math.min.apply(null,data);
+ var pts=data.map(function(v,i){return (i/(data.length-1))*w+','+(h-((v-min)/((max-min)||1))*(h-4)-2);}).join(' ');
+ return '<svg width="100%" height="'+h+'" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true"><polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="1.5" opacity=".7"/></svg>';
 }
-function startVoiceCall(caseId){
-  const kase = S.cases.find(c=>c.id===caseId) || null;
-  S.voice.activeCaseId = caseId || null;
-  S.voice.status = 'idle';
-  S.voice.history = [];
-  S.voice.callSeconds = 0;
-  clearInterval(S.voice.timerHandle);
-  S.voice.timerHandle = setInterval(()=>{ S.voice.callSeconds++; renderVoiceTimer(); }, 1000);
-  const opener = agentReply('GREETING');
-  pushVoiceBubble('agent', opener);
-  speak(opener);
-  logAudit({type:'voice', caseId: caseId||null, message:'Voice call started'+(kase?' with <b>'+kase.customer.name+'</b>':'')+'.'});
-  render();
+function safeCopy(text){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){toast('s','Copied',text);},function(){fbCopy(text);});}else fbCopy(text);}
+function fbCopy(text){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('s','Copied',text);}catch(e){toast('w','Copy failed','');}document.body.removeChild(ta);}
+/* ═══ ROUTING ═══ */
+var META={overview:['Overview','Revenue at a glance'],cases:['Cases','Search, filter, execute'],batch:['Batch Run','Pipeline execution'],playbooks:['Playbooks','Autonomous strategies'],voice:['Voice Agent','Multi-language recovery'],promises:['Promises','Commitment tracking'],audit:['Audit Trail','Decision log'],settings:['Settings','Configuration']};
+function go(page){
+ if(S.page==='voice'&&page!=='voice'&&S.voiceActive){endCall('NAV_AWAY');}
+ S.page=page;
+ var btns=document.querySelectorAll('.nav button[data-pg]');
+ for(var i=0;i<btns.length;i++){btns[i].classList.toggle('on',btns[i].dataset.pg===page);}
+ var m=META[page]||['RecoverAI',''];
+ document.getElementById('ptitle').textContent=m[0];
+ document.getElementById('psub').textContent=m[1];
+ if(!S.live){renderShell();return;}
+ var html='';
+ try{
+  if(page==='overview')html=renderOverview();
+  else if(page==='cases')html=renderCases();
+  else if(page==='batch')html=renderBatch();
+  else if(page==='playbooks')html=renderPlaybooks();
+  else if(page==='voice')html=renderVoice();
+  else if(page==='promises')html=renderPromises();
+  else if(page==='audit')html=renderAudit();
+  else if(page==='settings')html=renderSettings();
+ }catch(err){html='<div class="card"><div class="cbody"><b style="color:#f87171">Render error:</b> '+esc(err.message)+'</div></div>';}
+ document.getElementById('content').innerHTML=html;
+ var badge=document.getElementById('qBadge');if(badge)badge.textContent=openCount();
+ if(page==='cases')hookCases();
+ if(page==='audit')hookAudit();
+ if(page==='voice'&&S.voiceActive){setTimeout(function(){renderVoiceChat();updateVoiceUI();},50);}
 }
-function endVoiceCall(){
-  clearInterval(S.voice.timerHandle);
-  S.voice.status = 'idle';
-  try{ if (recognizer) recognizer.abort(); }catch(e){}
-  logAudit({type:'voice', caseId: S.voice.activeCaseId, message:'Voice call ended. Duration '+S.voice.callSeconds+'s.'});
-  toast('Call ended.', 'info');
-  S.voice.activeCaseId = null;
-  render();
+function softGo(){if(S.page==='voice'&&S.voiceActive){renderVoiceChat();updateVoiceUI();return;}go(S.page);}
+/* ═══ RENDERERS ═══ */
+function renderOverview(){
+ var open=S.cases.filter(function(c){return c.status==='open';});
+ var atRisk=S.dashboard?S.dashboard.revenue_at_risk:open.reduce(function(s,c){return s+c.amount;},0);
+ var recovered=S.dashboard?S.dashboard.recovered_amount:0;
+ var rate=S.dashboard?S.dashboard.recovery_rate:0;
+ var escN=S.cases.filter(function(c){return c.status==='escalated';}).length;
+ var h='<div class="kpis">';
+ h+='<div class="kpi"><div class="kl">At Risk</div><div class="kv" style="color:#f87171">'+fmt(atRisk)+'</div><div class="ks">open pipeline</div>'+spark(S.history.risk,'#f87171')+'</div>';
+ h+='<div class="kpi"><div class="kl">Recovered</div><div class="kv" style="color:#4ade80">'+fmt(recovered)+'</div><div class="ks">measured</div>'+spark(S.history.recovered,'#4ade80')+'</div>';
+ h+='<div class="kpi"><div class="kl">Rate</div><div class="kv" style="color:#60a5fa">'+Math.round(rate)+'%</div><div class="ks">server-computed</div>'+spark(S.history.rate,'#60a5fa')+'</div>';
+ h+='<div class="kpi"><div class="kl">Open</div><div class="kv" style="color:#fbbf24">'+open.length+'</div><div class="ks">eligible</div>'+spark(S.history.open,'#fbbf24')+'</div>';
+ h+='<div class="kpi"><div class="kl">Escalated</div><div class="kv" style="color:#a78bfa">'+escN+'</div><div class="ks">human review</div>'+spark(S.history.escalated,'#a78bfa')+'</div>';
+ h+='</div>';
+ if(S.armed){h+='<div class="card" style="border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.04);padding:10px 14px;font-size:12px;color:#f87171;font-weight:600">Failure simulation ARMED - next execute escalates deterministically</div>';}
+ h+='<div class="ovgrid">';
+ h+='<div class="card"><div class="chead"><h3>Agent Activity</h3><span class="hint">live feed</span></div>';
+ if(S.audit.length===0){h+='<div class="empty"><h4>No activity yet</h4><p>Seed data or run a batch.</p></div>';}
+ else{S.audit.slice(0,8).forEach(function(e){var tagCls=e.type==='EXECUTION'?'g':e.type==='ESCALATION'?'r':e.type==='DECISION'?'a':(e.type==='DIAGNOSIS'||e.type==='VOICE')?'v':'b';
+  h+='<div class="actrow"><span class="lt">'+e.ts+'</span><span class="tag '+tagCls+'">'+e.type+'</span><span class="ax">'+esc(e.desc)+'</span></div>';});}
+ h+='</div>';
+ h+='<div class="card"><div class="chead"><h3>Actions</h3></div><div class="cbody"><div class="actcol">';
+ h+='<button class="btn btn-p" data-act="run-batch" '+(S.running?'disabled':'')+'>'+(S.running?'Running...':'Run Batch Recovery')+'</button>';
+ h+='<div class="swrow" data-act="toggle-arm" role="switch" aria-checked="'+S.armed+'"><div><b>Arm Failure Sim</b><small>'+(S.armed?'ARMED':'Deterministic escalation')+'</small></div><div class="sw '+(S.armed?'on armed-pulse':'')+'"></div></div>';
+ h+='<button class="btn btn-g" data-act="go" data-pg="audit">Audit Trail</button>';
+ h+='<button class="btn btn-g" data-act="go" data-pg="playbooks">Playbooks</button>';
+ h+='</div><div class="glist"><div>Max autonomous: Rs.'+POLICY.maxAmount.toLocaleString('en-IN')+'</div><div>Max '+POLICY.maxRetries+' retries (stopping rule)</div><div>Rate limit: '+POLICY.rateExecute+' on execute</div><div>Idempotency-Key supported on execute</div></div></div></div>';
+ h+='</div>';
+ return h;
 }
-function pushVoiceBubble(who, text){
-  S.voice.history.push({who, text, ts: nowTs()});
-  renderVoiceChat();
+function renderCases(){
+ var h='<div class="card"><div class="toolbar"><div class="srch"><input id="caseSearch" placeholder="Search cases..." value="'+esc(S.search)+'" aria-label="Search cases"></div><div style="display:flex;gap:5px">';
+ ['all','low','medium','high'].forEach(function(r){h+='<button class="chip '+(S.filter===r?'on':'')+'" data-act="filter" data-risk="'+r+'">'+r+'</button>';});
+ h+='</div><div class="vtog" style="margin-left:auto"><button class="'+(S.caseView==='table'?'on':'')+'" data-act="set-view" data-view="table">Table</button><button class="'+(S.caseView==='kanban'?'on':'')+'" data-act="set-view" data-view="kanban">Board</button></div></div>';
+ h+='<div id="caseBody"></div></div>';
+ return h;
 }
-function handleVoiceUserUtterance(text){
-  S.voice.interim = '';
-  pushVoiceBubble('user', text);
-  const intent = detectIntent(text);
-  S.voice.status = 'processing';
-  render();
-  setTimeout(() => {
-    const reply = agentReply(intent);
-    S.voice.status = 'speaking';
-    render();
-    pushVoiceBubble('agent', reply);
-    speak(reply, () => { S.voice.status = 'idle'; render(); });
-
-    if (intent === 'PROMISE_TO_PAY' && S.voice.activeCaseId){
-      const kase = S.cases.find(c=>c.id===S.voice.activeCaseId);
-      if (kase && kase.status !== 'recovered'){
-        kase.status = 'promise_pending';
-        kase.history.push({ts:nowTs(), action:'voice_promise', note:'Promise captured via voice call: "'+text+'"'});
-        if (!S.promises.find(p=>p.caseId===kase.id)){
-          S.promises.push({id:uid('PR'), caseId:kase.id, customerName:kase.customer.name, amount:kase.amount,
-            promisedDate:nowTs(), dueDate: nowTs()+2*86400000, status:'pending', channel:'voice'});
-        }
-        logAudit({type:'promise', caseId:kase.id, message:'Promise-to-pay captured via voice for <b>'+kase.id+'</b> — due in 2 days.'});
-        persist();
-        toast('Promise-to-pay captured for '+kase.id+'.', 'success');
-      }
-    } else if (intent === 'DISPUTE' && S.voice.activeCaseId){
-      logAudit({type:'voice', caseId:S.voice.activeCaseId, message:'Dispute raised on call — forwarded to human review.'});
-    }
-  }, 500);
+function caseList(){return S.cases.filter(function(c){
+ if(S.filter!=='all'&&c.risk!==S.filter)return false;
+ if(S.search){var q=S.search.toLowerCase();if(c.customer.toLowerCase().indexOf(q)===-1&&c.id.toLowerCase().indexOf(q)===-1&&c.category.name.toLowerCase().indexOf(q)===-1)return false;}
+ return true;}).sort(function(a,b){return b.amount-a.amount;});}
+function renderCaseBody(){
+ var el=document.getElementById('caseBody');if(!el)return;
+ var list=caseList();var h='';
+ if(S.caseView==='table'){
+  h+='<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Case ID</th><th>Customer</th><th>Amount</th><th>Diagnosis</th><th>Risk</th><th>Status</th><th></th></tr></thead><tbody>';
+  if(list.length===0){h+='<tr><td colspan="7"><div class="empty"><h4>No cases found</h4><p>Adjust filters or seed data.</p></div></td></tr>';}
+  else{list.forEach(function(c){
+   h+='<tr data-act="case-detail" data-id="'+c.id+'"><td class="mono" style="color:#4ade80">'+c.id+'</td>';
+   h+='<td><div class="cust"><div class="ava">'+esc(c.customer.split(' ').map(function(w){return w[0];}).join(''))+'</div><div><b>'+esc(c.customer)+'</b><span>'+c.created+' · '+c.category.code+'</span></div></div></td>';
+   h+='<td class="amt">'+fmt(c.amount)+'</td><td style="color:#9d9da6;font-size:11px">'+esc(c.category.name)+'</td>';
+   h+='<td><span class="rb '+c.risk+'"><i></i>'+c.risk+'</span></td>';
+   h+='<td><span class="sb '+c.status+'"><i></i>'+c.status+'</span></td>';
+   h+='<td>'+(c.status==='open'?'<button class="btn btn-p btn-sm" data-act="exec-case" data-id="'+c.id+'">Execute</button>':'')+'</td></tr>';});}
+  h+='</tbody></table></div>';
+ }else{
+  h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px">';
+  [{n:'open',c:'#60a5fa'},{n:'recovered',c:'#4ade80'},{n:'escalated',c:'#f87171'},{n:'closed',c:'#9d9da6'}].forEach(function(col){
+   var items=list.filter(function(c){return c.status===col.n;});
+   h+='<div style="background:var(--p1);border:1px solid var(--ln);border-radius:12px;padding:10px;min-height:200px"><div style="font-size:10px;font-weight:800;text-transform:uppercase;color:'+col.c+';padding:4px 6px 10px">'+col.n+' · '+items.length+'</div>';
+   items.forEach(function(c){
+    h+='<div data-act="case-detail" data-id="'+c.id+'" style="background:var(--p2);border:1px solid var(--ln2);border-radius:8px;padding:11px;margin-bottom:9px;cursor:pointer"><div style="display:flex;justify-content:space-between"><span class="mono" style="font-size:10px;color:#4ade80">'+c.id+'</span><span class="rb '+c.risk+'">'+c.risk+'</span></div><p style="font-size:11px;color:var(--mut);margin:3px 0 8px">'+esc(c.customer)+'</p><div style="display:flex;justify-content:space-between;align-items:center"><span class="amt">'+fmt(c.amount)+'</span>'+(c.status==='open'?'<button class="btn btn-p btn-sm" data-act="exec-case" data-id="'+c.id+'">Exec</button>':'')+'</div></div>';});
+   if(items.length===0)h+='<div style="text-align:center;color:#5c5c66;font-size:11px;padding:20px">No cases</div>';
+   h+='</div>';});
+  h+='</div>';
+ }
+ el.innerHTML=h;
 }
-function speak(text, onend){
-  S.voice.status = 'speaking';
-  if (!window.speechSynthesis){ if(onend) setTimeout(onend, 700); return; }
-  try{
-    const u = new SpeechSynthesisUtterance(text);
-    const voices = window.speechSynthesis.getVoices();
-    const inVoice = voices.find(v => /en-IN|hi-IN/i.test(v.lang));
-    if (inVoice) u.voice = inVoice;
-    u.rate = 1.0; u.pitch = 1.05; u.lang = inVoice ? inVoice.lang : 'en-US';
-    u.onend = () => { if(onend) onend(); };
-    u.onerror = () => { if(onend) onend(); };
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
-  }catch(e){ if(onend) setTimeout(onend, 700); }
+function hookCases(){renderCaseBody();var inp=document.getElementById('caseSearch');if(inp)inp.addEventListener('input',function(){S.search=inp.value;renderCaseBody();});}
+function renderBatch(){
+ var pending=pendingCases();
+ var amt=pending.reduce(function(s,c){return s+c.amount;},0);
+ var st=S.batchStats;
+ var pct=(S.running&&S.batchTotal>0&&st)?Math.round(st.proc/S.batchTotal*100):0;
+ var h='<div class="card"><div class="chead"><h3>Batch Pipeline</h3><span class="hint">'+pending.length+' pending - '+fmt(amt)+'</span></div><div class="cbody">';
+ h+='<button class="btn btn-p" data-act="run-batch" style="width:100%;margin-bottom:12px" '+(S.running?'disabled':'')+'>'+(S.running?'Running...':'Start Batch')+'</button>';
+ if(S.armed)h+='<div style="padding:8px 12px;border-radius:6px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.25);margin-bottom:10px;font-size:11px;color:#f87171;font-weight:600">Warning: Failure sim armed</div>';
+ if(S.running)h+='<div class="pbar"><i id="batchBar" style="width:'+pct+'%"></i></div>';
+ h+='<div class="blog" id="batchLog">'+(S.batchLog.length?S.batchLog.map(function(l){return '<div class="ln '+l.cls+'">'+l.txt+'</div>';}).join(''):'<div class="lt">Awaiting batch start...</div>')+'</div></div></div>';
+ h+='<div class="card"><div class="chead"><h3>Metrics</h3><span class="hint">'+(st?'last run':'no run yet')+'</span></div><div class="cbody"><div class="bmrow"><div class="bm"><b style="color:#60a5fa">'+(st?st.proc:0)+'</b><span>Processed</span></div><div class="bm"><b style="color:#4ade80">'+(st?st.rec:0)+'</b><span>Recovered</span></div><div class="bm"><b style="color:#4ade80">'+(st?fmt(st.amt):'—')+'</b><span>Reclaimed</span></div><div class="bm"><b style="color:#f87171">'+(st?st.esc:0)+'</b><span>Escalated</span></div><div class="bm"><b style="color:#fbbf24">'+(st?st.skp:0)+'</b><span>Skipped</span></div></div>';
+ if(st&&st.proc>0){var rp=Math.round(st.rec/st.proc*100),sp=Math.round(st.skp/st.proc*100),ep=Math.max(0,100-rp-sp);
+  h+='<div class="split"><i class="a" style="width:'+rp+'%"></i><i class="c" style="width:'+sp+'%"></i><i class="d" style="width:'+ep+'%"></i></div>';
+  h+='<div class="dlegend"><i style="background:#22c55e"></i> Recovered - <i style="background:#fbbf24"></i> Skipped - <i style="background:#ef4444"></i> Escalated</div>';}
+ h+='</div></div>';
+ if(S.batchHistory.length){h+='<div class="card"><div class="chead"><h3>Run History</h3><span class="hint">'+S.batchHistory.length+'</span></div>';
+  S.batchHistory.forEach(function(r){h+='<div class="actrow"><span class="lt">'+r.ts+'</span><span class="tag g">'+r.rec+' rec</span><span class="tag r">'+r.esc+' esc</span><span class="ax">'+fmt(r.amt)+' reclaimed</span></div>';});
+  h+='</div>';}
+ return h;
 }
-function toggleListening(){
-  const rec = getRecognizer();
-  if (!rec){ toast('SpeechRecognition not supported in this browser. Use quick-reply chips or type instead.', 'warning'); return; }
-  if (S.voice.status === 'listening'){
-    rec.stop(); S.voice.status = 'idle'; render(); return;
+function renderPlaybooks(){
+ var h='<div style="display:flex;justify-content:space-between;align-items:center"><p style="color:#9d9da6;font-size:12px">Each playbook processes real, currently eligible cases</p><button class="btn btn-p btn-sm" data-act="run-all">Run All</button></div>';
+ h+='<div class="pbgrid">';
+ PLAYBOOKS.forEach(function(p){
+  var eligible=S.cases.filter(p.filterFn).length;
+  var ps=S.pbStats[p.id];
+  h+='<button class="pbcard" data-act="run-pb" data-id="'+p.id+'"><div class="top"><div class="pbic" style="background:'+p.color+'15;color:'+p.color+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><h3>'+p.name+'</h3><span class="st '+(eligible?'done':'')+'">'+(eligible?'Ready':'Idle')+'</span></div><p>'+p.desc+'</p><div class="eligible">'+eligible+' cases eligible</div><div class="go">'+(p.id==='voice'?'Open Voice Agent →':'Run Playbook')+'</div><div class="lr">'+(ps?fmt(ps.amt)+' recovered this session · '+ps.runs+' runs':'0 runs this session')+'</div></button>';});
+ h+='</div>';
+ return h;
+}
+function renderVoice(){
+ var open=S.cases.filter(function(c){return c.status==='open'||c.status==='escalated';});
+ var h='<div class="vgrid"><div class="card"><div class="chead"><h3>Select Case</h3><span class="hint">'+open.length+' eligible</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px">';
+ if(open.length===0)h+='<div class="empty"><h4>No eligible cases</h4><p>Seed data first.</p></div>';
+ open.forEach(function(c){h+='<button class="swrow" data-act="sel-voice" data-id="'+c.id+'" style="'+(S.voiceCase===c.id?'border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.06)':'')+'"><div><b>'+esc(c.customer)+'</b><small>'+c.id+' - '+fmt(c.amount)+'</small></div><span class="rb '+c.risk+'">'+c.risk+'</span></button>';});
+ h+='</div></div><div class="card" style="overflow:hidden"><div class="chead"><h3>Voice Agent</h3>'+(S.voiceActive?'<span class="vtimer" id="vtimer">00:00</span>':'<span class="hint">'+esc(VOICE_BRAIN[S.voiceLang].name)+'</span>')+'</div>';
+ h+='<div class="vlang">';
+ Object.keys(VOICE_BRAIN).forEach(function(code){h+='<button class="'+(S.voiceLang===code?'on':'')+'" data-act="set-vlang" data-lang="'+code+'" '+(S.voiceActive?'disabled':'')+'>'+VOICE_BRAIN[code].label+'</button>';});
+ h+='</div>';
+ if(S.voiceActive){
+  h+='<div id="voiceChat" class="vchat"></div>';
+  h+='<div class="vcontrols"><button class="micbtn idle" data-act="toggle-mic" id="micBtn" aria-label="Microphone"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v4"/><path d="M8 23h8"/></svg></button><div style="flex:1"><div class="vstatus" id="vstatus">Ready</div><div class="vinterim" id="vinterim"></div></div><button class="btn btn-r btn-sm" data-act="end-call">End</button></div>';
+  h+='<div class="vquick" id="vquick"></div>';
+  h+='<div style="display:flex;gap:8px;padding:0 14px 12px"><input class="srch" style="flex:1;max-width:none" placeholder="Or type your reply..." id="vinput" aria-label="Type reply"><button class="btn btn-g btn-sm" data-act="send-text">Send</button></div>';
+ }else{
+  h+='<div class="empty" style="padding:40px"><div style="margin-bottom:10px;opacity:.15"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v4"/><path d="M8 23h8"/></svg></div><h4 style="font-size:14px;margin-bottom:4px">Voice Recovery Agent</h4><p style="font-size:12px">Speaks '+esc(VOICE_BRAIN[S.voiceLang].name)+', handles code-switched speech, listens via mic</p><div class="grid2" style="margin-top:16px"><div class="dcell" style="text-align:center"><span>Speaks</span><b>'+esc(VOICE_BRAIN[S.voiceLang].name)+'</b></div><div class="dcell" style="text-align:center"><span>Listens</span><b>STT Active</b></div></div><button class="btn btn-v" data-act="start-call" '+(!S.voiceCase?'disabled':'')+' style="margin-top:14px">Start Voice Call</button></div>';
+ }
+ h+='</div></div>';
+ return h;
+}
+function derivePromises(){
+ var byId={};S.cases.forEach(function(c){byId[c.id]=c;});
+ return S.audit.filter(function(e){return e.raw&&e.raw.event_type==='voice_promise_captured';}).map(function(e){
+  var c=byId[e.caseId];var capturedAt=e.raw.timestamp?new Date(e.raw.timestamp).getTime():Date.now();var dueAt=capturedAt+2*86400000;
+  var status='pending';
+  if(c&&c.recovery_status==='recovered')status='fulfilled';else if(Date.now()>dueAt)status='broken';
+  return {id:e.id,customer:c?c.customer:(e.caseId||'Unknown'),amount:c?c.amount:0,capturedAt:capturedAt,dueAt:dueAt,source:'Voice Call',status:status,caseId:e.caseId,transcript:e.raw.reason||''};
+ }).sort(function(a,b){return b.capturedAt-a.capturedAt;});
+}
+function renderPromises(){
+ var rows=derivePromises();
+ if(rows.length===0){return '<div class="card"><div class="chead"><h3>Promises</h3><button class="btn btn-g btn-sm" style="margin-left:auto" data-act="scan-prom">Refresh</button></div><div class="empty"><h4>No promises yet</h4><p>Captured automatically when a voice call detects a payment commitment.</p></div></div>';}
+ var stats={pending:0,fulfilled:0,broken:0,total:0};
+ rows.forEach(function(p){stats[p.status]++;stats.total+=p.amount;});
+ var h='<div class="kpis" style="grid-template-columns:repeat(4,1fr)">';
+ h+='<div class="kpi"><div class="kl">Pending</div><div class="kv" style="color:#fbbf24">'+stats.pending+'</div></div>';
+ h+='<div class="kpi"><div class="kl">Fulfilled</div><div class="kv" style="color:#4ade80">'+stats.fulfilled+'</div></div>';
+ h+='<div class="kpi"><div class="kl">Broken</div><div class="kv" style="color:#f87171">'+stats.broken+'</div></div>';
+ h+='<div class="kpi"><div class="kl">Value</div><div class="kv" style="color:#60a5fa">'+fmt(stats.total)+'</div></div></div>';
+ h+='<div class="card"><div class="chead"><h3>Promises</h3><span class="hint">click a row to open the case</span><button class="btn btn-g btn-sm" style="margin-left:8px" data-act="scan-prom">Refresh</button></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>ID</th><th>Customer</th><th>Amount</th><th>Captured</th><th>Due</th><th>Source</th><th>Status</th></tr></thead><tbody>';
+ rows.forEach(function(p){
+  var daysLeft=Math.ceil((p.dueAt-Date.now())/86400000);var dueCol=daysLeft<=0?'#f87171':daysLeft<=1?'#fbbf24':'#9d9da6';
+  h+='<tr data-act="case-detail" data-id="'+p.caseId+'"><td class="mono" style="color:#4ade80">'+p.id+'</td>';
+  h+='<td><div style="min-width:0"><b style="display:block">'+esc(p.customer)+'</b>'+(p.transcript?'<span title="'+esc(p.transcript)+'" style="display:block;font-size:10px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px">"'+esc(p.transcript.length>34?p.transcript.slice(0,34)+'…':p.transcript)+'"</span>':'')+'</div></td>';
+  h+='<td class="amt">'+fmt(p.amount)+'</td><td style="color:#9d9da6">'+relTime(new Date(p.capturedAt).toISOString())+'</td><td style="color:'+dueCol+'">'+(daysLeft<=0?'due':'in '+daysLeft+'d')+'</td><td><span class="rb low" style="background:rgba(255,255,255,.05);color:#9d9da6">'+p.source+'</span></td><td><span class="sb '+p.status+'"><i></i>'+p.status+'</span></td></tr>';});
+ h+='</tbody></table></div></div>';
+ return h;
+}
+function renderAudit(){
+ var types=['all','DETECTION','DIAGNOSIS','DECISION','EXECUTION','ESCALATION','VOICE'];
+ var h='<div class="card"><div class="toolbar"><div class="srch"><input id="auditSearch" placeholder="Search audit..." value="'+esc(S.auditSearch)+'" aria-label="Search audit"></div><div style="display:flex;gap:5px;flex-wrap:wrap">';
+ types.forEach(function(t){h+='<button class="chip '+(S.auditFilter===t?'on':'')+'" data-act="audit-filter" data-type="'+t+'">'+t+'</button>';});
+ h+='</div><span class="hint" id="auditCount" style="margin-left:auto"></span><button class="btn btn-g btn-sm" data-act="export-audit">Export</button></div><div class="cbody"><div class="tl" id="auditBody"></div></div></div>';
+ return h;
+}
+function renderAuditBody(){
+ var el=document.getElementById('auditBody');if(!el)return;
+ var list=S.audit.filter(function(e){
+  if(S.auditFilter!=='all'&&e.type!==S.auditFilter)return false;
+  if(S.auditSearch){var q=S.auditSearch.toLowerCase();if(e.desc.toLowerCase().indexOf(q)===-1&&e.actor.toLowerCase().indexOf(q)===-1&&e.type.toLowerCase().indexOf(q)===-1)return false;}
+  return true;});
+ var cnt=document.getElementById('auditCount');if(cnt)cnt.textContent=list.length+' events';
+ if(list.length===0){el.innerHTML='<div class="empty"><h4>No events</h4></div>';return;}
+ el.innerHTML=list.map(function(e){return '<div class="tlev" data-act="toggle-json" data-id="'+e.id+'" style="--evc:'+e.color+'" title="Click for raw JSON"><div class="tlt"><span class="tltype">'+e.type+'</span><span class="tltime">'+e.ts+'</span></div><div class="tlreason">'+esc(e.desc)+'</div><div class="tlmeta"><span>Actor: '+esc(e.actor)+'</span> - <span>Result: <b style="color:'+(e.result==='SUCCESS'?'#4ade80':'#f87171')+'">'+e.result+'</b></span></div><pre class="tljson">'+esc(JSON.stringify(e.raw,null,1))+'</pre></div>';}).join('');
+}
+function hookAudit(){renderAuditBody();var inp=document.getElementById('auditSearch');if(inp)inp.addEventListener('input',function(){S.auditSearch=inp.value;renderAuditBody();});}
+function renderSettings(){
+ var h='<div class="card"><div class="chead"><h3>Configuration</h3></div><div class="cbody" style="display:flex;flex-direction:column;gap:8px">';
+ h+='<div class="swrow"><b>Voice Language</b><select id="setLang" style="background:var(--p1);border:1px solid var(--ln2);border-radius:8px;padding:6px 8px;color:var(--tx)">';
+ Object.keys(VOICE_BRAIN).forEach(function(code){h+='<option value="'+code+'" '+(S.voiceLang===code?'selected':'')+'>'+VOICE_BRAIN[code].name+'</option>';});
+ h+='</select></div>';
+ h+='<div class="swrow" data-act="toggle-arm" role="switch" aria-checked="'+S.armed+'"><b>Failure Simulation</b><div class="sw '+(S.armed?'on armed-pulse':'')+'"></div></div>';
+ h+='<div class="swrow"><b>Auto-cap</b><span class="mono" style="color:#fbbf24">Rs.'+POLICY.maxAmount.toLocaleString('en-IN')+'</span></div>';
+ h+='<div class="swrow"><b>Max Retries</b><span class="mono" style="color:#fbbf24">'+POLICY.maxRetries+'</span></div>';
+ h+='<div class="swrow"><b>Rate Limit (Execute)</b><span class="mono" style="color:#fbbf24">'+POLICY.rateExecute+'</span></div>';
+ h+='<div class="swrow"><b>Rate Limit (Demo/Voice)</b><span class="mono" style="color:#fbbf24">'+POLICY.rateDemo+'</span></div></div></div>';
+ h+='<div class="card"><div class="chead"><h3>Data</h3></div><div class="cbody" style="display:flex;gap:8px"><button class="btn btn-g" data-act="seed">Seed</button><button class="btn btn-r" data-act="reset">Reset All</button></div></div>';
+ h+='<div class="card"><div class="chead"><h3>System</h3></div><div class="cbody" style="display:flex;flex-direction:column;gap:6px"><div class="swrow"><b>Version</b><span class="mono">v5.2</span></div><div class="swrow"><b>Track</b><span class="mono">03 - AI Revenue Recovery</span></div><div class="swrow"><b>Backend</b><span class="mono">'+(S.live?'Connected':'Unavailable')+'</span></div></div></div>';
+ return h;
+}
+/* ═══ ACTIONS — every one below hits the real backend ═══ */
+function toggleArm(){
+ Api.simulateFailure().then(function(r){
+  S.armed=true;toast('w','Armed',r.message||'Next execution will escalate');
+  return refreshCasesAndAudit();
+ }).then(function(){go(S.page);}).catch(function(err){toast('e','Failed to arm',err.message);});
+}
+var execSeq=0;
+function openExec(title,apiPromiseFactory,onResult){
+ execSeq++;var my=execSeq;
+ document.getElementById('execContent').innerHTML='<div class="ehead"><span class="espin"></span><div><div class="etitle">'+esc(title)+'</div><div class="esub">Autonomous pipeline - policy-gated</div></div></div><ol class="esteps" id="eSteps"></ol><div class="pbar"><i id="eBar" style="width:0"></i></div><div id="eRes"></div><div class="efoot"><button class="btn btn-p" id="eCont" hidden>Close</button></div>';
+ var steps=[{t:'Detect',d:'Payment and gateway signals'},{t:'Diagnose',d:'Root cause classification'},{t:'Decide',d:'Policy-gated action'},{t:'Execute',d:'Safe workflow + audit'}];
+ document.getElementById('eSteps').innerHTML=steps.map(function(s,i){return '<li id="estep-'+i+'"><span class="sdot">'+(i+1)+'</span><div class="stx"><b>'+s.t+'</b><span>'+s.d+'</span></div></li>';}).join('');
+ document.getElementById('execOvl').classList.add('show');
+ var promise=apiPromiseFactory();
+ var i=0;
+ var iv=setInterval(function(){
+  if(my!==execSeq){clearInterval(iv);return;}
+  if(i>0){var prev=document.getElementById('estep-'+(i-1));if(prev)prev.classList.replace('act','done');}
+  if(i<4){var cur=document.getElementById('estep-'+i);if(cur)cur.classList.add('act');var bar=document.getElementById('eBar');if(bar)bar.style.width=((i+1)*25)+'%';i++;}
+  else{clearInterval(iv);promise.then(function(v){onResult(null,v);}).catch(function(e){onResult(e,null);});}
+ },500);
+}
+function closeExec(){execSeq++;document.getElementById('execOvl').classList.remove('show');}
+function execCase(id){
+ var c=S.cases.find(function(x){return x.id===id;});if(!c)return;
+ openExec('Executing '+c.id,function(){return Api.execute(id);},function(err,res){
+  if(err){
+   document.getElementById('eRes').innerHTML='<div class="res bad"><div class="escb">FAILED</div><div>'+esc(err.message)+'</div></div>';
+   toast('e','Execution failed',err.message);
+   document.getElementById('eCont').hidden=false;
+   return;
   }
-  try{
-    S.voice.status = 'listening'; S.voice.interim=''; render();
-    rec.start();
-  }catch(e){ /* already started */ }
+  var ok=res.status==='recovered';
+  document.getElementById('eRes').innerHTML='<div class="res '+(ok?'ok':'bad')+'"><div class="escb '+(ok?'ok':'')+'">'+esc(pretty(res.status).toUpperCase())+'</div><div>'+esc(res.message)+(ok?' — '+fmtINR(res.recovered_amount)+' reclaimed':'')+'</div></div>';
+  toast(ok?'s':(res.status==='needs_human_review'||res.status==='blocked'?'w':'e'),pretty(res.status),res.message);
+  document.getElementById('eCont').hidden=false;
+  refreshCasesAndAudit().then(refreshDashboard).then(softGo);
+ });
 }
-
-/* ---------------------------- Command Palette ---------------------------- */
-const COMMANDS = [
-  {label:'Go to Overview', icon:'📊', run:()=>navigate('overview')},
-  {label:'Go to Cases', icon:'📁', run:()=>navigate('cases')},
-  {label:'Go to Batch Execution', icon:'⚡', run:()=>navigate('batch')},
-  {label:'Go to Playbooks', icon:'📘', run:()=>navigate('playbooks')},
-  {label:'Go to Voice Agent', icon:'🎙️', run:()=>navigate('voice')},
-  {label:'Go to Promise Tracker', icon:'✅', run:()=>navigate('promises')},
-  {label:'Go to Audit Trail', icon:'🔎', run:()=>navigate('audit')},
-  {label:'Go to Settings', icon:'⚙️', run:()=>navigate('settings')},
-  {label:'Run Batch Recovery', icon:'▶️', run:()=>runBatch()},
-  {label:'Arm Failure Simulation', icon:'🔴', run:()=>{ Policy.simFailure = true; persist(); toast('Failure simulation ARMED — all executions will now be blocked.', 'warning'); render(); }},
-  {label:'Disarm Failure Simulation', icon:'🟢', run:()=>{ Policy.simFailure = false; persist(); toast('Failure simulation disarmed.', 'success'); render(); }},
-  {label:'Export Audit Trail (JSON)', icon:'⬇️', run:()=>exportAudit()},
-  {label:'Reset Demo Data', icon:'♻️', run:()=>resetDemo()},
-];
-function openPalette(){ S.ui.paletteOpen = true; S.ui.paletteQuery=''; S.ui.paletteSel=0; render(); setTimeout(()=>{ const i=$('#palette-input'); if(i) i.focus(); },0); }
-function closePalette(){ S.ui.paletteOpen = false; render(); }
-
-/* ---------------------------- Export / Reset ---------------------------- */
-function exportAudit(){
-  const blob = new Blob([JSON.stringify(S.audit, null, 2)], {type:'application/json'});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = 'recoverai-audit-'+Date.now()+'.json';
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url), 2000);
-  toast('Audit trail exported as JSON.', 'success');
+function blogPush(cls,txt){S.batchLog.push({cls:cls,txt:txt});var log=document.getElementById('batchLog');if(log){log.innerHTML+='<div class="ln '+cls+'">'+txt+'</div>';log.scrollTop=log.scrollHeight;}}
+function runBatch(){
+ if(S.running)return;S.running=true;
+ var pending=pendingCases();
+ S.batchLog=[];S.batchStats=null;S.batchTotal=pending.length;
+ go('batch');
+ if(pending.length===0){blogPush('lt','No eligible cases. Seed data first.');S.running=false;softGo();return;}
+ blogPush('lt','--- Batch started: '+pending.length+' cases ---');
+ Api.batch().then(function(result){
+  return refreshCasesAndAudit().then(function(){return result;});
+ }).then(function(result){
+  var byId={};S.cases.forEach(function(c){byId[c.id]=c;});
+  var i=0;
+  function step(){
+   if(i>=pending.length){
+    S.running=false;
+    var failedN=Math.max(0,result.attempted-result.successful-result.escalated);
+    blogPush('lt','--- Done: '+result.successful+' recovered, '+result.escalated+' escalated, '+failedN+' failed ---');
+    S.batchStats={proc:result.attempted,rec:result.successful,esc:result.escalated,skp:failedN,amt:result.amount_recovered};
+    S.batchHistory.unshift({ts:nowTs(),rec:result.successful,esc:result.escalated,amt:result.amount_recovered});
+    if(S.batchHistory.length>6)S.batchHistory.pop();
+    toast('s','Batch Complete',result.successful+' recovered · '+fmt(result.amount_recovered));
+    refreshDashboard().then(softGo);
+    return;
+   }
+   var oldCase=pending[i];var newCase=byId[oldCase.id];var ts=nowTs();
+   if(newCase&&newCase.recovery_status==='recovered'){blogPush('ok','['+ts+'] RECOVERED: '+newCase.id+' - '+esc(newCase.customer)+' - '+fmtINR(newCase.recovered_amount));}
+   else if(newCase&&(newCase.recovery_status==='needs_human_review'||newCase.recovery_status==='blocked')){blogPush('bad','['+ts+'] ESCALATED: '+newCase.id+' - '+esc(newCase.customer));}
+   else{blogPush('skip','['+ts+'] NO CHANGE: '+oldCase.id+' - '+esc(oldCase.customer));}
+   i++;setTimeout(step,300);
+  }
+  step();
+ }).catch(function(err){S.running=false;blogPush('bad','Batch failed: '+err.message);toast('e','Batch failed',err.message);softGo();});
 }
-function resetDemo(){
-  clearInterval(S.voice.timerHandle);
-  seedData();
-  S.view = 'overview';
-  S.voice = {status:'idle', transcript:'', interim:'', history:[], activeCaseId:null, callSeconds:0, timerHandle:null, recognizer:null};
-  Policy.simFailure = false;
-  persist();
-  toast('Demo reset — fresh dataset seeded.', 'success');
-  render();
+function pbStat(id,rec,amt){var p=S.pbStats[id]=S.pbStats[id]||{runs:0,rec:0,amt:0};p.runs++;p.rec+=rec;p.amt+=amt;}
+function runPlaybook(id){
+ var pb=PLAYBOOKS.find(function(x){return x.id===id;});if(!pb)return;
+ if(id==='voice'){toast('i','Voice Agent','Pick a case in the Voice Agent tab to start a real call.');go('voice');return;}
+ var eligible=S.cases.filter(pb.filterFn);
+ if(eligible.length===0){toast('w','No Cases',pb.name+': no eligible cases');return;}
+ openExec(pb.name,function(){
+  var results=[];
+  function runOne(i){
+   if(i>=eligible.length)return Promise.resolve(results);
+   return Api.execute(eligible[i].id).then(function(r){results.push({case:eligible[i],result:r});return runOne(i+1);}).catch(function(e){results.push({case:eligible[i],result:{status:'error',message:e.message}});return runOne(i+1);});
+  }
+  return runOne(0).then(function(){return refreshCasesAndAudit().then(function(){return results;});});
+ },function(err,results){
+  if(err){document.getElementById('eRes').innerHTML='<div class="res bad"><div class="escb">FAILED</div><div>'+esc(err.message)+'</div></div>';toast('e','Playbook failed',err.message);document.getElementById('eCont').hidden=false;return;}
+  var rec=0,escN=0,skp=0,amt=0;
+  results.forEach(function(r){if(r.result.status==='recovered'){rec++;amt+=r.result.recovered_amount||0;}else if(r.result.status==='needs_human_review'||r.result.status==='blocked'){escN++;}else{skp++;}});
+  pbStat(id,rec,amt);
+  var rh='<div style="margin-top:8px;font-family:var(--fm);font-size:10px;color:var(--dim);max-height:120px;overflow-y:auto">';
+  results.forEach(function(r){var col=r.result.status==='recovered'?'#4ade80':(r.result.status==='needs_human_review'||r.result.status==='blocked')?'#f87171':'#fbbf24';rh+='<div style="padding:3px 0;color:'+col+'">'+r.case.id+' '+esc(r.case.customer)+' -> '+esc(pretty(r.result.status))+'</div>';});
+  rh+='</div>';
+  document.getElementById('eRes').innerHTML='<div class="res ok"><div class="escb ok">COMPLETE</div><div style="font-size:12px;color:#9d9da6"><b style="color:#4ade80">'+rec+'</b> recovered - <b style="color:#f87171">'+escN+'</b> escalated - <b style="color:#fbbf24">'+skp+'</b> other<br><b style="color:#4ade80">'+fmtINR(amt)+'</b> reclaimed</div></div>'+rh;
+  document.getElementById('eCont').hidden=false;
+  toast('s','Playbook Done',pb.name+': '+rec+'/'+eligible.length+' recovered');
+  refreshDashboard().then(softGo);
+ });
 }
-
-/* ---------------------------- Navigation ---------------------------- */
-function navigate(view){ S.view = view; S.ui.paletteOpen=false; render(); }
-
-/* ============================================================================
-   RENDERING
-   ============================================================================ */
-function render(){
-  $('#app').innerHTML = layoutShell();
-  bindGlobalStaticListeners();
-  renderView();
-  renderPalette();
+function runAll(){
+ toast('i','Orchestrating','Running all playbooks against real eligible cases...');
+ var runnable=PLAYBOOKS.filter(function(p){return p.id!=='voice';});
+ function next(i){
+  if(i>=runnable.length){toast('s','Done','All playbooks complete');refreshDashboard().then(softGo);return;}
+  var pb=runnable[i];var eligible=S.cases.filter(pb.filterFn);
+  if(eligible.length===0){next(i+1);return;}
+  function runOne(j){
+   if(j>=eligible.length)return Promise.resolve();
+   return Api.execute(eligible[j].id).catch(function(){return null;}).then(function(){return runOne(j+1);});
+  }
+  runOne(0).then(function(){return refreshCasesAndAudit();}).then(function(){next(i+1);softGo();});
+ }
+ next(0);
 }
-
-function layoutShell(){
-  return (
-  '<div class="sidebar">'+
-    '<div class="brand"><div class="brand-mark">⚡</div><div><div class="brand-name">RecoverAI</div><div class="brand-sub">TRACK 03 · REVENUE RECOVERY</div></div></div>'+
-    '<div class="nav">'+
-      navGroup('Main', [
-        ['overview','📊','Overview'],
-        ['cases','📁','Cases', eligibleCases().length],
-        ['batch','⚡','Batch Execution'],
-      ])+
-      navGroup('Growth Suite', [
-        ['playbooks','📘','Playbooks'],
-        ['voice','🎙️','Voice Agent'],
-        ['promises','✅','Promises', S.promises.filter(p=>p.status==='pending').length],
-      ])+
-      navGroup('System', [
-        ['audit','🔎','Audit Trail'],
-        ['settings','⚙️','Settings'],
-      ])+
-    '</div>'+
-    '<div class="sidebar-foot"><div class="kbd-hint" data-action="open-palette"><span>Command Palette</span><kbd>Ctrl K</kbd></div></div>'+
-  '</div>'+
-  '<div class="main"><div id="view-root"></div></div>'
-  );
+function scanPromises(){refreshCasesAndAudit().then(function(){toast('s','Refreshed','Promises reflect the latest audit trail');go('promises');});}
+function openCaseDetail(id){
+ var c=S.cases.find(function(x){return x.id===id;});if(!c)return;
+ document.getElementById('execContent').innerHTML='<div class="empty" style="padding:30px"><h4>Loading case '+esc(id)+'…</h4></div>';
+ document.getElementById('execOvl').classList.add('show');
+ Api.case(id).then(function(detail){
+  var evs=S.audit.filter(function(e){return e.caseId===c.id;}).slice(0,4);
+  var evidence=detail.evidence||{};
+  var h='<div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid var(--ln);margin-bottom:12px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="mono" style="color:#4ade80;font-weight:700;font-size:14px">'+c.id+'</span><span class="sb '+c.status+'"><i></i>'+c.status+'</span><span class="rb '+c.risk+'"><i></i>'+c.risk+'</span></div><button class="btn btn-g btn-sm" data-act="close-exec" aria-label="Close">X</button></div>';
+  h+='<div style="display:flex;justify-content:space-between;margin-bottom:12px"><div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:700">At Risk</div><div class="mono" style="font-size:24px;font-weight:700">'+fmtINR(c.amount)+'</div></div><div style="text-align:right;font-size:11px;color:#9d9da6;font-family:var(--fm)"><div>'+esc(c.customer)+'</div><div>'+c.category.code+' - '+c.created+'</div></div></div>';
+  h+='<div class="grid2"><div class="dcell"><span>Diagnosis</span><b>'+esc(c.category.name)+'</b></div><div class="dcell"><span>Action</span><b style="color:#4ade80">'+esc(c.action)+'</b></div></div>';
+  h+='<div class="grid2" style="margin-top:10px"><div class="dcell"><span>Retries</span><b>'+c.attempts+' / '+c.maxAttempts+'</b></div><div class="dcell"><span>Transaction</span><b class="mono" style="font-size:10px;cursor:pointer" data-act="copy-txn" data-text="'+c.txn+'" title="Copy txn">'+c.txn+' ⧉</b></div></div>';
+  h+='<div class="diag"><h4>AI Analysis</h4><p style="font-size:12px;color:#9d9da6">'+esc(detail.reason||c.category.name)+'</p>';
+  if(evidence.success_rate_percent!=null){h+='<div class="conf"><span>Customer success rate</span><div class="meter"><i style="width:'+evidence.success_rate_percent+'%;background:'+(evidence.success_rate_percent>70?'#22c55e':'#f59e0b')+'"></i></div><span class="mono">'+evidence.success_rate_percent+'%</span></div>';}
+  h+='</div>';
+  var checks=detail.policy_checks&&Object.keys(detail.policy_checks).length?detail.policy_checks:null;
+  if(checks){var passed=Object.values(checks).every(Boolean);h+='<div class="polnote">Policy checks ('+(passed?'passed':'blocked')+'): '+Object.keys(checks).map(function(k){return pretty(k)+'='+(checks[k]?'OK':'FAIL');}).join(', ')+'</div>';}
+  else{h+='<div class="polnote">Max Rs.'+POLICY.maxAmount.toLocaleString('en-IN')+' - '+POLICY.maxRetries+' retries - policy is evaluated live when executed</div>';}
+  if(evs.length){h+='<div style="margin-top:10px">'+evs.map(function(e){return '<div class="actrow" style="padding:6px 4px"><span class="lt">'+e.ts+'</span><span class="tag b">'+e.type+'</span><span class="ax">'+esc(e.desc)+'</span></div>';}).join('')+'</div>';}
+  h+='<div class="efoot">';
+  if(c.status==='open'){h+='<button class="btn btn-p" data-act="exec-case" data-id="'+c.id+'">Execute</button>';h+='<button class="btn btn-v" data-act="start-voice-from" data-id="'+c.id+'">Voice Call</button>';}
+  h+='<button class="btn btn-g" data-act="close-exec">Close</button></div>';
+  document.getElementById('execContent').innerHTML=h;
+ }).catch(function(err){
+  document.getElementById('execContent').innerHTML='<div class="empty" style="padding:30px"><h4 style="color:#f87171">Failed to load case</h4><p>'+esc(err.message)+'</p><button class="btn btn-g" style="margin-top:10px" data-act="close-exec">Close</button></div>';
+ });
 }
-function navGroup(label, items){
-  return '<div class="nav-group"><div class="nav-label">'+label+'</div>'+
-    items.map(([id,icon,name,badge])=>{
-      const active = S.view===id ? ' active' : '';
-      const badgeHtml = (badge!==undefined && badge>0) ? '<span class="nav-badge'+(id==='cases'?'':' warn')+'">'+badge+'</span>' : '';
-      return '<div class="nav-item'+active+'" data-action="nav" data-view="'+id+'"><span class="nav-icon">'+icon+'</span><span>'+name+'</span>'+badgeHtml+'</div>';
-    }).join('') + '</div>';
+function exportAudit(){var data=JSON.stringify(S.audit.map(function(e){return e.raw;}),null,2);var blob=new Blob([data],{type:'application/json'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='audit-trail.json';a.click();URL.revokeObjectURL(url);toast('s','Exported','Real audit trail downloaded');}
+function doSeed(){
+ S.loading=true;renderShell();
+ Api.seed().then(function(){return refreshCasesAndAudit();}).then(function(){return refreshDashboard();}).then(function(){
+  S.armed=false;S.batchLog=[];S.batchStats=null;S.batchHistory=[];S.batchTotal=0;S.pbStats={};cleanupVoice();S.voiceActive=false;S.voiceCase=null;
+  S.live=true;S.loading=false;updateConnBadge();toast('s','Seeded','Live demo dataset refreshed from the backend');go(S.page);
+ }).catch(function(err){S.loading=false;toast('e','Seed failed',err.message);renderShell();});
 }
-
-function renderView(){
-  const root = $('#view-root');
-  const renderers = {
-    overview: viewOverview, cases: viewCases, batch: viewBatch, playbooks: viewPlaybooks,
-    voice: viewVoice, promises: viewPromises, audit: viewAudit, settings: viewSettings
-  };
-  root.innerHTML = topbarHtml() + '<div class="view-scroll" id="view-scroll">' + (renderers[S.view] || viewOverview)() + '</div>';
+function doReset(){
+ S.loading=true;renderShell();
+ Api.reset().then(function(){return refreshCasesAndAudit();}).then(function(){return refreshDashboard();}).then(function(){
+  cleanupVoice();S.armed=false;S.running=false;S.batchLog=[];S.batchStats=null;S.batchHistory=[];S.batchTotal=0;S.pbStats={};
+  S.voiceActive=false;S.voiceCase=null;S.voiceMsgs=[];S.search='';S.auditSearch='';S.filter='all';
+  S.loading=false;updateConnBadge();toast('w','Reset','All backend data cleared');go(S.page);
+ }).catch(function(err){S.loading=false;toast('e','Reset failed',err.message);renderShell();});
 }
-
-function topbarHtml(){
-  const titles = {
-    overview:['Overview','Real-time revenue recovery snapshot'],
-    cases:['Cases','All detected revenue-at-risk cases'],
-    batch:['Batch Execution','Process every eligible case in one guarded run'],
-    playbooks:['Playbooks','7 autonomous recovery workflows'],
-    voice:['Voice Agent','Hinglish code-switching outbound recovery'],
-    promises:['Promise-to-Pay Tracker','Commitments, due dates, fulfillment'],
-    audit:['Audit Trail','Immutable, filterable, exportable log'],
-    settings:['Settings','Policy engine guardrails & simulation'],
-  };
-  const [title, sub] = titles[S.view] || titles.overview;
-  return '<div class="topbar"><div class="topbar-title"><h1>'+title+'</h1><div class="topbar-sub">'+sub+'</div></div>'+
-    '<div class="topbar-actions">'+
-      (Policy.simFailure ? '<span class="pill pill-red"><span class="pill-dot"></span>FAILURE SIM ARMED</span>' : '')+
-      (Policy.isQuietHours() ? '<span class="pill pill-amber"><span class="pill-dot"></span>QUIET HOURS</span>' : '')+
-      '<button class="btn btn-ghost btn-sm" data-action="open-palette">⌘K</button>'+
-      '<button class="btn btn-primary btn-sm" data-action="run-batch"'+(S.batch.running?' disabled':'')+'>'+(S.batch.running?'Running…':'▶ Run Batch')+'</button>'+
-    '</div></div>';
+/* ═══ VOICE AGENT ═══ */
+var recog=null,VOICES=[];
+function loadVoices(){if(!window.speechSynthesis)return;VOICES=speechSynthesis.getVoices()||[];}
+if(window.speechSynthesis){loadVoices();speechSynthesis.onvoiceschanged=loadVoices;}
+function getVoice(){if(!VOICES.length)loadVoices();return VOICES.find(function(v){return v.lang===S.voiceLang;})||VOICES.find(function(v){return v.lang.indexOf(S.voiceLang.slice(0,2))===0;})||VOICES.find(function(v){return v.lang.indexOf('IN')>-1;})||VOICES[0];}
+function speakText(text,cb){
+ if(!window.speechSynthesis){if(cb)cb();return;}
+ try{speechSynthesis.cancel();}catch(e){}
+ var u=new SpeechSynthesisUtterance(text);var v=getVoice();
+ if(v){u.voice=v;u.lang=v.lang;}else{u.lang=S.voiceLang;}
+ u.rate=0.95;u.pitch=1.05;
+ u.onstart=function(){S.voiceSpeaking=true;updateVoiceUI();};
+ u.onend=function(){S.voiceSpeaking=false;updateVoiceUI();if(cb)cb();};
+ u.onerror=function(){S.voiceSpeaking=false;updateVoiceUI();if(cb)cb();};
+ speechSynthesis.speak(u);
 }
-
-/* ---------- Overview ---------- */
-function viewOverview(){
-  const recoveredCases = S.cases.filter(c=>c.status==='recovered');
-  const totalRecovered = recoveredCases.reduce((s,c)=>s+c.amount,0);
-  const atRisk = S.cases.filter(c=>['open','escalated','promise_pending'].includes(c.status)).reduce((s,c)=>s+c.amount,0);
-  const escalatedN = S.cases.filter(c=>c.status==='escalated').length;
-  const successRate = S.cases.length ? Math.round((recoveredCases.length / S.cases.length) * 100) : 0;
-
-  const byType = {};
-  Object.keys(PLAYBOOK_META).forEach(t=>{ byType[t] = {total:0, recovered:0, amt:0}; });
-  S.cases.forEach(c=>{ byType[c.type].total++; if(c.status==='recovered'){byType[c.type].recovered++; byType[c.type].amt+=c.amount;} });
-
-  const recentAudit = S.audit.slice(0,8);
-
-  return (
-    '<div class="grid grid-4">'+
-      statCard('Total Recovered', fmtINR(totalRecovered), recoveredCases.length+' cases closed', 'up')+
-      statCard('Revenue At Risk', fmtINR(atRisk), (S.cases.length - recoveredCases.length)+' cases open/escalated', 'down')+
-      statCard('Success Rate', successRate+'%', 'across all processed cases', successRate>=50?'up':'down')+
-      statCard('Escalated to Human', String(escalatedN), 'policy-guarded handoffs', escalatedN>3?'down':'')+
-    '</div>'+
-
-    '<div class="section-title"><h2>Recovery by Playbook</h2></div>'+
-    '<div class="grid grid-3">'+
-      Object.keys(PLAYBOOK_META).map(t=>{
-        const m = PLAYBOOK_META[t]; const d = byType[t];
-        const pct = d.total ? Math.round((d.recovered/d.total)*100) : 0;
-        return '<div class="card">'+
-          '<div class="flex-between"><div class="card-title" style="margin-bottom:0">'+m.icon+' '+m.name+'</div><span class="pill pill-gray">'+d.total+' cases</span></div>'+
-          '<div style="margin-top:12px" class="progress-mini"><div class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div><span class="mono" style="font-size:11px;color:var(--text-dim)">'+pct+'%</span></div>'+
-          '<div style="margin-top:10px;font-size:12px;color:var(--text-dim)">'+fmtINR(d.amt)+' recovered from '+d.recovered+' cases</div>'+
-        '</div>';
-      }).join('')+
-    '</div>'+
-
-    '<div class="section-title"><h2>Recent Activity</h2><button class="btn btn-ghost btn-sm" data-action="nav" data-view="audit">View all →</button></div>'+
-    '<div class="table-wrap">'+
-      (recentAudit.length ? recentAudit.map(a=>auditRowHtml(a)).join('') : '<div class="empty-state">No activity yet. Run a batch to get started.</div>')+
-    '</div>'
-  );
+function startListening(){
+ var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+ if(!SR){toast('w','No STT','Use Chrome or type below');return;}
+ if(recog){try{recog.stop();}catch(e){}}
+ recog=new SR();recog.lang=S.voiceLang;recog.interimResults=true;recog.continuous=false;
+ recog.onstart=function(){S.voiceListening=true;updateVoiceUI();};
+ recog.onresult=function(e){
+  var t='';for(var i=0;i<e.results.length;i++){t+=e.results[i][0].transcript;}
+  var el=document.getElementById('vinterim');
+  var isFinal=e.results[e.results.length-1].isFinal;
+  if(el&&!isFinal)el.textContent='"'+t+'"';
+  if(isFinal){S.voiceListening=false;updateVoiceUI();voiceUserSaid(t);}
+ };
+ recog.onerror=function(e){S.voiceListening=false;updateVoiceUI();if(e.error==='no-speech')toast('w','No speech','Try again');else if(e.error==='not-allowed')toast('e','Mic blocked','Allow mic access');};
+ recog.onend=function(){S.voiceListening=false;updateVoiceUI();};
+ try{recog.start();}catch(e){}
 }
-function statCard(label, value, delta, dir){
-  return '<div class="card stat-card"><div class="card-title">'+label+'</div><div class="stat-value">'+value+'</div><div class="stat-delta'+(dir?' '+dir:'')+'">'+(dir==='up'?'↑ ':dir==='down'?'↓ ':'')+delta+'</div></div>';
-}
-
-/* ---------- Cases ---------- */
-function statusPill(status){
-  const map = {
-    open:['pill-blue','OPEN'], recovered:['pill-green','RECOVERED'], escalated:['pill-red','ESCALATED'],
-    promise_pending:['pill-cyan','PROMISE PENDING'], skipped:['pill-gray','SKIPPED']
-  };
-  const [cls,label] = map[status] || ['pill-gray', status.toUpperCase()];
-  return '<span class="pill '+cls+'"><span class="pill-dot"></span>'+label+'</span>';
-}
-function viewCases(){
-  const f = S.filters;
-  let rows = S.cases.slice();
-  if (f.casesType !== 'all') rows = rows.filter(c=>c.type===f.casesType);
-  if (f.casesStatus !== 'all') rows = rows.filter(c=>c.status===f.casesStatus);
-  if (f.casesQuery) rows = rows.filter(c => (c.id+' '+c.customer.name).toLowerCase().includes(f.casesQuery.toLowerCase()));
-  rows.sort((a,b)=>b.createdAt-a.createdAt);
-
-  return (
-    '<div class="filters-bar">'+
-      '<div class="search-input"><input class="text-input" style="width:100%" placeholder="Search case ID or customer…" value="'+escapeHtml(f.casesQuery)+'" data-action="filter-cases-query"></div>'+
-      '<select class="select" data-action="filter-cases-type">'+
-        '<option value="all">All Playbooks</option>'+
-        Object.keys(PLAYBOOK_META).map(t=>'<option value="'+t+'"'+(f.casesType===t?' selected':'')+'>'+PLAYBOOK_META[t].name+'</option>').join('')+
-      '</select>'+
-      '<select class="select" data-action="filter-cases-status">'+
-        ['all','open','recovered','escalated','promise_pending'].map(s=>'<option value="'+s+'"'+(f.casesStatus===s?' selected':'')+'>'+(s==='all'?'All Status':s.replace('_',' '))+'</option>').join('')+
-      '</select>'+
-      '<span class="muted mono" style="font-size:11.5px;margin-left:auto">'+rows.length+' of '+S.cases.length+'</span>'+
-    '</div>'+
-    '<div class="table-wrap"><table>'+
-      '<thead><tr><th>Case</th><th>Playbook</th><th>Customer</th><th>Amount</th><th>Attempts</th><th>Confidence</th><th>Status</th></tr></thead>'+
-      '<tbody>'+
-        (rows.length ? rows.map(c=>{
-          return '<tr class="clickable" data-action="open-case" data-id="'+c.id+'">'+
-            '<td class="cell-id">'+c.id+'</td>'+
-            '<td>'+PLAYBOOK_META[c.type].icon+' '+PLAYBOOK_META[c.type].name+'</td>'+
-            '<td>'+escapeHtml(c.customer.name)+'</td>'+
-            '<td class="cell-amount">'+fmtINR(c.amount)+'</td>'+
-            '<td class="mono">'+c.attempts+'/'+c.maxAttempts+'</td>'+
-            '<td class="mono">'+Math.round(c.confidence*100)+'%</td>'+
-            '<td>'+statusPill(c.status)+'</td>'+
-          '</tr>';
-        }).join('') : '<tr><td colspan="7"><div class="empty-state">No cases match these filters.</div></td></tr>')+
-      '</tbody>'+
-    '</table></div>'+
-    caseDrawerHtml()
-  );
-}
-function caseDrawerHtml(){
-  if (!S.ui.drawerCaseId) return '';
-  const kase = S.cases.find(c=>c.id===S.ui.drawerCaseId);
-  if (!kase) return '';
-  const m = PLAYBOOK_META[kase.type];
-  const evalr = Policy.evaluate(kase, ACTION_BY_TYPE[kase.type]);
-  return (
-    '<div class="overlay-bg" data-action="close-drawer">'+
-    '<div class="drawer">'+
-      '<div class="drawer-head"><div><div class="cell-id" style="font-size:15px">'+kase.id+'</div><div class="muted" style="font-size:12px;margin-top:2px">'+m.icon+' '+m.name+'</div></div>'+
-        '<button class="btn btn-ghost btn-icon" data-action="close-drawer">✕</button></div>'+
-      '<div class="drawer-body">'+
-        '<div class="card" style="margin-bottom:14px">'+
-          '<div class="flex-between"><div><div style="font-weight:600;color:var(--text-hi)">'+escapeHtml(kase.customer.name)+'</div><div class="muted" style="font-size:12px">'+escapeHtml(kase.customer.phone)+'</div></div>'+statusPill(kase.status)+'</div>'+
-          '<div class="divider"></div>'+
-          '<div class="grid grid-2" style="gap:10px">'+
-            kv('Amount', fmtINR(kase.amount))+ kv('Confidence', Math.round(kase.confidence*100)+'%')+
-            kv('Attempts', kase.attempts+' / '+kase.maxAttempts)+ kv('Failure Reason', kase.failureReason.replace(/_/g,' '))+
-            kv('Gateway', kase.gateway)+ kv('Created', fmtDateTime(kase.createdAt))+
-            (kase.dropoffStep? kv('Dropoff Step', kase.dropoffStep):'')+
-            (kase.agingDays!=null? kv('Aging', kase.agingDays+' days'):'')+
-            (kase.mandateType? kv('Mandate', kase.mandateType):'')+
-            (kase.planName? kv('Plan', kase.planName):'')+
-          '</div>'+
-        '</div>'+
-        '<div class="card-title">Policy Guardrail Check</div>'+
-        '<div class="card" style="margin-bottom:14px">'+
-          evalr.checks.map(c=>'<div class="policy-check '+(c.pass?'pass':'fail')+'"><span class="ic">'+(c.pass?'✓':'✕')+'</span><span class="lbl">'+c.label+'</span><span class="val">'+c.val+'</span></div>').join('')+
-        '</div>'+
-        '<div class="card-title">History</div>'+
-        '<div class="card">'+
-          (kase.history.length ? kase.history.slice().reverse().map(h=>'<div style="padding:8px 0;border-bottom:1px solid var(--border-soft);font-size:12px">'+
-            '<div style="color:var(--text-hi);font-weight:500">'+escapeHtml(h.action)+'</div>'+
-            '<div class="muted" style="margin-top:2px">'+escapeHtml(h.note||'')+'</div>'+
-            '<div class="mono muted" style="font-size:10.5px;margin-top:3px">'+fmtDateTime(h.ts)+'</div></div>').join('')
-            : '<div class="muted" style="font-size:12.5px;padding:6px 0">No actions taken yet.</div>')+
-        '</div>'+
-      '</div>'+
-      '<div class="drawer-foot">'+
-        (kase.status==='open' ? '<button class="btn btn-primary" style="flex:1" data-action="process-single" data-id="'+kase.id+'">Process This Case</button>' : '<button class="btn" style="flex:1" disabled>No further action available</button>')+
-        (kase.type==='voice_recovery' ? '<button class="btn" data-action="voice-from-drawer" data-id="'+kase.id+'">🎙️ Call</button>' : '')+
-      '</div>'+
-    '</div></div>'
-  );
-}
-function kv(k,v){ return '<div><div class="muted" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.04em">'+k+'</div><div style="font-size:12.8px;color:var(--text-hi);margin-top:2px;font-family:var(--font-mono)">'+v+'</div></div>'; }
-
-/* ---------- Batch ---------- */
-function viewBatch(){
-  const b = S.batch;
-  const pct = b.total ? Math.round((b.processed/b.total)*100) : 0;
-  return (
-    '<div class="grid grid-4" style="margin-bottom:20px">'+
-      statCard('Processed', b.processed+' / '+b.total, 'cases in this run','')+
-      statCard('Recovered', fmtINR(b.recoveredAmt), b.recovered+' cases','up')+
-      statCard('Escalated', String(b.escalated), 'sent to human review', b.escalated?'down':'')+
-      statCard('Success Rate', (b.processed? Math.round((b.recovered/b.processed)*100):0)+'%', b.skipped+' skipped, '+b.failed+' failed', '')+
-    '</div>'+
-    '<div class="card" style="margin-bottom:16px">'+
-      '<div class="flex-between"><div class="card-title" style="margin-bottom:0">Run Progress</div><span class="mono muted" style="font-size:11.5px">'+pct+'%</span></div>'+
-      '<div style="margin-top:10px" class="progress-bar"><div class="progress-fill" style="width:'+pct+'%"></div></div>'+
-      '<div style="margin-top:14px" class="flex-between">'+
-        '<div class="muted" style="font-size:12px">'+(b.running? 'Processing eligible cases one by one…' : (b.total? 'Last run complete.' : eligibleCases().length+' eligible cases ready to process.'))+'</div>'+
-        '<button class="btn btn-primary" data-action="run-batch"'+(b.running?' disabled':'')+'>'+(b.running?'<span class="spin">⚡</span> Running…':'▶ Run Batch Recovery')+'</button>'+
-      '</div>'+
-    '</div>'+
-    '<div class="card-title">Live Terminal</div>'+
-    '<div class="terminal">'+
-      (b.log.length ? b.log.map(l=>'<div class="term-line '+l.cls+'"><span class="t">['+fmtTime(l.ts)+']</span> '+escapeHtml(l.msg)+'</div>').join('') : '<div class="term-line muted">Awaiting batch run… click "Run Batch Recovery" to begin.</div>')+
-    '</div>'
-  );
-}
-
-/* ---------- Playbooks ---------- */
-function viewPlaybooks(){
-  return '<div class="grid grid-3">'+
-    Object.keys(PLAYBOOK_META).map(t=>{
-      const m = PLAYBOOK_META[t];
-      const cases = S.cases.filter(c=>c.type===t);
-      const open = cases.filter(c=>c.status==='open').length;
-      return '<div class="playbook-card">'+
-        '<div class="playbook-head"><div class="playbook-num">'+m.num+'</div><div style="font-weight:600;color:var(--text-hi);font-size:13.5px">'+m.icon+' '+m.name+'</div></div>'+
-        '<div class="playbook-desc">'+m.desc+'</div>'+
-        '<div class="playbook-foot"><span>'+cases.length+' cases · '+open+' open</span>'+
-          (t==='voice_recovery' ? '<button class="btn btn-sm" data-action="nav" data-view="voice">Open Voice →</button>' : '<button class="btn btn-sm" data-action="filter-and-go" data-type="'+t+'">View Cases →</button>')+
-        '</div>'+
-      '</div>';
-    }).join('')+
-  '</div>';
-}
-
-/* ---------- Voice ---------- */
-function viewVoice(){
-  const v = S.voice;
-  const voiceCases = S.cases.filter(c=>c.type==='voice_recovery' && c.status!=='recovered');
-  const active = v.activeCaseId ? S.cases.find(c=>c.id===v.activeCaseId) : null;
-  const micClass = v.status==='listening'?'listening':(v.status==='speaking'?'speaking':(v.status==='processing'?'processing':'idle'));
-  const micIcon = v.status==='listening'?'🔴':(v.status==='speaking'?'🔈':(v.status==='processing'?'⏳':'🎤'));
-  const mm = String(Math.floor(v.callSeconds/60)).padStart(2,'0'), ss=String(v.callSeconds%60).padStart(2,'0');
-
-  return '<div class="voice-layout">'+
-    '<div class="voice-panel">'+
-      '<div class="card-title">'+(active? 'Calling '+escapeHtml(active.customer.name) : 'Select a case to call')+'</div>'+
-      '<div id="mic-ring" class="mic-ring '+micClass+'"><div class="core">'+micIcon+'</div></div>'+
-      '<div id="mic-state-label" class="mic-state-label">'+v.status+'</div>'+
-      '<div id="call-timer" class="call-timer">'+mm+':'+ss+'</div>'+
-      '<div style="display:flex;gap:8px">'+
-        (v.activeCaseId ?
-          '<button class="btn btn-primary" data-action="toggle-mic">'+(v.status==='listening'?'⏹ Stop':'🎙️ Speak')+'</button>'+
-          '<button class="btn btn-danger" data-action="end-call">End Call</button>'
-          : '<span class="muted" style="font-size:12px">Pick a case below</span>')+
-      '</div>'+
-      '<div class="divider" style="width:100%"></div>'+
-      '<div class="card-title" style="align-self:flex-start">High-Risk Voice Queue</div>'+
-      '<div style="width:100%;display:flex;flex-direction:column;gap:6px;max-height:180px;overflow-y:auto">'+
-        (voiceCases.length? voiceCases.map(c=>'<div class="flex-between" style="padding:7px 9px;background:var(--bg-3);border-radius:8px;font-size:12px">'+
-          '<span>'+escapeHtml(c.customer.name)+' · '+fmtINR(c.amount)+'</span>'+
-          '<button class="btn btn-sm" data-action="start-call" data-id="'+c.id+'">Call</button></div>').join('')
-          : '<div class="muted" style="font-size:12px">No open voice-recovery cases.</div>')+
-      '</div>'+
-    '</div>'+
-    '<div class="voice-chat">'+
-      '<div class="voice-chat-head"><div style="font-weight:600;color:var(--text-hi);font-size:13px">Live Transcript</div>'+
-        '<span class="muted mono" style="font-size:10.5px">STT: hi-IN · code-switch aware</span></div>'+
-      '<div class="voice-chat-body" id="voice-chat-body">'+
-        (v.history.length? v.history.map(h=>bubbleHtml(h)).join('') : '<div class="empty-state">Start a call to begin the conversation.</div>')+
-        (v.interim ? '<div class="interim">'+escapeHtml(v.interim)+'…</div>' : '')+
-      '</div>'+
-      '<div class="chips" style="padding:0 16px 10px">'+
-        ['Haan bilkul, main payment kar dunga','Thoda baad mein, abhi salary nahi aaya','Maine already pay kar diya hai','Yeh charge galat hai','Nahi, mujhe interest nahi hai'].map(q=>
-          '<span class="chip" data-action="quick-reply" data-text="'+escapeHtml(q)+'">'+q+'</span>').join('')+
-      '</div>'+
-      '<div class="voice-chat-foot"><input type="text" id="voice-text-input" placeholder="Type instead of speaking…" '+(v.activeCaseId?'':'disabled')+'>'+
-        '<button class="btn btn-primary btn-sm" data-action="send-typed">Send</button></div>'+
-    '</div>'+
-  '</div>';
-}
-function bubbleHtml(h){
-  return '<div class="bubble '+(h.who==='agent'?'agent':'user')+'">'+escapeHtml(h.text)+'<div class="meta">'+(h.who==='agent'?'RecoverAI Agent':'Customer')+' · '+fmtTime(h.ts)+'</div></div>';
+function updateVoiceUI(){
+ var mic=document.getElementById('micBtn');var st=document.getElementById('vstatus');
+ if(!mic)return;
+ if(S.voiceSpeaking){mic.className='micbtn speaking';if(st)st.textContent='Agent speaking...';}
+ else if(S.voiceListening){mic.className='micbtn listening';if(st)st.textContent='Listening...';}
+ else{mic.className='micbtn idle';if(st)st.textContent='Ready - click mic';}
 }
 function renderVoiceChat(){
-  const body = $('#voice-chat-body');
-  if (!body) { render(); return; }
-  body.innerHTML = (S.voice.history.length? S.voice.history.map(h=>bubbleHtml(h)).join('') : '<div class="empty-state">Start a call to begin the conversation.</div>') + (S.voice.interim ? '<div class="interim">'+escapeHtml(S.voice.interim)+'…</div>' : '');
-  body.scrollTop = body.scrollHeight;
-  const ring = $('#mic-ring'); const lbl = $('#mic-state-label');
-  if (ring){ ring.className = 'mic-ring ' + (S.voice.status==='listening'?'listening':(S.voice.status==='speaking'?'speaking':(S.voice.status==='processing'?'processing':'idle'))); }
-  if (lbl){ lbl.textContent = S.voice.status; }
+ var chat=document.getElementById('voiceChat');if(!chat)return;
+ chat.innerHTML=S.voiceMsgs.map(function(m){return '<div class="vmsg '+m.role+'"><div class="vbub">'+(m.role==='agent'?'<span class="role">Agent</span>':'')+esc(m.text)+'</div></div>';}).join('');
+ chat.scrollTop=chat.scrollHeight;
+ var q=document.getElementById('vquick');
+ if(q){var brain=VOICE_BRAIN[S.voiceLang];q.innerHTML=(brain.quickReplies||[]).map(function(s){return '<button data-act="quick-say" data-text="'+esc(s)+'">'+esc(s)+'</button>';}).join('');}
 }
-function renderVoiceInterim(){
-  const body = $('#voice-chat-body');
-  if (!body) return;
-  const existing = body.querySelector('.interim');
-  if (existing) existing.remove();
-  if (S.voice.interim){
-    const d = document.createElement('div'); d.className='interim'; d.textContent = S.voice.interim + '…';
-    body.appendChild(d);
-  }
-  body.scrollTop = body.scrollHeight;
+function voiceUserSaid(text){
+ if(!S.voiceActive)return;if(!text||!text.trim())return;
+ S.voiceMsgs.push({role:'user',text:text});renderVoiceChat();
+ var inter=document.getElementById('vinterim');if(inter)inter.textContent='';
+ var c=S.cases.find(function(x){return x.id===S.voiceCase;})||S.cases[0];if(!c)return;
+ var brain=VOICE_BRAIN[S.voiceLang];var resp;var nt=norm(text);
+ if(S.voiceStage==='greeting'){resp={say:brain.context(c),stage:'objection'};}
+ else{var intent=brain.patterns.find(function(p){return p.m.some(function(k){return nt.indexOf(k)>-1;});});resp=intent?intent.r(c):brain.fallback(c);}
+ setTimeout(function(){
+  if(!S.voiceActive)return;
+  S.voiceMsgs.push({role:'agent',text:resp.say});S.voiceStage=resp.stage||'objection';renderVoiceChat();
+  if(resp.stage==='closed'){speakText(resp.say,function(){setTimeout(function(){endCall(resp.outcome||'COMPLETED',text);},800);});}
+  else{speakText(resp.say,function(){if(S.voiceActive)setTimeout(startListening,400);});}
+ },500);
 }
-function renderVoiceTimer(){
-  const el = $('#call-timer');
-  if (!el) return;
-  const mm = String(Math.floor(S.voice.callSeconds/60)).padStart(2,'0'), ss=String(S.voice.callSeconds%60).padStart(2,'0');
-  el.textContent = mm+':'+ss;
+function startVoiceCall(){
+ var c=S.cases.find(function(x){return x.id===S.voiceCase;});
+ if(!c){toast('w','Select Case','Choose a case first');return;}
+ cleanupVoice();S.voiceActive=true;S.voiceMsgs=[];S.voiceStage='greeting';S.voiceStartTime=Date.now();
+ go('voice');
+ Api.recordVoiceEvent(c.id,{event_type:'voice_call_started'}).catch(function(err){console.warn('voice_call_started not recorded',err);});
+ setTimeout(function(){
+  if(!S.voiceActive)return;
+  var brain=VOICE_BRAIN[S.voiceLang];var resp={say:brain.greeting(c),stage:'context'};
+  S.voiceMsgs.push({role:'agent',text:resp.say});S.voiceStage=resp.stage;renderVoiceChat();
+  speakText(resp.say,function(){if(S.voiceActive)setTimeout(startListening,400);});
+ },100);
+ toast('i','Call Started',VOICE_BRAIN[S.voiceLang].name+' agent active');startVoiceTimer();
 }
-
-/* ---------- Promises ---------- */
-function viewPromises(){
-  const rows = S.promises.slice().sort((a,b)=>b.promisedDate-a.promisedDate);
-  const pending = rows.filter(r=>r.status==='pending').length;
-  const fulfilled = rows.filter(r=>r.status==='fulfilled').length;
-  const broken = rows.filter(r=>r.status==='broken').length;
-  return (
-    '<div class="grid grid-3" style="margin-bottom:18px">'+
-      statCard('Pending', String(pending), 'awaiting due date','')+
-      statCard('Fulfilled', String(fulfilled), 'kept their word','up')+
-      statCard('Broken', String(broken), 're-entered dunning', broken?'down':'')+
-    '</div>'+
-    '<div class="table-wrap"><table>'+
-      '<thead><tr><th>Promise ID</th><th>Case</th><th>Customer</th><th>Amount</th><th>Channel</th><th>Due</th><th>Status</th><th></th></tr></thead>'+
-      '<tbody>'+
-        (rows.length ? rows.map(p=>{
-          return '<tr><td class="cell-id">'+p.id+'</td><td class="mono">'+p.caseId+'</td><td>'+escapeHtml(p.customerName)+'</td>'+
-            '<td class="cell-amount">'+fmtINR(p.amount)+'</td><td class="pill pill-gray" style="display:inline-flex">'+p.channel+'</td>'+
-            '<td class="mono" style="font-size:11.5px">'+fmtDate(p.dueDate)+'</td>'+
-            '<td>'+(p.status==='pending'?'<span class="pill pill-amber">PENDING</span>':p.status==='fulfilled'?'<span class="pill pill-green">FULFILLED</span>':'<span class="pill pill-red">BROKEN</span>')+'</td>'+
-            '<td>'+(p.status==='pending'? '<div style="display:flex;gap:5px"><button class="btn btn-sm" data-action="promise-fulfill" data-id="'+p.id+'">Mark Fulfilled</button><button class="btn btn-sm btn-danger" data-action="promise-break" data-id="'+p.id+'">Mark Broken</button></div>' : '')+'</td>'+
-          '</tr>';
-        }).join('') : '<tr><td colspan="8"><div class="empty-state">No promises captured yet.</div></td></tr>')+
-      '</tbody></table></div>'
-  );
+function startVoiceTimer(){
+ if(S.voiceTimer)clearInterval(S.voiceTimer);
+ S.voiceTimer=setInterval(function(){
+  var el=document.getElementById('vtimer');if(!el){clearInterval(S.voiceTimer);S.voiceTimer=null;return;}
+  var s=Math.floor((Date.now()-S.voiceStartTime)/1000);
+  el.textContent=String(Math.floor(s/60)).padStart(2,'0')+':'+String(s%60).padStart(2,'0');
+ },1000);
 }
-
-/* ---------- Audit ---------- */
-function auditRowHtml(a){
-  const typeColor = {policy:'pill-blue', execution:'pill-green', escalation:'pill-red', voice:'pill-cyan', promise:'pill-amber', system:'pill-gray'}[a.type] || 'pill-gray';
-  return '<div class="audit-row"><span class="ts">'+fmtDateTime(a.ts)+'</span><span class="pill '+typeColor+'">'+a.type+'</span><span class="mono muted" style="font-size:11px">'+(a.caseId||'—')+'</span><span class="msg">'+a.message+'</span></div>';
+function endCall(outcome,lastUtterance){
+ if(!S.voiceActive)return;cleanupVoice();S.voiceActive=false;S.voiceListening=false;S.voiceSpeaking=false;
+ var c=S.cases.find(function(x){return x.id===S.voiceCase;});
+ if(c){
+  var oc={PROMISE_TO_PAY:'Payment committed',LINK_SENT:'Link sent',CALLBACK_SCHEDULED:'Callback scheduled',CALLBACK_LATER:'Callback requested',SOFT_REFUSAL:'Customer refused',COMPLETED:'Call completed',NAV_AWAY:'Ended (navigation)',MANUAL_END:'Ended by operator'};
+  var eventType=outcome==='PROMISE_TO_PAY'?'voice_promise_captured':'voice_call_ended';
+  Api.recordVoiceEvent(c.id,{event_type:eventType,intent:outcome,transcript:lastUtterance||oc[outcome]||outcome}).then(function(){
+   return refreshCasesAndAudit();
+  }).then(function(){
+   refreshDashboard();softGo();
+  }).catch(function(err){console.warn('voice event not recorded',err);});
+  toast(outcome==='PROMISE_TO_PAY'?'s':outcome==='SOFT_REFUSAL'?'w':'i','Call Ended',oc[outcome]||outcome.replace(/_/g,' '));
+ }
+ go('voice');
 }
-function viewAudit(){
-  const f = S.filters;
-  let rows = S.audit.slice();
-  if (f.auditType !== 'all') rows = rows.filter(a=>a.type===f.auditType);
-  if (f.auditQuery) rows = rows.filter(a => (a.message+' '+(a.caseId||'')).toLowerCase().includes(f.auditQuery.toLowerCase()));
-  return (
-    '<div class="filters-bar">'+
-      '<div class="search-input"><input class="text-input" style="width:100%" placeholder="Search audit log…" value="'+escapeHtml(f.auditQuery)+'" data-action="filter-audit-query"></div>'+
-      '<select class="select" data-action="filter-audit-type">'+
-        ['all','policy','execution','escalation','voice','promise','system'].map(t=>'<option value="'+t+'"'+(f.auditType===t?' selected':'')+'>'+(t==='all'?'All Types':t)+'</option>').join('')+
-      '</select>'+
-      '<button class="btn btn-sm" style="margin-left:auto" data-action="export-audit">⬇ Export JSON</button>'+
-    '</div>'+
-    '<div class="table-wrap">'+
-      (rows.length ? rows.map(a=>auditRowHtml(a)).join('') : '<div class="empty-state">No audit entries match these filters.</div>')+
-    '</div>'
-  );
+function cleanupVoice(){if(window.speechSynthesis){try{speechSynthesis.cancel();}catch(e){}}if(recog){try{recog.stop();}catch(e){}}if(S.voiceTimer){clearInterval(S.voiceTimer);S.voiceTimer=null;}}
+/* ═══ PALETTE ═══ */
+var palIdx=0;
+function buildCmds(){
+ var c=[
+  {l:'Overview',g:'Navigate',fn:function(){go('overview');}},
+  {l:'Cases',g:'Navigate',fn:function(){go('cases');}},
+  {l:'Batch Run',g:'Navigate',fn:function(){go('batch');}},
+  {l:'Playbooks',g:'Navigate',fn:function(){go('playbooks');}},
+  {l:'Voice Agent',g:'Navigate',fn:function(){go('voice');}},
+  {l:'Promises',g:'Navigate',fn:function(){go('promises');}},
+  {l:'Audit Trail',g:'Navigate',fn:function(){go('audit');}},
+  {l:'Settings',g:'Navigate',fn:function(){go('settings');}},
+  {l:'Run Batch',g:'Actions',fn:function(){go('batch');setTimeout(runBatch,200);}},
+  {l:'Arm Failure Sim',g:'Actions',fn:toggleArm},
+  {l:'Start Voice Call',g:'Actions',fn:function(){go('voice');}},
+  {l:'Seed Data',g:'Actions',fn:doSeed},
+  {l:'Reset All Data',g:'Actions',fn:doReset},
+  {l:'Export Audit JSON',g:'Actions',fn:exportAudit}];
+ PLAYBOOKS.forEach(function(p){c.push({l:'Run: '+p.name,g:'Playbooks',fn:function(){runPlaybook(p.id);}});});
+ S.cases.filter(function(x){return x.status==='open';}).slice(0,8).forEach(function(cs){c.push({l:'Case '+cs.id+' · '+cs.customer,g:'Cases',fn:function(){openCaseDetail(cs.id);}});});
+ return c;
 }
-
-/* ---------- Settings ---------- */
-function viewSettings(){
-  return (
-    '<div class="card" style="max-width:640px">'+
-      '<div class="card-title">Policy Engine Guardrails</div>'+
-      settingsNumRow('Auto-execution cap (₹)', 'autoCap', Policy.autoCap, 'Cases above this amount always escalate to a human, regardless of confidence.')+
-      settingsNumRow('Max retry attempts', 'maxRetries', Policy.maxRetries, 'Stopping rule — case escalates once this many attempts fail.')+
-      settingsNumRow('Confidence threshold (%)', 'confidenceThreshold', Math.round(Policy.confidenceThreshold*100), 'Below this confidence, the case auto-escalates instead of executing.')+
-      settingsNumRow('Quiet hours start (24h)', 'quietStart', Policy.quietStart, 'Outbound voice/SMS blocked from this hour…')+
-      settingsNumRow('Quiet hours end (24h)', 'quietEnd', Policy.quietEnd, '…until this hour.')+
-    '</div>'+
-    '<div class="card" style="max-width:640px;margin-top:16px">'+
-      '<div class="card-title">Simulation & Data</div>'+
-      '<div class="settings-row"><div><div class="lbl">Arm Gateway Failure Simulation</div><div class="hint">Forces every policy check to fail, demonstrating automatic escalation to human review.</div></div>'+
-        '<div class="switch '+(Policy.simFailure?'on':'')+'" data-action="toggle-sim"><div class="knob"></div></div></div>'+
-      '<div class="settings-row"><div><div class="lbl">Reset Demo</div><div class="hint">Clears all cases, promises, and audit history, then reseeds fresh synthetic data.</div></div>'+
-        '<button class="btn btn-danger btn-sm" data-action="reset-demo">Reset Demo</button></div>'+
-      '<div class="settings-row"><div><div class="lbl">Export Audit Trail</div><div class="hint">Downloads the full immutable audit log as JSON.</div></div>'+
-        '<button class="btn btn-sm" data-action="export-audit">Export JSON</button></div>'+
-    '</div>'
-  );
+function openPal(){document.getElementById('palOvl').classList.add('show');document.getElementById('palInput').value='';palIdx=0;renderPal('');setTimeout(function(){document.getElementById('palInput').focus();},50);}
+function closePal(){document.getElementById('palOvl').classList.remove('show');}
+function palFiltered(q){return buildCmds().filter(function(c){return c.l.toLowerCase().indexOf(q.toLowerCase())>-1;});}
+function renderPal(q){
+ var f=palFiltered(q);
+ palIdx=Math.min(palIdx,Math.max(0,f.length-1));
+ var html='',lastG='';
+ f.forEach(function(c,i){if(c.g!==lastG){html+='<div class="pal-group">'+c.g+'</div>';lastG=c.g;}html+='<div class="pal-item '+(i===palIdx?'sel':'')+'" data-pal-idx="'+i+'" data-pal-run="1">'+c.l+'</div>';});
+ document.getElementById('palList').innerHTML=html||'<div class="pal-item">No results</div>';
+ window.__PALF=f;
 }
-function settingsNumRow(label, key, value, hint){
-  return '<div class="settings-row"><div><div class="lbl">'+label+'</div><div class="hint">'+hint+'</div></div>'+
-    '<input type="number" class="num-input" data-action="policy-input" data-key="'+key+'" value="'+value+'"></div>';
-}
-
-/* ---------- Command Palette render ---------- */
-function renderPalette(){
-  const root = $('#overlay-root');
-  if (!S.ui.paletteOpen) return;
-  const q = (S.ui.paletteQuery||'').toLowerCase();
-  const filtered = COMMANDS.filter(c => c.label.toLowerCase().includes(q));
-  const sel = clamp(S.ui.paletteSel||0, 0, Math.max(0, filtered.length-1));
-  root.innerHTML = '<div class="overlay-bg" data-action="close-palette"><div class="palette">'+
-    '<input id="palette-input" class="palette-input" placeholder="Type a command… (e.g. run batch, export audit)" value="'+escapeHtml(S.ui.paletteQuery||'')+'">'+
-    '<div class="palette-list">'+
-      (filtered.length ? filtered.map((c,i)=>'<div class="palette-item'+(i===sel?' sel':'')+'" data-action="run-command" data-idx="'+COMMANDS.indexOf(c)+'"><span>'+c.icon+'</span><span>'+c.label+'</span></div>').join('')
-        : '<div class="palette-item">No matching commands</div>')+
-    '</div></div></div>';
-}
-
-/* ============================================================================
-   EVENT DELEGATION
-   ============================================================================ */
-function bindGlobalStaticListeners(){ /* placeholder: all binding is delegated at document level, see bottom */ }
-
-document.addEventListener('click', (e) => {
-  const el = e.target.closest('[data-action]');
-  if (!el) return;
-  const action = el.getAttribute('data-action');
-
-  switch(action){
-    case 'nav': navigate(el.getAttribute('data-view')); break;
-    case 'open-palette': openPalette(); break;
-    case 'close-palette':
-      // The overlay-bg wraps the palette panel; only close on a true background click,
-      // not one that bubbled up from inside the panel to this ancestor via closest().
-      if (e.target.closest('.palette')) break;
-      closePalette();
-      break;
-    case 'dismiss-toast': break; // handled inline
-    case 'run-batch': runBatch(); break;
-    case 'open-case': S.ui.drawerCaseId = el.getAttribute('data-id'); render(); break;
-    case 'close-drawer':
-      if (e.target.closest('.drawer')) break; // same rationale as close-palette above
-      S.ui.drawerCaseId = null; render();
-      break;
-    case 'process-single': {
-      const kase = S.cases.find(c=>c.id===el.getAttribute('data-id'));
-      if (kase){ (async()=>{ await showExecOverlay(kase); processCase(kase); hideExecOverlay(); persist(); render(); toast('Processed '+kase.id+'.', 'info'); })(); }
-      break;
-    }
-    case 'voice-from-drawer': S.ui.drawerCaseId=null; navigate('voice'); startVoiceCall(el.getAttribute('data-id')); break;
-    case 'filter-and-go': S.filters.casesType = el.getAttribute('data-type'); S.filters.casesStatus='all'; navigate('cases'); break;
-    case 'export-audit': exportAudit(); break;
-    case 'reset-demo': if(confirm('Reset all demo data? This clears cases, promises, and audit history.')) resetDemo(); break;
-    case 'toggle-sim': Policy.simFailure = !Policy.simFailure; persist(); toast('Failure simulation '+(Policy.simFailure?'ARMED':'disarmed')+'.', Policy.simFailure?'warning':'success'); render(); break;
-    case 'start-call': navigate('voice'); startVoiceCall(el.getAttribute('data-id')); break;
-    case 'end-call': endVoiceCall(); break;
-    case 'toggle-mic': toggleListening(); break;
-    case 'quick-reply': if (S.voice.activeCaseId) handleVoiceUserUtterance(el.getAttribute('data-text')); break;
-    case 'send-typed': {
-      const inp = $('#voice-text-input');
-      if (inp && inp.value.trim() && S.voice.activeCaseId){ handleVoiceUserUtterance(inp.value.trim()); inp.value=''; }
-      break;
-    }
-    case 'promise-fulfill': {
-      const p = S.promises.find(x=>x.id===el.getAttribute('data-id'));
-      if (p){ p.status='fulfilled'; const kase=S.cases.find(c=>c.id===p.caseId); if(kase){ kase.status='recovered'; logAudit({type:'promise', caseId:kase.id, message:'Promise <b>'+p.id+'</b> marked FULFILLED — '+fmtINR(p.amount)+' recovered.'}); } persist(); render(); toast('Promise marked fulfilled.', 'success'); }
-      break;
-    }
-    case 'promise-break': {
-      const p = S.promises.find(x=>x.id===el.getAttribute('data-id'));
-      if (p){ p.status='broken'; const kase=S.cases.find(c=>c.id===p.caseId); if(kase){ kase.status='open'; kase.attempts=Math.min(kase.attempts, kase.maxAttempts-1); logAudit({type:'promise', caseId:kase.id, message:'Promise <b>'+p.id+'</b> marked BROKEN — case re-entered dunning ladder.'}); } persist(); render(); toast('Promise marked broken — case reopened.', 'warning'); }
-      break;
-    }
-    case 'run-command': {
-      const idx = parseInt(el.getAttribute('data-idx'),10);
-      const cmd = COMMANDS[idx];
-      closePalette();
-      if (cmd) cmd.run();
-      break;
-    }
-  }
+/* ═══ EVENTS ═══ */
+document.addEventListener('click',function(e){
+ if(e.target.id==='palOvl'){closePal();return;}
+ if(e.target.id==='execOvl'){closeExec();return;}
+ var navBtn=e.target.closest('.nav button[data-pg]');
+ if(navBtn){go(navBtn.dataset.pg);return;}
+ var act=e.target.closest('[data-act]');
+ if(act){
+  var a=act.dataset.act,id=act.dataset.id,pg=act.dataset.pg,risk=act.dataset.risk,lang=act.dataset.lang,txt=act.dataset.text,view=act.dataset.view,type=act.dataset.type;
+  if(a==='go')go(pg);
+  else if(a==='run-batch')runBatch();
+  else if(a==='toggle-arm')toggleArm();
+  else if(a==='exec-case')execCase(id);
+  else if(a==='case-detail')openCaseDetail(id);
+  else if(a==='run-pb')runPlaybook(id);
+  else if(a==='run-all')runAll();
+  else if(a==='filter'){S.filter=risk;go('cases');}
+  else if(a==='set-view'){S.caseView=view;go('cases');}
+  else if(a==='sel-voice'){if(S.voiceActive){toast('w','In call','End the call first');return;}S.voiceCase=id;go('voice');}
+  else if(a==='set-vlang'){S.voiceLang=lang;go('voice');}
+  else if(a==='start-call')startVoiceCall();
+  else if(a==='start-voice-from'){closeExec();S.voiceCase=id;go('voice');setTimeout(startVoiceCall,300);}
+  else if(a==='toggle-mic'){if(S.voiceActive){if(S.voiceSpeaking)return;if(S.voiceListening){if(recog)try{recog.stop();}catch(err){}}else{startListening();}}}
+  else if(a==='end-call')endCall('MANUAL_END');
+  else if(a==='quick-say')voiceUserSaid(txt);
+  else if(a==='send-text'){var inp=document.getElementById('vinput');if(inp&&inp.value.trim()){voiceUserSaid(inp.value.trim());inp.value='';}}
+  else if(a==='scan-prom')scanPromises();
+  else if(a==='audit-filter'){S.auditFilter=type;go('audit');}
+  else if(a==='toggle-json'){var nodes=document.querySelectorAll('.tlev');nodes.forEach(function(n){if(n.dataset.id===id)n.classList.toggle('raw');});}
+  else if(a==='export-audit')exportAudit();
+  else if(a==='copy-txn')safeCopy(act.dataset.text);
+  else if(a==='seed')doSeed();
+  else if(a==='reset')doReset();
+  else if(a==='close-exec')closeExec();
+  else if(a==='retry-load')loadInitialData();
+  return;
+ }
+ if(e.target.closest('#searchBtn')){openPal();return;}
+ if(e.target.closest('#seedBtn')){doSeed();return;}
+ var palItem=e.target.closest('[data-pal-idx]');
+ if(palItem){var f=window.__PALF||[];var it=f[parseInt(palItem.dataset.palIdx,10)];if(it)it.fn();closePal();return;}
+ if(e.target.closest('#eCont')){closeExec();return;}
 });
-
-function refocusEnd(selector){
-  const inp = typeof selector === 'string' ? document.querySelector(selector) : selector;
-  if (inp){ inp.focus(); const v = inp.value; try{ inp.setSelectionRange(v.length, v.length); }catch(e){} }
-}
-
-document.addEventListener('input', (e) => {
-  // These two inputs are re-rendered by name (not via a data-action ancestor lookup),
-  // since their own re-render replaces the input element and would otherwise drop focus.
-  if (e.target.id === 'palette-input'){
-    S.ui.paletteQuery = e.target.value; S.ui.paletteSel = 0;
-    renderPalette();
-    refocusEnd('#palette-input');
-    return;
-  }
-
-  const el = e.target.closest('[data-action]');
-  if (!el) return;
-  const action = el.getAttribute('data-action');
-  switch(action){
-    case 'filter-cases-query':
-      S.filters.casesQuery = el.value; renderCasesTableOnly();
-      refocusEnd('[data-action="filter-cases-query"]');
-      break;
-    case 'filter-audit-query':
-      S.filters.auditQuery = el.value; renderAuditTableOnly();
-      refocusEnd('[data-action="filter-audit-query"]');
-      break;
-    case 'policy-input': {
-      const key = el.getAttribute('data-key');
-      let v = parseFloat(el.value);
-      if (isNaN(v)) return;
-      if (key === 'confidenceThreshold') v = clamp(v,0,100)/100; else v = Math.max(0,v);
-      Policy[key] = v; persist();
-      break;
-    }
-  }
+document.addEventListener('keydown',function(e){
+ if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();if(document.getElementById('palOvl').classList.contains('show'))closePal();else openPal();return;}
+ if(e.key==='Escape'){if(document.getElementById('palOvl').classList.contains('show'))closePal();else closeExec();return;}
+ if(document.getElementById('palOvl').classList.contains('show')){
+  var q=document.getElementById('palInput').value;var f=window.__PALF||palFiltered(q);
+  if(e.key==='ArrowDown'){e.preventDefault();palIdx=Math.min(palIdx+1,f.length-1);renderPal(q);}
+  if(e.key==='ArrowUp'){e.preventDefault();palIdx=Math.max(palIdx-1,0);renderPal(q);}
+  if(e.key==='Enter'&&f[palIdx]){f[palIdx].fn();closePal();}
+ }else{
+  var inp=document.getElementById('vinput');
+  if(inp&&document.activeElement===inp&&e.key==='Enter'){var v=inp.value.trim();if(v){inp.value='';voiceUserSaid(v);}}
+ }
 });
-
-document.addEventListener('change', (e) => {
-  const el = e.target.closest('[data-action]');
-  if (!el) return;
-  const action = el.getAttribute('data-action');
-  if (action === 'filter-cases-type'){ S.filters.casesType = el.value; renderCasesTableOnly(); }
-  if (action === 'filter-cases-status'){ S.filters.casesStatus = el.value; renderCasesTableOnly(); }
-  if (action === 'filter-audit-type'){ S.filters.auditType = el.value; renderAuditTableOnly(); }
-});
-
-document.addEventListener('keydown', (e) => {
-  const meta = e.ctrlKey || e.metaKey;
-  if (meta && (e.key === 'k' || e.key === 'K')){ e.preventDefault(); S.ui.paletteOpen ? closePalette() : openPalette(); return; }
-  if (e.key === 'Escape'){
-    if (S.ui.paletteOpen){ closePalette(); return; }
-    if (S.ui.drawerCaseId){ S.ui.drawerCaseId=null; render(); return; }
-  }
-  if (S.ui.paletteOpen){
-    const q = (S.ui.paletteQuery||'').toLowerCase();
-    const filtered = COMMANDS.filter(c => c.label.toLowerCase().includes(q));
-    if (e.key === 'ArrowDown'){ e.preventDefault(); S.ui.paletteSel = clamp((S.ui.paletteSel||0)+1, 0, filtered.length-1); renderPalette(); }
-    if (e.key === 'ArrowUp'){ e.preventDefault(); S.ui.paletteSel = clamp((S.ui.paletteSel||0)-1, 0, filtered.length-1); renderPalette(); }
-    if (e.key === 'Enter'){
-      const cmd = filtered[clamp(S.ui.paletteSel||0,0,filtered.length-1)];
-      closePalette();
-      if (cmd) cmd.run();
-    }
-  }
-  if (S.view === 'voice' && e.key === 'Enter' && document.activeElement && document.activeElement.id === 'voice-text-input'){
-    const inp = document.activeElement;
-    if (inp.value.trim() && S.voice.activeCaseId){ handleVoiceUserUtterance(inp.value.trim()); inp.value=''; }
-  }
-});
-
-/* Lightweight partial re-renders to avoid losing input focus while typing filters */
-function renderCasesTableOnly(){ if (S.view==='cases'){ const el=$('#view-scroll'); if(el) el.innerHTML = viewCases(); } }
-function renderAuditTableOnly(){ if (S.view==='audit'){ const el=$('#view-scroll'); if(el) el.innerHTML = viewAudit(); } }
-
-/* ============================================================================
-   BOOT
-   ============================================================================ */
-function boot(){
-  const restored = restore();
-  if (!restored) seedData();
-  if (window.speechSynthesis){ window.speechSynthesis.onvoiceschanged = () => {}; }
-  render();
-}
-
-// Debug/inspection surface for judges & QA — read-only view into live state, plus safe demo actions.
-window.RecoverAI = {
-  get state(){ return S; },
-  get policy(){ return Policy; },
-  runBatch, resetDemo, exportAudit, navigate,
-};
-
-boot();
+document.getElementById('palInput').addEventListener('input',function(e){palIdx=0;renderPal(e.target.value);});
+document.addEventListener('change',function(e){if(e.target.id==='setLang'){S.voiceLang=e.target.value;toast('i','Language',VOICE_BRAIN[S.voiceLang].name);}});
+/* ═══ INIT ══ */
+loadInitialData();
 </script>
 </body>
 </html>

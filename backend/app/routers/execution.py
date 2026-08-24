@@ -1,24 +1,49 @@
-from fastapi import APIRouter, Depends, HTTPException
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 from sqlalchemy.orm import Session
+
+from ..config import settings
 from ..database import get_db
+from ..middleware.rate_limit import limiter
 from ..models import RecoveryCase
-from ..schemas import ExecuteResponse, ExecuteRequest
+from ..schemas import ExecuteRequest, ExecuteResponse
+from ..services.policy_engine import TERMINAL_STATES
 from ..services.recovery_executor import execute_recovery
 
 router = APIRouter()
 
-@router.post("/cases/{case_id}/execute", response_model=ExecuteResponse)
-def execute_case_path(case_id: str, db: Session = Depends(get_db)):
+
+def _execute_case(db: Session, case_id: str, idempotency_key: Optional[str]) -> dict:
     case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
-    result = execute_recovery(db, case)
-    return result
+    if not idempotency_key and case.recovery_status in TERMINAL_STATES:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Case {case_id} is already in terminal state "
+            f"'{case.recovery_status}' and cannot be re-executed.",
+        )
+    return execute_recovery(db, case, idempotency_key)
+
+
+@router.post("/cases/{case_id}/execute", response_model=ExecuteResponse)
+@limiter.limit(settings.RATE_LIMIT_EXECUTE)
+def execute_case_path(
+    request: Request,
+    case_id: str,
+    db: Session = Depends(get_db),
+    idempotency_key: Optional[str] = Header(default=None, alias="Idempotency-Key"),
+):
+    return _execute_case(db, case_id, idempotency_key)
+
 
 @router.post("/execute", response_model=ExecuteResponse)
-def execute_case_body(req: ExecuteRequest, db: Session = Depends(get_db)):
-    case = db.query(RecoveryCase).filter(RecoveryCase.id == req.case_id).first()
-    if not case:
-        raise HTTPException(status_code=404, detail="Case not found")
-    result = execute_recovery(db, case)
-    return result
+@limiter.limit(settings.RATE_LIMIT_EXECUTE)
+def execute_case_body(
+    request: Request,
+    req: ExecuteRequest,
+    db: Session = Depends(get_db),
+    idempotency_key: Optional[str] = Header(default=None, alias="Idempotency-Key"),
+):
+    return _execute_case(db, req.case_id, idempotency_key)

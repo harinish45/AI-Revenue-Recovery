@@ -1,8 +1,9 @@
+# This single service serves both the API and the app UI (RecoverAI-standalone.html, at "/").
 services:
   - type: web
     name: recoverai
     runtime: python
-    buildCommand: "pip install -r requirements.txt && cd ../frontend && npm install && npm run build && cd ../backend"
+    buildCommand: "pip install -r requirements.txt"
     startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
     rootDir: backend
     envVars:
@@ -11,7 +12,4 @@ services:
       - key: APP_ENV
         value: production
       - key: CORS_ORIGINS
-        value: "*"
-      # Optional: Add LLM provider keys in Render dashboard
-      # - key: GROQ_API_KEY
-      #   value: your_key
+        value: '["*"]'

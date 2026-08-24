@@ -9,10 +9,8 @@ __pycache__/
 .env.local
 .pytest_cache/
 
-# Node / React
+# Node (helper scripts only — no frontend build)
 node_modules/
-dist/
-build/
 .DS_Store
 
 # IDE

@@ -5,14 +5,15 @@
 builder = "nixpacks"
 
 [[services]]
-name = "recoverai-backend"
-source = "backend"
-startCommand = "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+name = "recoverai"
+# source is the repo root (not backend/) so RecoverAI-standalone.html — served
+# at "/" via a path relative to backend/app/main.py — is present in the build.
+buildCommand = "cd backend && pip install -r requirements.txt"
+startCommand = "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 
 [services.env]
   DATABASE_URL = "sqlite:///./recoverai.db"
   APP_ENV = "production"
-  CORS_ORIGINS = "*"
+  CORS_ORIGINS = '["*"]'
 
-# Frontend is served as static files by FastAPI (see main.py)
-# So we only need one service
+# This single service serves both the API and the app UI (RecoverAI-standalone.html, at "/").
