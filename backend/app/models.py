@@ -85,6 +85,16 @@ class AuditLog(Base):
     case = relationship("RecoveryCase", back_populates="audit_logs")
 
 
+class AuditSeal(Base):
+    """Tamper-evident hash metadata for each audit event."""
+    __tablename__ = "audit_seals"
+    audit_id = Column(String, primary_key=True)
+    case_id = Column(String, nullable=True)
+    previous_hash = Column(String, nullable=True)
+    event_hash = Column(String, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+
 class DemoFlag(Base):
     __tablename__ = "demo_flags"
     id = Column(Integer, primary_key=True)

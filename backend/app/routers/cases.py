@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -15,8 +15,8 @@ def get_cases(
     status: Optional[str] = None,
     risk_level: Optional[str] = None,
     search: Optional[str] = None,
-    page: int = 1,
-    limit: int = 20,
+    page: int = Query(1, ge=1, le=10000),
+    limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
 ):
     query = db.query(RecoveryCase)

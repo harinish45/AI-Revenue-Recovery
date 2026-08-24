@@ -4,6 +4,8 @@ from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
+from fastapi import Request
+from uuid import uuid4
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
@@ -39,6 +41,17 @@ app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 app.add_exception_handler(HTTPException, http_exception_handler)
 app.add_exception_handler(RequestValidationError, validation_exception_handler)
 app.add_exception_handler(Exception, unhandled_exception_handler)
+
+@app.middleware("http")
+async def security_headers(request: Request, call_next):
+    request_id = request.headers.get("X-Request-ID") or str(uuid4())
+    response = await call_next(request)
+    response.headers["X-Request-ID"] = request_id
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["Referrer-Policy"] = "no-referrer"
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
 

@@ -50,10 +50,17 @@ def choose_intervention(reason_code: str, success_rate: float) -> AgentDecision:
             0.91, "payment_link",
             ["do not retry the card", "escalate after the payment-link window expires"],
         )
-    if "bank" in reason or "invalid" in reason:
+    if "bank" in reason:
         return AgentDecision(
-            "bank_or_instrument_rejection", "needs_human_review", "high",
+            "bank_rejection", "needs_human_review", "high",
             "The payment instrument was rejected; automated retries could frustrate the customer or increase risk.",
+            0.96, "human_review",
+            ["never retry automatically", "require human approval for alternate collection"],
+        )
+    if "invalid" in reason:
+        return AgentDecision(
+            "invalid_instrument", "needs_human_review", "high",
+            "Invalid payment details; automated retries could frustrate the customer or increase risk.",
             0.96, "human_review",
             ["never retry automatically", "require human approval for alternate collection"],
         )
