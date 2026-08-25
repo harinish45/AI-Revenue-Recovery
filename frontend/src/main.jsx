@@ -1,0 +1,404 @@
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { api } from './api';
+import './styles.css';
+import './enhancements.css';
+
+/* ---------- helpers ---------- */
+const money = v => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(v) || 0);
+const pretty = v => String(v ?? '').replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
+
+/* Demo-fallback data - shown ONLY when the backend is unreachable.
+   All live data flows through api methods in ./api.js */
+const demoSummary = { total_at_risk: 45000.5, total_recovered: 12000, recovery_rate_percent: 26.67, open_cases: 15, escalated_cases: 3 };
+const demoCases = [
+  { id: 1, payment_id: 'pay_demo_001', status: 'OPEN', retry_count: 0, diagnosis: 'Gateway timeout; customer has prior successful payments.', recommended_action: 'SEND_RETRY_LINK', risk_level: 'LOW', failure_category: 'temporary_gateway_failure', failure_reason: 'Gateway timeout', amount: 2499, customer_name: 'Arjun Kumar' },
+  { id: 2, payment_id: 'pay_demo_014', status: 'OPEN', retry_count: 0, diagnosis: 'Issuer decline; safer to request a fresh payment authorization.', recommended_action: 'SEND_RETRY_LINK', risk_level: 'MEDIUM', failure_category: 'issuer_decline', failure_reason: 'Issuer decline', amount: 1999, customer_name: 'Meera Iyer' },
+  { id: 3, payment_id: 'pay_demo_021', status: 'RECOVERED', retry_count: 1, diagnosis: 'Transient gateway issue recovered within policy.', recommended_action: 'SEND_RETRY_LINK', risk_level: 'LOW', failure_category: 'temporary_gateway_failure', failure_reason: 'Gateway timeout', amount: 4299, customer_name: 'Rohit Sharma' },
+];
+
+const RISKS = ['all', 'LOW', 'MEDIUM', 'HIGH'];
+
+/* ---------- small components ---------- */
+function Badge({ status }) {
+  const human = String(status || '').toLowerCase() === 'needs_human_review' ||
+    String(status || '').toLowerCase().replaceAll('_', ' ') === 'needs human review';
+  return (
+    <span className={`status-badge ${human ? 'needs-human-review' : String(status || '').toLowerCase()}`}>
+      {human ? 'ESCALATED TO HUMAN' : pretty(status)}
+    </span>
+  );
+}
+
+function RiskBadge({ risk }) {
+  const r = String(risk || '').toUpperCase();
+  const cls = r === 'HIGH' ? 'risk-high' : r === 'MEDIUM' ? 'risk-medium' : r === 'LOW' ? 'risk-low' : 'risk-unknown';
+  return <span className={`risk-badge ${cls}`}>{r || 'UNKNOWN'}</span>;
+}
+
+function Metric({ label, value }) {
+  return (
+    <div className="metric-card">
+      <div className="metric-label">{label}</div>
+      <div className="metric-value">{value}</div>
+    </div>
+  );
+}
+
+/* ---------- app ---------- */
+function App() {
+  const [summary, setSummary] = React.useState(demoSummary);
+  const [cases, setCases] = React.useState(demoCases);
+  const [audit, setAudit] = React.useState([]);
+  const [loading, setLoading] = React.useState(false);
+  const [live, setLive] = React.useState(false);
+  const [failureArmed, setFailureArmed] = React.useState(false);
+  const [auditOpen, setAuditOpen] = React.useState(false);
+  const [selected, setSelected] = React.useState(null);
+  const [batchResult, setBatchResult] = React.useState(null);
+  const [notice, setNotice] = React.useState(null);
+  const [search, setSearch] = React.useState('');
+  const [riskFilter, setRiskFilter] = React.useState('all');
+  const [copied, setCopied] = React.useState(false);
+
+  // Map backend dashboard fields onto the names this UI renders
+  const mapSummary = s => ({
+    ...s,
+    total_at_risk: s.total_at_risk ?? s.revenue_at_risk ?? 0,
+    total_recovered: s.total_recovered ?? s.recovered_amount ?? 0,
+    recovery_rate_percent: s.recovery_rate_percent ?? s.recovery_rate ?? 0,
+    open_cases: s.open_cases ?? s.failed_payments ?? s.total_transactions ?? 0,
+    escalated_cases: s.escalated_cases ?? 0,
+  });
+
+  const refresh = React.useCallback(async () => {
+    try {
+      const [s, c, a] = await Promise.all([api.getDashboard(), api.getCases(), api.getAudit()]);
+      setSummary(mapSummary(s));
+      setCases(c.items || []);
+      setAudit(a.items || []);
+      setLive(true);
+      return true;
+    } catch {
+      setLive(false);
+      return false;
+    }
+  }, []);
+
+  React.useEffect(() => { refresh(); }, [refresh]);
+
+  // Generic action wrapper: loading state + success/error toast
+  const action = async (fn, text, type = 'success') => {
+    setLoading(true); setNotice(null);
+    try {
+      const result = await fn();
+      setNotice({ type, text: text || result?.message || 'Action completed.' });
+      await refresh();
+      return result;
+    } catch (e) {
+      setNotice({ type: 'error', text: e.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const copyToClipboard = async text => {
+    try {
+      await navigator.clipboard.writeText(String(text));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch { /* clipboard unavailable */ }
+  };
+
+  const execute = async item => {
+    setLoading(true); setNotice(null);
+    try {
+      const r = await api.executeRecovery(item.id);
+      setSelected(null);
+      const status = String(r.status || '').toLowerCase();
+      if (status === 'needs_human_review' || status.includes('human') || status.includes('escalat')) {
+        setFailureArmed(false);
+        setNotice({ type: 'error', text: 'Escalated to Human Review due to gateway failure.' });
+      } else {
+        setNotice({ type: 'success', text: pretty(r.action || 'Recovery') + ' completed — ' + money(r.amount_recovered) + ' recovered.' });
+      }
+      await refresh();
+    } catch (e) {
+      setNotice({ type: 'error', text: e.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const seed = () => action(api.seedDemo, '100 synthetic payments seeded successfully.');
+  const reset = async () => {
+    const r = await action(api.resetDemo, 'Demo database reset complete.');
+    if (r) { setFailureArmed(false); setBatchResult(null); }
+  };
+  const batch = async () => {
+    setLoading(true); setNotice(null);
+    try {
+      const r = await api.runRecoveryBatch();
+      setBatchResult(r);
+      setNotice({ type: 'success', text: 'Recovered ' + money(r.amount_recovered) + ' across ' + r.successful + ' successful cases.' });
+      await refresh();
+      return r;
+    } catch (e) {
+      setNotice({ type: 'error', text: e.message });
+    } finally {
+      setLoading(false);
+    }
+  };
+  const arm = async () => {
+    const r = await action(api.simulateFailure, 'Gateway failure detected. Safely escalated to human review.', 'warning');
+    if (r) setFailureArmed(true);
+  };
+
+  // Search across id/payment/customer/status/failure fields AND filter by risk level
+  const filtered = cases.filter(c =>
+    (riskFilter === 'all' || String(c.risk_level || '').toUpperCase() === riskFilter) &&
+    `${c.id} ${c.payment_id} ${c.payment?.customer_name || c.customer?.name || ''} ${c.status} ${c.failure_category || ''} ${c.failure_reason || ''}`
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
+
+  return (
+    <div className="app-shell">
+      <div className="test-banner">
+        <span className="warning-dot">●</span>
+        <strong>Razorpay Hackathon Sandbox</strong>
+        <span>|</span>
+        <strong>Test Mode Active</strong>
+        <span>|</span>
+        <span>Simulated Gateway</span>
+      </div>
+
+      <header className="topbar">
+        <div>
+          <div className="eyebrow">Razorpay Hackathon · Track 03</div>
+          <h1>RecoverAI <span>— Autonomous Revenue Recovery</span></h1>
+          <p className="subtitle">Detect → Diagnose → Decide → Recover → Audit</p>
+        </div>
+        <div className="top-actions">
+          <span className={`connection-state ${live ? 'online' : 'demo'}`}><span />{live ? 'Backend connected' : 'Demo fallback'}</span>
+          <button className="ghost-btn" disabled={loading} onClick={seed}>Seed Data</button>
+          <button className="ghost-btn" disabled={loading} onClick={reset}>Reset</button>
+        </div>
+      </header>
+
+      <main>
+        {/* Toast / notice */}
+        {notice && (
+          <div className={`notice ${notice.type}`} role="status">
+            <strong>{notice.type === 'error' ? 'Escalation' : notice.type === 'warning' ? 'Warning' : 'Success'}</strong>
+            <span>{notice.text}</span>
+            <button onClick={() => setNotice(null)} aria-label="Dismiss notification">×</button>
+          </div>
+        )}
+
+        {/* Dashboard metrics */}
+        <section className="metrics-grid" aria-label="Dashboard metrics">
+          <Metric label="Total at risk" value={money(summary.total_at_risk)} />
+          <Metric label="Total recovered" value={money(summary.total_recovered)} />
+          <Metric label="Recovery rate" value={`${summary.recovery_rate_percent ?? 0}%`} />
+          <Metric label="Open cases" value={summary.open_cases ?? 0} />
+          <Metric label="Escalated cases" value={summary.escalated_cases ?? 0} />
+        </section>
+
+        {/* Action center */}
+        <section className="action-center panel">
+          <div>
+            <div className="eyebrow">Action center</div>
+            <h2>Close the recovery loop</h2>
+            <p>Every money action is bounded by the backend policy engine and recorded in the audit trail.</p>
+          </div>
+          <div className="action-buttons">
+            <button className={`primary-btn ${loading ? 'is-busy' : ''}`} disabled={loading || !live} onClick={batch}>
+              {loading ? 'Processing…' : 'Run Batch Recovery'}
+            </button>
+            <button className={`failure-btn ${failureArmed ? 'armed' : ''}`} disabled={loading || failureArmed || !live} onClick={arm}>
+              {failureArmed ? '⚠ Failure Armed — Next Execute Will Escalate' : '⚠ Arm Failure Simulation'}
+            </button>
+            <button className="audit-btn" onClick={() => setAuditOpen(true)}>View Compliance Audit</button>
+          </div>
+        </section>
+
+        {/* Cases table with search + risk filters */}
+        <section className="panel cases-panel">
+          <div className="panel-header">
+            <div>
+              <div className="eyebrow">Recovery queue</div>
+              <h2>Payment recovery cases</h2>
+              <p>{live ? cases.length + ' cases loaded from backend' : 'Backend unavailable — showing demo fallback'} · showing {filtered.length}</p>
+            </div>
+            <div className="panel-tools">
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search cases…"
+                aria-label="Search cases by customer, payment ID or failure reason"
+              />
+              <div className="risk-filters" role="group" aria-label="Filter cases by risk level">
+                {RISKS.map(r => (
+                  <button
+                    key={r}
+                    type="button"
+                    className={`filter-btn ${riskFilter === r ? 'active' : ''}`}
+                    onClick={() => setRiskFilter(r)}
+                    aria-pressed={riskFilter === r}
+                  >
+                    {r === 'all' ? 'All risks' : pretty(r)}
+                  </button>
+                ))}
+              </div>
+              <span className="test-chip">RAZORPAY TEST MODE</span>
+            </div>
+          </div>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Case</th>
+                  <th>Customer</th>
+                  <th>Payment</th>
+                  <th>Amount</th>
+                  <th>Risk</th>
+                  <th>Diagnosis</th>
+                  <th>AI Action</th>
+                  <th>Status</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(item => (
+                  <tr key={item.id}>
+                    <td><strong>#{item.id}</strong></td>
+                    <td>{item.customer?.name || item.customer_name || item.payment?.customer_name || 'Customer'}</td>
+                    <td className="muted">{item.payment_id}</td>
+                    <td className="amount">{money(item.amount ?? item.payment?.amount)}</td>
+                    <td><RiskBadge risk={item.risk_level} /></td>
+                    <td className="diagnosis">{item.diagnosis || item.failure_reason || item.payment?.failure_reason || 'Payment failure detected'}</td>
+                    <td>{pretty(item.recommended_action)}</td>
+                    <td><Badge status={item.status} /></td>
+                    <td>
+                      {String(item.status).toUpperCase() === 'OPEN' && live
+                        ? <button className={`execute-btn ${loading ? 'is-busy' : ''}`} disabled={loading} onClick={() => execute(item)}>{loading ? 'Executing…' : 'Execute'}</button>
+                        : <button className="details-btn" onClick={() => setSelected(item)}>Details</button>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {filtered.length === 0 && <div className="empty-state">No recovery cases match your search.</div>}
+          </div>
+        </section>
+
+        <section className="pitch-proof">
+          <div><strong>AI recommendation</strong><span>LLM proposes the action.</span></div>
+          <b>→</b>
+          <div><strong>Policy engine</strong><span>Backend gates the action.</span></div>
+          <b>→</b>
+          <div><strong>Razorpay Test Mode</strong><span>Bounded execution.</span></div>
+          <b>→</b>
+          <div><strong>Audit trail</strong><span>Every decision is explainable.</span></div>
+        </section>
+      </main>
+
+      {/* Batch result modal */}
+      {batchResult && (
+        <div className="modal-backdrop" onMouseDown={() => setBatchResult(null)}>
+          <div className="case-modal batch-modal" onMouseDown={e => e.stopPropagation()} role="dialog" aria-label="Batch recovery result">
+            <div className="modal-header">
+              <div>
+                <div className="eyebrow">Batch recovery result</div>
+                <h2>Revenue recovery completed</h2>
+              </div>
+              <button className="close-btn" onClick={() => setBatchResult(null)} aria-label="Close">×</button>
+            </div>
+            <div className="batch-grid">
+              <div><span>Cases</span><strong>{batchResult.total_cases}</strong></div>
+              <div><span>Attempted</span><strong>{batchResult.attempted}</strong></div>
+              <div><span>Successful</span><strong className="positive">{batchResult.successful}</strong></div>
+              <div><span>Failed</span><strong className="negative">{batchResult.failed}</strong></div>
+              <div><span>Escalated</span><strong className="negative">{batchResult.escalated}</strong></div>
+              <div><span>Amount at risk</span><strong>{money(batchResult.amount_at_risk)}</strong></div>
+              <div><span>Amount recovered</span><strong className="positive">{money(batchResult.amount_recovered)}</strong></div>
+              <div><span>Recovery rate</span><strong>{batchResult.recovery_rate}%</strong></div>
+            </div>
+            <p className="modal-footnote">Backend batch metrics · Razorpay Test Mode · bounded recovery workflow.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Case detail drawer */}
+      {selected && (
+        <div className="modal-backdrop" onMouseDown={() => setSelected(null)}>
+          <div className="case-modal" onMouseDown={e => e.stopPropagation()} role="dialog" aria-label={'Case detail ' + selected.id}>
+            <div className="modal-header">
+              <div>
+                <div className="eyebrow">Recovery case #{selected.id}</div>
+                <h2>{selected.payment?.customer_name || selected.customer?.name || selected.customer_name || 'Customer'}</h2>
+              </div>
+              <button className="close-btn" onClick={() => setSelected(null)} aria-label="Close">×</button>
+            </div>
+
+            <div className="case-detail">
+              <div><span>Amount</span><strong>{money(selected.amount ?? selected.payment?.amount)}</strong></div>
+              <div><span>Status</span><Badge status={selected.status} /></div>
+              <div><span>Risk level</span><RiskBadge risk={selected.risk_level} /></div>
+              <div><span>Retry count</span><strong>{selected.retry_count}</strong></div>
+            </div>
+
+            <h3>Transaction ID</h3>
+            <div className="tx-id-row">
+              <code className="tx-id" id="tx-id-value">{selected.payment_id}</code>
+              <button
+                type="button"
+                className={`copy-btn ${copied ? 'copied' : ''}`}
+                onClick={() => copyToClipboard(selected.payment_id)}
+                aria-label="Copy transaction ID"
+                title={copied ? 'Copied!' : 'Copy'}
+              >
+                {copied ? '✓ Copied' : '⧉ Copy'}
+              </button>
+            </div>
+
+            <h3>Failure code</h3>
+            <div className="failure-code-row">
+              <Badge status={selected.failure_category || 'unknown_failure'} />
+              <span className="failure-reason">{selected.failure_reason || selected.payment?.failure_reason || 'No additional details recorded.'}</span>
+            </div>
+
+            <h3>Diagnosis</h3>
+            <p>{selected.diagnosis || 'Payment failure requires recovery review.'}</p>
+            <h3>Recommended action</h3>
+            <p>{pretty(selected.recommended_action)}</p>
+          </div>
+        </div>
+      )}
+
+      {/* Audit trail drawer */}
+      {auditOpen && (
+        <div className="drawer-backdrop" onMouseDown={() => setAuditOpen(false)}>
+          <aside className="audit-drawer" onMouseDown={e => e.stopPropagation()} aria-label="Compliance audit trail">
+            <div className="drawer-header">
+              <div>
+                <div className="eyebrow">Compliance proof</div>
+                <h2>Audit Trail</h2>
+              </div>
+              <button className="close-btn" onClick={() => setAuditOpen(false)} aria-label="Close">×</button>
+            </div>
+            <p>Compliance events from the backend, including diagnosis, policy gating and execution.</p>
+            <div className="json-list">
+              {audit.length
+                ? audit.map(event => <pre key={event.id}>{JSON.stringify(event, null, 2)}</pre>)
+                : <div className="empty-state">No audit events yet. Seed and execute a case to populate live compliance events.</div>}
+            </div>
+          </aside>
+        </div>
+      )}
+    </div>
+  );
+}
+
+createRoot(document.getElementById('root')).render(<App />);

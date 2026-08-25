@@ -10,6 +10,10 @@ RecoverAI detects failed payments, determines a bounded recovery intervention, e
 
 ## Repository Layout
 
+The repository contains both a zero-build standalone recording surface and an
+optional React/Vite client with its own CI/build path. The backend serves the
+standalone page at the root so the fastest demo path remains unchanged.
+
 - `RecoverAI-standalone.html` — the app UI: a single self-contained page served directly by the backend at `/`. No Node/npm, no build step.
 - `backend/` — FastAPI service: API, policy engine, database, and the UI above.
 - `docs/` — shared architecture and API contract.

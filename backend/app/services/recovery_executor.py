@@ -82,7 +82,7 @@ def _run_recovery(db: Session, case: RecoveryCase) -> dict:
     case.policy_checks = checks
 
     if not allowed:
-        case.recovery_status = "blocked" if "Max retries" in reasons else "needs_human_review"
+        case.recovery_status = "blocked" if not checks.get("max_retries_check", True) else "needs_human_review"
         audit = log_event(
             db,
             case.id,
