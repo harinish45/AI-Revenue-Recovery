@@ -135,6 +135,9 @@ class VoiceEventRequest(BaseModel):
     ]
     intent: Optional[str] = None
     transcript: Optional[str] = None
+    language: Optional[str] = None
+    confidence: Optional[float] = None
+    consent_confirmed: Optional[bool] = None
 
 
 class VoiceEventResponse(BaseModel):

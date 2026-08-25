@@ -20,12 +20,21 @@ def record_voice_event(
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
 
+    if body.event_type == "voice_promise_captured" and body.consent_confirmed is False:
+        raise HTTPException(status_code=400, detail="A payment promise requires explicit confirmation")
+
+    decision = body.intent or "VOICE_INTERACTION"
+    if body.language:
+        decision += f" | language={body.language}"
+    if body.confidence is not None:
+        decision += f" | confidence={body.confidence:.2f}"
     audit = log_event(
         db,
         case_id,
         body.event_type,
         actor="voice_agent",
-        decision=body.intent,
+        decision=decision,
+        action="promise_capture" if body.event_type == "voice_promise_captured" else "voice_interaction",
         reason=body.transcript,
     )
     db.commit()
