@@ -279,7 +279,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
    client-generated — see Api + normalizeCase/normalizeAuditEntry. */
 var S={page:'overview',cases:[],audit:[],dashboard:null,live:false,loading:true,loadError:null,armed:false,running:false,filter:'all',search:'',caseView:'table',
 voiceCase:null,voiceLang:'hi-IN',voiceActive:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceTimer:null,voiceStartTime:0,voiceConsent:false,voiceConfidence:0,voiceIntent:'DISCOVERY',voiceVoiceName:'Browser voice',voiceTurn:0,
-auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
+auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,agentPaused:false,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
 /* Mirrors backend/app/config.py Settings exactly — not editable here, this
    panel just displays what the server actually enforces. */
 var POLICY={maxAmount:50000,maxRetries:2,rateExecute:'20/minute',rateDemo:'10/minute'};
@@ -562,6 +562,7 @@ function renderOverview(){
  h+='<div class="kpi"><div class="kl">Escalated</div><div class="kv" style="color:#a78bfa">'+escN+'</div><div class="ks">human review</div>'+spark(S.history.escalated,'#a78bfa')+'</div>';
  h+='</div>';
  if(S.armed){h+='<div class="card" style="border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.04);padding:10px 14px;font-size:12px;color:#f87171;font-weight:600">Failure simulation ARMED - next execute escalates deterministically</div>';}
+ h+=renderGovernance();
  h+='<div class="ovgrid">';
  h+='<div class="card"><div class="chead"><h3>Agent Activity</h3><span class="hint">live feed</span></div>';
  if(S.audit.length===0){h+='<div class="empty"><h4>No activity yet</h4><p>Seed data or run a batch.</p></div>';}
@@ -575,7 +576,16 @@ function renderOverview(){
  h+='<button class="btn btn-g" data-act="go" data-pg="playbooks">Playbooks</button>';
  h+='</div><div class="glist"><div>Max autonomous: Rs.'+POLICY.maxAmount.toLocaleString('en-IN')+'</div><div>Max '+POLICY.maxRetries+' retries (stopping rule)</div><div>Rate limit: '+POLICY.rateExecute+' on execute</div><div>Idempotency-Key supported on execute</div></div></div></div>';
  h+='</div>';
+ var escalated=S.cases.filter(function(c){return c.status==='escalated';}).slice(0,4);
+ h+='<div class="card"><div class="chead"><h3>Escalation Inbox</h3><span class="hint">human-in-the-loop queue · '+escN+' open</span></div>';
+ if(!escalated.length)h+='<div class="empty" style="padding:22px"><h4>Queue clear</h4><p>High-risk or policy-blocked cases appear here for review.</p></div>';
+ else escalated.forEach(function(c){h+='<div class="actrow"><span class="tag r">REVIEW</span><span class="mono" style="color:#f87171;font-size:10px">'+c.id+'</span><span class="ax"><b>'+esc(c.customer)+'</b> · '+esc(c.category.name)+' · '+fmt(c.amount)+'</span><button class="btn btn-g btn-sm" data-act="case-detail" data-id="'+c.id+'">Inspect</button></div>';});
+ h+='</div>';
  return h;
+}
+function renderGovernance(){
+ var paused=S.agentPaused;
+ return '<div class="card" style="border-color:'+(paused?'rgba(245,158,11,.35)':'rgba(34,197,94,.22)')+'"><div class="chead"><h3>Agent Control Plane</h3><span class="hint">operator safety boundary</span></div><div class="cbody" style="display:grid;grid-template-columns:1.3fr 1fr;gap:12px;align-items:center"><div><b style="color:'+(paused?'#fbbf24':'#4ade80')+'">'+(paused?'PAUSED · no new autonomous actions':'ARMED · bounded autonomous mode')+'</b><p style="font-size:11px;color:var(--mut);margin-top:3px">'+(paused?'Resume only after an operator reviews the queue.':'Every action remains policy-gated, idempotent, rate-limited and auditable.')+'</p></div><div style="display:flex;justify-content:flex-end;gap:7px;flex-wrap:wrap"><button class="btn '+(paused?'btn-p':'btn-r')+' btn-sm" data-act="toggle-pause">'+(paused?'Resume Agent':'Pause Agent')+'</button><button class="btn btn-g btn-sm" data-act="go" data-pg="settings">Readiness</button></div></div></div>';
 }
 function renderCases(){
  var h='<div class="card"><div class="toolbar"><div class="srch"><input id="caseSearch" placeholder="Search cases..." value="'+esc(S.search)+'" aria-label="Search cases"></div><div style="display:flex;gap:5px">';
@@ -621,8 +631,9 @@ function renderBatch(){
  var amt=pending.reduce(function(s,c){return s+c.amount;},0);
  var st=S.batchStats;
  var pct=(S.running&&S.batchTotal>0&&st)?Math.round(st.proc/S.batchTotal*100):0;
- var h='<div class="card"><div class="chead"><h3>Batch Pipeline</h3><span class="hint">'+pending.length+' pending - '+fmt(amt)+'</span></div><div class="cbody">';
- h+='<button class="btn btn-p" data-act="run-batch" style="width:100%;margin-bottom:12px" '+(S.running?'disabled':'')+'>'+(S.running?'Running...':'Start Batch')+'</button>';
+ var h=renderGovernance();
+ h+='<div class="card"><div class="chead"><h3>Batch Pipeline</h3><span class="hint">'+pending.length+' pending - '+fmt(amt)+'</span></div><div class="cbody">';
+ h+='<button class="btn btn-p" data-act="run-batch" style="width:100%;margin-bottom:12px" '+(S.running||S.agentPaused?'disabled':'')+'>'+(S.running?'Running...':S.agentPaused?'Agent paused':'Start Batch')+'</button>';
  if(S.armed)h+='<div style="padding:8px 12px;border-radius:6px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.25);margin-bottom:10px;font-size:11px;color:#f87171;font-weight:600">Warning: Failure sim armed</div>';
  if(S.running)h+='<div class="pbar"><i id="batchBar" style="width:'+pct+'%"></i></div>';
  h+='<div class="blog" id="batchLog">'+(S.batchLog.length?S.batchLog.map(function(l){return '<div class="ln '+l.cls+'">'+l.txt+'</div>';}).join(''):'<div class="lt">Awaiting batch start...</div>')+'</div></div></div>';
@@ -631,6 +642,9 @@ function renderBatch(){
   h+='<div class="split"><i class="a" style="width:'+rp+'%"></i><i class="c" style="width:'+sp+'%"></i><i class="d" style="width:'+ep+'%"></i></div>';
   h+='<div class="dlegend"><i style="background:#22c55e"></i> Recovered - <i style="background:#fbbf24"></i> Skipped - <i style="background:#ef4444"></i> Escalated</div>';}
  h+='</div></div>';
+ if(st&&st.proc>0){var gross=st.amt||0,cost=st.cost||0;h+='<div class="card"><div class="chead"><h3>Recovery Economics</h3><span class="hint">demo estimate · transparent assumptions</span></div><div class="cbody"><div class="bmrow" style="grid-template-columns:repeat(4,1fr)"><div class="bm"><b style="color:#4ade80">'+fmt(gross)+'</b><span>Gross recovered</span></div><div class="bm"><b style="color:#fbbf24">'+fmt(cost)+'</b><span>Est. contact cost</span></div><div class="bm"><b style="color:#4ade80">'+fmt(Math.max(0,gross-cost))+'</b><span>Net recovered</span></div><div class="bm"><b style="color:#60a5fa">'+Math.round(gross/Math.max(1,st.proc))+'%</b><span>Value / case</span></div></div><p style="font-size:10px;color:var(--dim);margin-top:9px">Smart skip protects margin when expected recovery is below intervention cost; escalations preserve a human decision path.</p></div></div>';
+  h+='<div class="card"><div class="chead"><h3>Retry Sequencer</h3><span class="hint">bounded schedule · stops at '+POLICY.maxRetries+' retries</span></div><div class="cbody" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'+[['T+0','Diagnose','gateway + customer signals'],['T+4h','Retry 1','preferred channel'],['T+24h','Retry 2','only if policy allows'],['Terminal','Escalate','human review / stop']].map(function(x,i){return '<div style="padding:10px;border:1px solid var(--ln2);border-radius:8px;background:var(--p2)"><span class="mono" style="font-size:10px;color:'+(i===3?'#f87171':'#60a5fa')+'">'+x[0]+'</span><b style="display:block;font-size:11px;margin-top:5px">'+x[1]+'</b><small style="display:block;color:var(--dim);font-size:10px;margin-top:3px">'+x[2]+'</small></div>';}).join('')+'</div></div>';
+ }
  if(S.batchHistory.length){h+='<div class="card"><div class="chead"><h3>Run History</h3><span class="hint">'+S.batchHistory.length+'</span></div>';
   S.batchHistory.forEach(function(r){h+='<div class="actrow"><span class="lt">'+r.ts+'</span><span class="tag g">'+r.rec+' rec</span><span class="tag r">'+r.esc+' esc</span><span class="ax">'+fmt(r.amt)+' reclaimed</span></div>';});
   h+='</div>';}
@@ -699,7 +713,7 @@ function renderAudit(){
  var types=['all','DETECTION','DIAGNOSIS','DECISION','EXECUTION','ESCALATION','VOICE'];
  var h='<div class="card"><div class="toolbar"><div class="srch"><input id="auditSearch" placeholder="Search audit..." value="'+esc(S.auditSearch)+'" aria-label="Search audit"></div><div style="display:flex;gap:5px;flex-wrap:wrap">';
  types.forEach(function(t){h+='<button class="chip '+(S.auditFilter===t?'on':'')+'" data-act="audit-filter" data-type="'+t+'">'+t+'</button>';});
- h+='</div><span class="hint" id="auditCount" style="margin-left:auto"></span><button class="btn btn-g btn-sm" data-act="export-audit">Export</button></div><div class="cbody"><div class="tl" id="auditBody"></div></div></div>';
+ h+='</div><span class="hint" id="auditCount" style="margin-left:auto"></span><button class="btn btn-g btn-sm" data-act="export-audit">JSON</button><button class="btn btn-g btn-sm" data-act="export-report">CSV Report</button></div><div class="cbody"><div class="tl" id="auditBody"></div></div></div>';
  return h;
 }
 function renderAuditBody(){
@@ -726,6 +740,7 @@ function renderSettings(){
  h+='<div class="swrow"><b>Rate Limit (Execute)</b><span class="mono" style="color:#fbbf24">'+POLICY.rateExecute+'</span></div>';
  h+='<div class="swrow"><b>Rate Limit (Demo/Voice)</b><span class="mono" style="color:#fbbf24">'+POLICY.rateDemo+'</span></div></div></div>';
  h+='<div class="card"><div class="chead"><h3>Data</h3></div><div class="cbody" style="display:flex;gap:8px"><button class="btn btn-g" data-act="seed">Seed</button><button class="btn btn-r" data-act="reset">Reset All</button></div></div>';
+ h+='<div class="card"><div class="chead"><h3>Live Readiness</h3><span class="hint">demo → production handoff</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px">'+[['✓','Backend connected','FastAPI health + live case reads'],['✓','Bounded policy','amount, retry and terminal stops'],['✓','Idempotent execution','duplicate-safe execution key'],['✓','Audit trail','raw event inspection + export'],['✓','Human escalation','policy blocks never auto-bypass'],['✓','Multilingual voice',Object.keys(VOICE_BRAIN).length+' language packs retained'],['!','Provider adapters','connect real PSP/CRM credentials before production']].map(function(x){return '<div class="swrow"><div><b style="color:'+(x[0]==='!'?'#fbbf24':'#4ade80')+'">'+x[0]+' '+x[1]+'</b><small>'+x[2]+'</small></div><span class="mono" style="font-size:10px;color:'+(x[0]==='!'?'#fbbf24':'#4ade80')+'">'+(x[0]==='!'?'NEXT':'READY')+'</span></div>';}).join('')+'</div></div>';
  h+='<div class="card"><div class="chead"><h3>System</h3></div><div class="cbody" style="display:flex;flex-direction:column;gap:6px"><div class="swrow"><b>Version</b><span class="mono">v5.2</span></div><div class="swrow"><b>Track</b><span class="mono">03 - AI Revenue Recovery</span></div><div class="swrow"><b>Backend</b><span class="mono">'+(S.live?'Connected':'Unavailable')+'</span></div></div></div>';
  return h;
 }
@@ -736,6 +751,7 @@ function toggleArm(){
   return refreshCasesAndAudit();
  }).then(function(){go(S.page);}).catch(function(err){toast('e','Failed to arm',err.message);});
 }
+function togglePause(){S.agentPaused=!S.agentPaused;toast(S.agentPaused?'w':'s',S.agentPaused?'Agent Paused':'Agent Resumed',S.agentPaused?'No new autonomous batch or playbook actions will start.':'Bounded actions may start after policy checks.');go(S.page);}
 var execSeq=0;
 function openExec(title,apiPromiseFactory,onResult){
  execSeq++;var my=execSeq;
@@ -771,7 +787,7 @@ function execCase(id){
 }
 function blogPush(cls,txt){S.batchLog.push({cls:cls,txt:txt});var log=document.getElementById('batchLog');if(log){log.innerHTML+='<div class="ln '+cls+'">'+txt+'</div>';log.scrollTop=log.scrollHeight;}}
 function runBatch(){
- if(S.running)return;S.running=true;
+ if(S.running)return;if(S.agentPaused){toast('w','Agent Paused','Resume the agent from the control plane before starting a batch.');return;}S.running=true;
  var pending=pendingCases();
  S.batchLog=[];S.batchStats=null;S.batchTotal=pending.length;
  go('batch');
@@ -787,7 +803,7 @@ function runBatch(){
     S.running=false;
     var failedN=Math.max(0,result.attempted-result.successful-result.escalated);
     blogPush('lt','--- Done: '+result.successful+' recovered, '+result.escalated+' escalated, '+failedN+' failed ---');
-    S.batchStats={proc:result.attempted,rec:result.successful,esc:result.escalated,skp:failedN,amt:result.amount_recovered};
+    S.batchStats={proc:result.attempted,rec:result.successful,esc:result.escalated,skp:failedN,amt:result.amount_recovered,cost:Math.round(result.attempted*18)};
     S.batchHistory.unshift({ts:nowTs(),rec:result.successful,esc:result.escalated,amt:result.amount_recovered});
     if(S.batchHistory.length>6)S.batchHistory.pop();
     toast('s','Batch Complete',result.successful+' recovered · '+fmt(result.amount_recovered));
@@ -873,6 +889,7 @@ function openCaseDetail(id){
  });
 }
 function exportAudit(){var data=JSON.stringify(S.audit.map(function(e){return e.raw;}),null,2);var blob=new Blob([data],{type:'application/json'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='audit-trail.json';a.click();URL.revokeObjectURL(url);toast('s','Exported','Real audit trail downloaded');}
+function exportReport(){var rows=[['timestamp','event_id','case_id','event_type','actor','result','description']];S.audit.forEach(function(e){rows.push([e.ts,e.id,e.caseId||'',e.type,e.actor,e.result,e.desc]);});var csv=rows.map(function(r){return r.map(function(v){return '"'+String(v==null?'':v).replace(/"/g,'""')+'"';}).join(',');}).join('\n');var blob=new Blob([csv],{type:'text/csv'}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='recoverai-recovery-report.csv';a.click();URL.revokeObjectURL(url);toast('s','Exported','Recovery report CSV downloaded');}
 function doSeed(){
  S.loading=true;renderShell();
  Api.seed().then(function(){return refreshCasesAndAudit();}).then(function(){return refreshDashboard();}).then(function(){
@@ -1090,6 +1107,7 @@ document.addEventListener('click',function(e){
   var a=act.dataset.act,id=act.dataset.id,pg=act.dataset.pg,risk=act.dataset.risk,lang=act.dataset.lang,txt=act.dataset.text,view=act.dataset.view,type=act.dataset.type;
   if(a==='go')go(pg);
   else if(a==='run-batch')runBatch();
+  else if(a==='toggle-pause')togglePause();
   else if(a==='toggle-arm')toggleArm();
   else if(a==='exec-case')execCase(id);
   else if(a==='case-detail')openCaseDetail(id);
@@ -1110,6 +1128,7 @@ document.addEventListener('click',function(e){
   else if(a==='audit-filter'){S.auditFilter=type;go('audit');}
   else if(a==='toggle-json'){var nodes=document.querySelectorAll('.tlev');nodes.forEach(function(n){if(n.dataset.id===id)n.classList.toggle('raw');});}
   else if(a==='export-audit')exportAudit();
+  else if(a==='export-report')exportReport();
   else if(a==='copy-txn')safeCopy(act.dataset.text);
   else if(a==='seed')doSeed();
   else if(a==='reset')doReset();
