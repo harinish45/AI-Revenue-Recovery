@@ -38,7 +38,7 @@ const normalizeAudit = (payload) => {
 
 export const api = {
   getDashboard: () => request('/api/dashboard/summary'),
-  getCases: () => request('/api/cases/').then(normalizeCases),
+  getCases: () => request('/api/cases?limit=100').then(normalizeCases),
   getCase: (id) => request(`/api/cases/${id}`).then(normalizeCase),
   // Backend contract explicitly accepts JSON: { "case_id": "<OPEN_CASE_ID>" }.
   executeRecovery: (id) => request('/api/execution/execute', {
@@ -46,7 +46,8 @@ export const api = {
     body: JSON.stringify({ case_id: String(id) }),
     headers: { 'Idempotency-Key': `recoverai-react-${id}-${Date.now()}` },
   }),
-  getAudit: () => request('/api/audit/').then(normalizeAudit),
+  getAudit: () => request('/api/audit?limit=200').then(normalizeAudit),
+  verifyAudit: id => request(`/api/audit/${encodeURIComponent(id)}/verify`),
   seedDemo: () => request('/api/demo/seed', { method: 'POST' }),
   resetDemo: () => request('/api/demo/reset', { method: 'POST' }),
   runRecoveryBatch: () => request('/api/demo/recovery-batch', { method: 'POST' }),

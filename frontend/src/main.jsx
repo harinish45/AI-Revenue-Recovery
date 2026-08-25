@@ -60,6 +60,7 @@ function App() {
   const [search, setSearch] = React.useState('');
   const [riskFilter, setRiskFilter] = React.useState('all');
   const [copied, setCopied] = React.useState(false);
+  const [sealStatus, setSealStatus] = React.useState({});
 
   // Map backend dashboard fields onto the names this UI renders
   const mapSummary = s => ({
@@ -154,6 +155,23 @@ function App() {
     if (r) setFailureArmed(true);
   };
 
+  const verifySeal = async id => {
+    try {
+      const result = await api.verifyAudit(id);
+      setSealStatus(previous => ({ ...previous, [id]: result }));
+    } catch (e) {
+      setNotice({ type: 'error', text: e.message });
+    }
+  };
+
+  const exportAudit = () => {
+    const rows = [['id', 'case_id', 'event_type', 'actor', 'result', 'timestamp']];
+    audit.forEach(event => rows.push([event.id, event.case_id || '', event.event_type, event.actor || '', event.result || '', event.timestamp || '']));
+    const csv = rows.map(row => row.map(value => `"${String(value ?? '').replaceAll('"', '""')}"`).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+    const link = document.createElement('a'); link.href = url; link.download = 'recoverai-audit.csv'; link.click(); URL.revokeObjectURL(url);
+  };
+
   // Search across id/payment/customer/status/failure fields AND filter by risk level
   const filtered = cases.filter(c =>
     (riskFilter === 'all' || String(c.risk_level || '').toUpperCase() === riskFilter) &&
@@ -220,6 +238,7 @@ function App() {
               {failureArmed ? '⚠ Failure Armed — Next Execute Will Escalate' : '⚠ Arm Failure Simulation'}
             </button>
             <button className="audit-btn" onClick={() => setAuditOpen(true)}>View Compliance Audit</button>
+            <a className="audit-btn" href="/" title="Open the full multilingual agent cockpit">Open Full Agent Cockpit</a>
           </div>
         </section>
 
@@ -263,6 +282,8 @@ function App() {
                   <th>Payment</th>
                   <th>Amount</th>
                   <th>Risk</th>
+                  <th>Compliance</th>
+                  <th>Next retry</th>
                   <th>Diagnosis</th>
                   <th>AI Action</th>
                   <th>Status</th>
@@ -277,6 +298,8 @@ function App() {
                     <td className="muted">{item.payment_id}</td>
                     <td className="amount">{money(item.amount ?? item.payment?.amount)}</td>
                     <td><RiskBadge risk={item.risk_level} /></td>
+                    <td><span className={`status-badge ${Number(item.compliance_score) >= 80 ? 'recovered' : 'pending'}`}>{Math.round(item.compliance_score || 0)}% safe</span></td>
+                    <td className="muted">{item.next_retry_at ? new Date(item.next_retry_at).toLocaleString() : '—'}</td>
                     <td className="diagnosis">{item.diagnosis || item.failure_reason || item.payment?.failure_reason || 'Payment failure detected'}</td>
                     <td>{pretty(item.recommended_action)}</td>
                     <td><Badge status={item.status} /></td>
@@ -321,8 +344,11 @@ function App() {
               <div><span>Successful</span><strong className="positive">{batchResult.successful}</strong></div>
               <div><span>Failed</span><strong className="negative">{batchResult.failed}</strong></div>
               <div><span>Escalated</span><strong className="negative">{batchResult.escalated}</strong></div>
+              <div><span>Smart skipped</span><strong>{batchResult.skipped || 0}</strong></div>
               <div><span>Amount at risk</span><strong>{money(batchResult.amount_at_risk)}</strong></div>
               <div><span>Amount recovered</span><strong className="positive">{money(batchResult.amount_recovered)}</strong></div>
+              <div><span>Estimated cost</span><strong>{money(batchResult.estimated_cost)}</strong></div>
+              <div><span>Net recovered</span><strong className="positive">{money(batchResult.net_recovered)}</strong></div>
               <div><span>Recovery rate</span><strong>{batchResult.recovery_rate}%</strong></div>
             </div>
             <p className="modal-footnote">Backend batch metrics · Razorpay Test Mode · bounded recovery workflow.</p>
@@ -347,6 +373,7 @@ function App() {
               <div><span>Status</span><Badge status={selected.status} /></div>
               <div><span>Risk level</span><RiskBadge risk={selected.risk_level} /></div>
               <div><span>Retry count</span><strong>{selected.retry_count}</strong></div>
+              <div><span>Compliance</span><strong>{Math.round(selected.compliance_score || 0)}% policy-safe</strong></div>
             </div>
 
             <h3>Transaction ID</h3>
@@ -373,6 +400,8 @@ function App() {
             <p>{selected.diagnosis || 'Payment failure requires recovery review.'}</p>
             <h3>Recommended action</h3>
             <p>{pretty(selected.recommended_action)}</p>
+            <h3>Retry sequencer</h3>
+            <p>{selected.next_retry_at ? `Next policy-allowed retry: ${new Date(selected.next_retry_at).toLocaleString()}` : 'No retry scheduled; terminal or human review boundary applies.'}</p>
           </div>
         </div>
       )}
@@ -386,12 +415,13 @@ function App() {
                 <div className="eyebrow">Compliance proof</div>
                 <h2>Audit Trail</h2>
               </div>
+              <button className="ghost-btn" onClick={exportAudit}>Export CSV</button>
               <button className="close-btn" onClick={() => setAuditOpen(false)} aria-label="Close">×</button>
             </div>
             <p>Compliance events from the backend, including diagnosis, policy gating and execution.</p>
             <div className="json-list">
               {audit.length
-                ? audit.map(event => <pre key={event.id}>{JSON.stringify(event, null, 2)}</pre>)
+                ? audit.map(event => <div key={event.id} className="audit-event"><pre>{JSON.stringify(event, null, 2)}</pre><button className="details-btn" onClick={() => verifySeal(event.id)}>🔒 Verify seal</button>{sealStatus[event.id] && <small>{sealStatus[event.id].chain_verified ? 'Chain verified' : 'Chain invalid'} · {sealStatus[event.id].event_hash.slice(0, 16)}…</small>}</div>)
                 : <div className="empty-state">No audit events yet. Seed and execute a case to populate live compliance events.</div>}
             </div>
           </aside>
