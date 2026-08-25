@@ -37,12 +37,24 @@ function RiskBadge({ risk }) {
 }
 
 function Metric({ label, value }) {
+  const [shown, setShown] = React.useState(0);
+  React.useEffect(() => {
+    const target = Number(value) || 0; const started = performance.now(); let frame;
+    const tick = now => { const progress = Math.min(1, (now - started) / 800); setShown(target * (1 - Math.pow(1 - progress, 3))); if (progress < 1) frame = requestAnimationFrame(tick); };
+    frame = requestAnimationFrame(tick); return () => cancelAnimationFrame(frame);
+  }, [value]);
   return (
     <div className="metric-card">
       <div className="metric-label">{label}</div>
-      <div className="metric-value">{value}</div>
+      <div className="metric-value">{label === 'Recovery rate' ? `${shown.toFixed(1)}%` : label.includes('cases') ? Math.round(shown) : money(shown)}</div>
     </div>
   );
+}
+
+class ErrorBoundary extends React.Component {
+  state = { failed: false };
+  static getDerivedStateFromError() { return { failed: true }; }
+  render() { return this.state.failed ? <div className="error-state"><h2>RecoverAI needs a refresh</h2><p>The interface hit an unexpected data-shape error. No money action was executed.</p><button className="primary-btn" onClick={() => window.location.reload()}>Reload demo</button></div> : this.props.children; }
 }
 
 /* ---------- app ---------- */
@@ -51,16 +63,21 @@ function App() {
   const [cases, setCases] = React.useState(demoCases);
   const [audit, setAudit] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
+  const [booting, setBooting] = React.useState(true);
   const [live, setLive] = React.useState(false);
   const [failureArmed, setFailureArmed] = React.useState(false);
   const [auditOpen, setAuditOpen] = React.useState(false);
   const [selected, setSelected] = React.useState(null);
   const [batchResult, setBatchResult] = React.useState(null);
-  const [notice, setNotice] = React.useState(null);
+  const [notices, setNotices] = React.useState([]);
   const [search, setSearch] = React.useState('');
   const [riskFilter, setRiskFilter] = React.useState('all');
   const [copied, setCopied] = React.useState(false);
+  const [progress, setProgress] = React.useState(0);
+  const [inFlight, setInFlight] = React.useState({});
   const [sealStatus, setSealStatus] = React.useState({});
+
+  const pushNotice = notice => setNotices(previous => [...previous, { ...notice, id: `${Date.now()}-${Math.random()}` }].slice(-4));
 
   // Map backend dashboard fields onto the names this UI renders
   const mapSummary = s => ({
@@ -83,21 +100,21 @@ function App() {
     } catch {
       setLive(false);
       return false;
-    }
+    } finally { setBooting(false); }
   }, []);
 
   React.useEffect(() => { refresh(); }, [refresh]);
 
   // Generic action wrapper: loading state + success/error toast
   const action = async (fn, text, type = 'success') => {
-    setLoading(true); setNotice(null);
+    setLoading(true);
     try {
       const result = await fn();
-      setNotice({ type, text: text || result?.message || 'Action completed.' });
+      pushNotice({ type, text: text || result?.message || 'Action completed.' });
       await refresh();
       return result;
     } catch (e) {
-      setNotice({ type: 'error', text: e.message });
+      pushNotice({ type: 'error', text: e.message });
     } finally {
       setLoading(false);
     }
@@ -112,22 +129,23 @@ function App() {
   };
 
   const execute = async item => {
-    setLoading(true); setNotice(null);
+    if (inFlight[item.id]) return;
+    setInFlight(previous => ({ ...previous, [item.id]: true })); setLoading(true);
     try {
       const r = await api.executeRecovery(item.id);
       setSelected(null);
       const status = String(r.status || '').toLowerCase();
       if (status === 'needs_human_review' || status.includes('human') || status.includes('escalat')) {
         setFailureArmed(false);
-        setNotice({ type: 'error', text: 'Escalated to Human Review due to gateway failure.' });
+        pushNotice({ type: 'error', text: 'Escalated to Human Review due to gateway failure.' });
       } else {
-        setNotice({ type: 'success', text: pretty(r.action || 'Recovery') + ' completed — ' + money(r.amount_recovered) + ' recovered.' });
+        pushNotice({ type: 'success', text: pretty(r.action || 'Recovery') + ' completed — ' + money(r.amount_recovered) + ' recovered.' });
       }
       await refresh();
     } catch (e) {
-      setNotice({ type: 'error', text: e.message });
+      pushNotice({ type: 'error', text: e.message });
     } finally {
-      setLoading(false);
+      setInFlight(previous => ({ ...previous, [item.id]: false })); setLoading(false);
     }
   };
 
@@ -137,17 +155,19 @@ function App() {
     if (r) { setFailureArmed(false); setBatchResult(null); }
   };
   const batch = async () => {
-    setLoading(true); setNotice(null);
+    setLoading(true); setProgress(8);
+    const progressTimer = setInterval(() => setProgress(previous => Math.min(92, previous + 9)), 260);
     try {
       const r = await api.runRecoveryBatch();
       setBatchResult(r);
-      setNotice({ type: 'success', text: 'Recovered ' + money(r.amount_recovered) + ' across ' + r.successful + ' successful cases.' });
+      clearInterval(progressTimer); setProgress(100);
+      pushNotice({ type: 'success', text: 'Recovered ' + money(r.amount_recovered) + ' across ' + r.successful + ' successful cases.' });
       await refresh();
       return r;
     } catch (e) {
-      setNotice({ type: 'error', text: e.message });
+      clearInterval(progressTimer); setProgress(0); pushNotice({ type: 'error', text: e.message });
     } finally {
-      setLoading(false);
+      setLoading(false); setTimeout(() => setProgress(0), 500);
     }
   };
   const arm = async () => {
@@ -160,7 +180,7 @@ function App() {
       const result = await api.verifyAudit(id);
       setSealStatus(previous => ({ ...previous, [id]: result }));
     } catch (e) {
-      setNotice({ type: 'error', text: e.message });
+      pushNotice({ type: 'error', text: e.message });
     }
   };
 
@@ -206,19 +226,20 @@ function App() {
 
       <main>
         {/* Toast / notice */}
-        {notice && (
-          <div className={`notice ${notice.type}`} role="status">
+        {notices.map(notice => (
+          <div key={notice.id} className={`notice ${notice.type}`} role="status">
             <strong>{notice.type === 'error' ? 'Escalation' : notice.type === 'warning' ? 'Warning' : 'Success'}</strong>
             <span>{notice.text}</span>
-            <button onClick={() => setNotice(null)} aria-label="Dismiss notification">×</button>
+            <button onClick={() => setNotices(previous => previous.filter(item => item.id !== notice.id))} aria-label="Dismiss notification">×</button>
           </div>
-        )}
+        ))}
 
         {/* Dashboard metrics */}
-        <section className="metrics-grid" aria-label="Dashboard metrics">
-          <Metric label="Total at risk" value={money(summary.total_at_risk)} />
-          <Metric label="Total recovered" value={money(summary.total_recovered)} />
-          <Metric label="Recovery rate" value={`${summary.recovery_rate_percent ?? 0}%`} />
+        {booting && <div className="loading-skeleton" aria-label="Loading dashboard"><i /><i /><i /><i /><i /></div>}
+        <section className={`metrics-grid ${booting ? 'is-loading' : ''}`} aria-label="Dashboard metrics">
+          <Metric label="Total at risk" value={summary.total_at_risk} />
+          <Metric label="Total recovered" value={summary.total_recovered} />
+          <Metric label="Recovery rate" value={summary.recovery_rate_percent ?? 0} />
           <Metric label="Open cases" value={summary.open_cases ?? 0} />
           <Metric label="Escalated cases" value={summary.escalated_cases ?? 0} />
         </section>
@@ -240,6 +261,7 @@ function App() {
             <button className="audit-btn" onClick={() => setAuditOpen(true)}>View Compliance Audit</button>
             <a className="audit-btn" href="/" title="Open the full multilingual agent cockpit">Open Full Agent Cockpit</a>
           </div>
+          {progress > 0 && <div className="batch-progress" aria-label={`Batch progress ${progress}%`}><span style={{ width: `${progress}%` }} /><small>{progress >= 100 ? 'Recovery complete' : `Agent processing ${progress}%`}</small></div>}
         </section>
 
         {/* Cases table with search + risk filters */}
@@ -330,7 +352,7 @@ function App() {
       {/* Batch result modal */}
       {batchResult && (
         <div className="modal-backdrop" onMouseDown={() => setBatchResult(null)}>
-          <div className="case-modal batch-modal" onMouseDown={e => e.stopPropagation()} role="dialog" aria-label="Batch recovery result">
+          <div className={`case-modal batch-modal ${progress === 100 ? 'complete' : ''}`} onMouseDown={e => e.stopPropagation()} role="dialog" aria-label="Batch recovery result">
             <div className="modal-header">
               <div>
                 <div className="eyebrow">Batch recovery result</div>
@@ -402,6 +424,13 @@ function App() {
             <p>{pretty(selected.recommended_action)}</p>
             <h3>Retry sequencer</h3>
             <p>{selected.next_retry_at ? `Next policy-allowed retry: ${new Date(selected.next_retry_at).toLocaleString()}` : 'No retry scheduled; terminal or human review boundary applies.'}</p>
+            <h3>Customer lifecycle</h3>
+            <div className="lifecycle-timeline">
+              {audit.filter(event => String(event.case_id) === String(selected.id)).slice(-6).map(event => <div key={event.id}><i /><div><strong>{pretty(event.event_type)}</strong><span>{event.timestamp ? new Date(event.timestamp).toLocaleString() : 'just now'}</span><small>{event.reason || event.action || 'Recorded'}</small></div></div>)}
+              {!audit.some(event => String(event.case_id) === String(selected.id)) && <p>Timeline will populate after recovery actions.</p>}
+            </div>
+            <h3>Customer 360</h3>
+            <div className="customer-history">{cases.filter(item => (item.customer?.id || item.customer_id || item.customer_name) === (selected.customer?.id || selected.customer_id || selected.customer_name)).slice(0, 5).map(item => <div key={item.id}><strong>{money(item.amount)}</strong><span>{pretty(item.status)} · {pretty(item.failure_category || 'payment')}</span></div>)}</div>
           </div>
         </div>
       )}
@@ -421,7 +450,7 @@ function App() {
             <p>Compliance events from the backend, including diagnosis, policy gating and execution.</p>
             <div className="json-list">
               {audit.length
-                ? audit.map(event => <div key={event.id} className="audit-event"><pre>{JSON.stringify(event, null, 2)}</pre><button className="details-btn" onClick={() => verifySeal(event.id)}>🔒 Verify seal</button>{sealStatus[event.id] && <small>{sealStatus[event.id].chain_verified ? 'Chain verified' : 'Chain invalid'} · {sealStatus[event.id].event_hash.slice(0, 16)}…</small>}</div>)
+                ? audit.map(event => <div key={event.id} className={`audit-event ${String(event.result).toLowerCase().includes('fail') || String(event.event_type).includes('ESCALAT') ? 'negative' : String(event.result).toLowerCase().includes('skip') ? 'warning' : 'positive'}`}><i /><div><strong>{pretty(event.event_type)}</strong><span>{event.actor || 'system'} · {event.result || 'recorded'} · {event.timestamp ? new Date(event.timestamp).toLocaleString() : 'just now'}</span><small>{event.reason || event.action || 'Recorded compliance event'}</small><button className="details-btn" onClick={() => verifySeal(event.id)}>🔒 Verify seal</button>{sealStatus[event.id] && <em>{sealStatus[event.id].chain_verified ? 'Chain verified' : 'Chain invalid'} · {sealStatus[event.id].event_hash.slice(0, 16)}…</em>}</div></div>)
                 : <div className="empty-state">No audit events yet. Seed and execute a case to populate live compliance events.</div>}
             </div>
           </aside>
@@ -431,4 +460,4 @@ function App() {
   );
 }
 
-createRoot(document.getElementById('root')).render(<App />);
+createRoot(document.getElementById('root')).render(<ErrorBoundary><App /></ErrorBoundary>);

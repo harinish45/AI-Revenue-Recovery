@@ -10,6 +10,17 @@ services:
     networks:
       - recoverai
 
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+    networks:
+      - recoverai
+
 networks:
   recoverai:
     driver: bridge
