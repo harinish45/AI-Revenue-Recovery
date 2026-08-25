@@ -117,6 +117,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .pbcard:hover .go{color:var(--tx)}
 .pbcard .lr{font-size:10px;color:var(--grn2);font-family:var(--fm)}
 .pbcard .eligible{font-size:10px;color:var(--blu2);font-family:var(--fm)}
+.voice-hero{display:grid;grid-template-columns:1.2fr .8fr;gap:14px;margin-bottom:14px}.voice-hero-main{position:relative;overflow:hidden;padding:22px;background:radial-gradient(circle at 85% 15%,rgba(236,72,153,.2),transparent 38%),linear-gradient(135deg,rgba(139,92,246,.15),rgba(10,10,18,.7));border:1px solid rgba(236,72,153,.25);border-radius:14px}.voice-eyebrow{font-family:var(--fm);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#f472b6;font-weight:800}.voice-hero h2{font-size:24px;letter-spacing:-.04em;margin:7px 0 6px}.voice-hero p{font-size:12px;color:var(--mut);max-width:560px;line-height:1.6}.voice-health{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.voice-metric{padding:13px 14px;background:var(--p1);border:1px solid var(--ln);border-radius:12px}.voice-metric span{display:block;color:var(--dim);font-size:9px;text-transform:uppercase;letter-spacing:.1em;font-weight:800}.voice-metric b{display:block;margin-top:6px;font-size:15px}.voice-metric small{display:block;color:var(--dim);font-size:10px;margin-top:2px}.voice-signal{display:flex;align-items:center;gap:6px;margin-top:14px;font-family:var(--fm);font-size:10px;color:var(--mut)}.voice-signal i{width:7px;height:7px;border-radius:50%;background:#34d399;box-shadow:0 0 0 4px rgba(52,211,153,.1),0 0 18px #34d399}.voice-compliance{display:flex;align-items:flex-start;gap:8px;margin-top:12px;padding:10px 12px;border:1px solid rgba(245,158,11,.22);background:rgba(245,158,11,.05);border-radius:9px;color:var(--mut);font-size:11px;line-height:1.45}.voice-compliance input{accent-color:#ec4899;margin-top:2px}.voice-compliance b{color:#fbbf24}.voice-stage{display:flex;align-items:center;gap:5px;padding:10px 14px;border-bottom:1px solid var(--ln);font-family:var(--fm);font-size:10px;color:var(--dim)}.voice-stage i{width:7px;height:7px;border-radius:50%;background:#9ca3af}.voice-stage i.live{background:#ec4899;box-shadow:0 0 12px #ec4899}.voice-stage b{color:var(--tx);font-weight:700}
 .vgrid{display:grid;grid-template-columns:5fr 7fr;gap:14px;align-items:start}
 .vlang{display:flex;gap:5px;flex-wrap:wrap;padding:10px 14px;border-bottom:1px solid var(--ln)}
 .vlang button{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid transparent;color:var(--mut);cursor:pointer;transition:.12s}
@@ -275,7 +276,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
    field names the render*() functions below expect). Nothing here is
    client-generated — see Api + normalizeCase/normalizeAuditEntry. */
 var S={page:'overview',cases:[],audit:[],dashboard:null,live:false,loading:true,loadError:null,armed:false,running:false,filter:'all',search:'',caseView:'table',
-voiceCase:null,voiceLang:'hi-IN',voiceActive:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceTimer:null,voiceStartTime:0,
+voiceCase:null,voiceLang:'hi-IN',voiceActive:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceTimer:null,voiceStartTime:0,voiceConsent:false,voiceConfidence:0,voiceIntent:'DISCOVERY',voiceVoiceName:'Browser voice',voiceTurn:0,
 auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
 /* Mirrors backend/app/config.py Settings exactly — not editable here, this
    panel just displays what the server actually enforces. */
@@ -494,6 +495,12 @@ var VOICE_BRAIN={
   fallback:function(){return{say:'Sariga vinapadaledu. Payment ippu cheyagalaro? Leda link pampana?',stage:'objection'};},
   quickReplies:['Avunu cheppu','Dabbu ledu','Sagam kattestha','Manager tho matladali','Tarvata matladdam','Link pampu']}
 };
+/* Extended language packs: same recovery guardrails, localized speech and
+   code-switched intent phrases for Marathi, Bengali and Malayalam. */
+function addVoicePack(code,label,name,greet,context,yesWords,yesSay,laterWords,laterSay,noWords,noSay,linkSay,fallback,quick){VOICE_BRAIN[code]={label:label,name:name,greeting:greet,context:context,patterns:[{m:yesWords,r:function(){return{say:yesSay,stage:'closed',outcome:'PROMISE_TO_PAY'};}},{m:laterWords,r:function(){return{say:laterSay,stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},{m:noWords,r:function(){return{say:noSay,stage:'closed',outcome:'SOFT_REFUSAL'};}},{m:['link','send link','payment link'],r:function(){return{say:linkSay,stage:'closed',outcome:'LINK_SENT'};}}],fallback:function(){return{say:fallback,stage:'objection'};},quickReplies:quick};}
+addVoicePack('mr-IN','Marathi','Marathi / English',function(c){return 'Namaskar '+c.customer.split(' ')[0]+' ji, RecoverAI team madhun bolat aahe. Tumchya payment baddal don minute bolu shakto ka?';},function(c){return 'Tumcha '+fmtINR(c.amount)+' payment fail zala aahe. Karan '+c.category.name+' aahe.';},['ho','haan','yes','karen','karतो','link pathva'],'Nakkich. Mi secure payment link pathavte. Tumhi confirm kelyavarach promise record hoil.',['paise nahi','paisa nahi','nantar','later','busy'],'Thik aahe. Mi ekach callback schedule karte; repeated calls honar nahi.',['nako','no','wrong number','thamba'],'Samajle. Mi call thambavate ani pudhe contact karanar nahi.','Payment link pathavu ka?','Mala nit samajle nahi. Link pathavu ka, ki callback schedule karu?',['Ho, link pathva','Ata paise nahi','Nantar call kara','Nako']);
+addVoicePack('bn-IN','Bengali','Bengali / English',function(c){return 'Nomoskar '+c.customer.split(' ')[0]+', ami RecoverAI team theke bolchi. Apnar payment niye du minute kotha bola jabe?';},function(c){return 'Apnar '+fmtINR(c.amount)+' payment fail hoyeche. Karon '+c.category.name+'.';},['hya','haan','yes','korbo','link pathan'],'Nishchoy. Ami secure payment link pathachhi. Confirm korlei promise record hobe.',['taka nei','pore','later','busy','ekhon na'],'Thik ache. Ami ekbar callback schedule korchi; repeated calls noy.',['na','nahi','wrong number','bondho'],'Bujhte perechi. Ami call ta bondho korchi.','Payment link pathabo?','Ami thik bujhte parini. Link pathabo, na pore callback korbo?',['Hya, link pathan','Ekhon taka nei','Pore call korun','Na']);
+addVoicePack('ml-IN','Malayalam','Malayalam / English',function(c){return 'Namaskaram '+c.customer.split(' ')[0]+', RecoverAI team-il ninnanu vilikkunnathu. Payment-ne kurichu randu minute samsarikkamo?';},function(c){return 'Ningalude '+fmtINR(c.amount)+' payment fail aayi. Karanam '+c.category.name+'.';},['athe','haan','yes','ayakk','cheyyam','link'],'Sheri. Njan secure payment link ayakkam. Confirm cheythal mathram promise record cheyyum.',['panam illa','pinnidu','later','busy','ippo venda'],'Saramilla. Oru callback mathram schedule cheyyam; repeated calls undavilla.',['illa','vendam','wrong number','stop'],'Manassilayi. Ee call ivide nirthunnu.','Payment link ayakkatte?','Enikku vyakthamayi manassilayilla. Link ayakkatte, atho callback venamo?',['Athe, link ayakku','Panam illa','Pinne call cheyyu','Venda']);
 /* ═══ HELPERS ═══ */
 var TICONS={s:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>',e:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h16.9a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',w:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg>'};
 function toast(type,title,msg,dur){dur=dur||4000;var cls={s:'s',e:'e',w:'w',i:'i'}[type]||'i';var el=document.createElement('div');el.className='toast '+cls;
@@ -639,7 +646,7 @@ function renderPlaybooks(){
 }
 function renderVoice(){
  var open=S.cases.filter(function(c){return c.status==='open'||c.status==='escalated';});
- var h='<div class="vgrid"><div class="card"><div class="chead"><h3>Select Case</h3><span class="hint">'+open.length+' eligible</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px">';
+ var h='<div class="voice-hero"><div class="voice-hero-main"><div class="voice-eyebrow">Multilingual recovery cockpit</div><h2>Recover revenue with context, not pressure.</h2><p>Localized conversations, explicit promise confirmation and compliant escalation. Every meaningful outcome is written to the audit trail.</p><div class="voice-signal"><i></i><span>'+(S.voiceActive?'LIVE SESSION':'READY FOR SESSION')+'</span><span>·</span><span>Test Mode / bounded workflow</span></div></div><div class="voice-health"><div class="voice-metric"><span>Languages</span><b>'+Object.keys(VOICE_BRAIN).length+'</b><small>Indian + English packs</small></div><div class="voice-metric"><span>Speech input</span><b>'+(window.SpeechRecognition||window.webkitSpeechRecognition?'Ready':'Type fallback')+'</b><small>Browser capability</small></div><div class="voice-metric"><span>Voice output</span><b>'+(window.speechSynthesis?'Ready':'Text fallback')+'</b><small>'+esc(voiceDiagnostics().label)+'</small></div><div class="voice-metric"><span>Guardrail</span><b>Bounded</b><small>Confirm before promise</small></div></div></div><div class="vgrid"><div class="card"><div class="chead"><h3>Select Case</h3><span class="hint">'+open.length+' eligible</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px">';
  if(open.length===0)h+='<div class="empty"><h4>No eligible cases</h4><p>Seed data first.</p></div>';
  open.forEach(function(c){h+='<button class="swrow" data-act="sel-voice" data-id="'+c.id+'" style="'+(S.voiceCase===c.id?'border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.06)':'')+'"><div><b>'+esc(c.customer)+'</b><small>'+c.id+' - '+fmt(c.amount)+'</small></div><span class="rb '+c.risk+'">'+c.risk+'</span></button>';});
  h+='</div></div><div class="card" style="overflow:hidden"><div class="chead"><h3>Voice Agent</h3>'+(S.voiceActive?'<span class="vtimer" id="vtimer">00:00</span>':'<span class="hint">'+esc(VOICE_BRAIN[S.voiceLang].name)+'</span>')+'</div>';
@@ -647,12 +654,12 @@ function renderVoice(){
  Object.keys(VOICE_BRAIN).forEach(function(code){h+='<button class="'+(S.voiceLang===code?'on':'')+'" data-act="set-vlang" data-lang="'+code+'" '+(S.voiceActive?'disabled':'')+'>'+VOICE_BRAIN[code].label+'</button>';});
  h+='</div>';
  if(S.voiceActive){
-  h+='<div id="voiceChat" class="vchat"></div>';
+  h+='<div class="voice-stage"><i class="live"></i><span>Stage</span><b>'+esc(pretty(S.voiceStage))+'</b><span>· intent</span><b>'+esc(pretty(S.voiceIntent))+'</b><span style="margin-left:auto">confidence '+Math.round(S.voiceConfidence*100)+'%</span></div><div id="voiceChat" class="vchat"></div>';
   h+='<div class="vcontrols"><button class="micbtn idle" data-act="toggle-mic" id="micBtn" aria-label="Microphone"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v4"/><path d="M8 23h8"/></svg></button><div style="flex:1"><div class="vstatus" id="vstatus">Ready</div><div class="vinterim" id="vinterim"></div></div><button class="btn btn-r btn-sm" data-act="end-call">End</button></div>';
   h+='<div class="vquick" id="vquick"></div>';
   h+='<div style="display:flex;gap:8px;padding:0 14px 12px"><input class="srch" style="flex:1;max-width:none" placeholder="Or type your reply..." id="vinput" aria-label="Type reply"><button class="btn btn-g btn-sm" data-act="send-text">Send</button></div>';
  }else{
-  h+='<div class="empty" style="padding:40px"><div style="margin-bottom:10px;opacity:.15"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v4"/><path d="M8 23h8"/></svg></div><h4 style="font-size:14px;margin-bottom:4px">Voice Recovery Agent</h4><p style="font-size:12px">Speaks '+esc(VOICE_BRAIN[S.voiceLang].name)+', handles code-switched speech, listens via mic</p><div class="grid2" style="margin-top:16px"><div class="dcell" style="text-align:center"><span>Speaks</span><b>'+esc(VOICE_BRAIN[S.voiceLang].name)+'</b></div><div class="dcell" style="text-align:center"><span>Listens</span><b>STT Active</b></div></div><button class="btn btn-v" data-act="start-call" '+(!S.voiceCase?'disabled':'')+' style="margin-top:14px">Start Voice Call</button></div>';
+  h+='<div class="empty" style="padding:30px"><div style="margin-bottom:10px;color:#ec4899"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M12 8v8M8 12h8"/></svg></div><h4 style="font-size:16px;margin-bottom:5px">Ready for a '+esc(VOICE_BRAIN[S.voiceLang].name)+' session</h4><p style="font-size:12px;max-width:440px;margin:auto">The agent discloses the purpose, listens for intent, asks before recording a promise, and stops on refusal or uncertainty.</p><label class="voice-compliance"><input type="checkbox" id="voiceConsent" '+(S.voiceConsent?'checked':'')+'><span><b>Operator consent gate</b><br>This is a simulated/test-mode call and the customer-facing disclosure will be respected.</span></label><button class="btn btn-v" data-act="start-call" '+(!S.voiceCase||!S.voiceConsent?'disabled':'')+' style="margin-top:14px">Start '+esc(VOICE_BRAIN[S.voiceLang].label)+' Voice Call</button></div>';
  }
  h+='</div></div>';
  return h;
@@ -890,7 +897,7 @@ function doReset(){
    honestly when a language has no dedicated voice on this device instead of
    silently sounding wrong with no explanation. */
 var recog=null,VOICES=[],voiceCache={},warnedNoVoice={};
-var VOICE_TUNING={'hi-IN':{rate:0.95,pitch:1.05},'en-IN':{rate:1.0,pitch:1.0},'ta-IN':{rate:0.88,pitch:1.05},'kn-IN':{rate:0.88,pitch:1.05},'te-IN':{rate:0.88,pitch:1.05}};
+var VOICE_TUNING={'hi-IN':{rate:0.95,pitch:1.05},'en-IN':{rate:1.0,pitch:1.0},'ta-IN':{rate:0.88,pitch:1.05},'kn-IN':{rate:0.88,pitch:1.05},'te-IN':{rate:0.88,pitch:1.05},'mr-IN':{rate:0.9,pitch:1.04},'bn-IN':{rate:0.9,pitch:1.04},'ml-IN':{rate:0.86,pitch:1.04}};
 var FEMALE_VOICE_HINTS=['female','heera','veena','lekha','kalpana','swara','neerja','priya','deepa','shreya','aditi','raveena','google'];
 function loadVoices(){if(!window.speechSynthesis)return;VOICES=speechSynthesis.getVoices()||[];voiceCache={};}
 if(window.speechSynthesis){loadVoices();speechSynthesis.onvoiceschanged=loadVoices;}
@@ -966,27 +973,35 @@ function renderVoiceChat(){
  var q=document.getElementById('vquick');
  if(q){var brain=VOICE_BRAIN[S.voiceLang];q.innerHTML=(brain.quickReplies||[]).map(function(s){return '<button data-act="quick-say" data-text="'+esc(s)+'">'+esc(s)+'</button>';}).join('');}
 }
+function voiceConfirmationPrompt(){return {'hi-IN':'Kya main isse payment promise ke roop mein record kar doon? Haan bolkar confirm karein.','en-IN':'Should I record that as your payment commitment? Please say yes to confirm.','ta-IN':'Idhai payment promise-a record seiyalama? Aam endru confirm seiyungal.','kn-IN':'Idannu payment promise agi record madabahuda? Haudu endu confirm madi.','te-IN':'Dinni payment promise ga record cheyyala? Avunu ani confirm cheyyandi.','mr-IN':'He payment promise mhanun record karu ka? Ho mhanun confirm kara.','bn-IN':'Eta payment promise hisebe record korbo? Hya bole confirm korun.','ml-IN':'Ithu payment promise ayi record cheyyatte? Athe ennu confirm cheyyuka.'}[S.voiceLang]||'Should I record this payment commitment? Say yes to confirm.';}
 function voiceUserSaid(text){
  if(!S.voiceActive)return;if(!text||!text.trim())return;
  S.voiceMsgs.push({role:'user',text:text});renderVoiceChat();
  var inter=document.getElementById('vinterim');if(inter)inter.textContent='';
  var c=S.cases.find(function(x){return x.id===S.voiceCase;})||S.cases[0];if(!c)return;
- var brain=VOICE_BRAIN[S.voiceLang];var resp;var nt=norm(text);
+ var brain=VOICE_BRAIN[S.voiceLang];var resp;var nt=norm(text);S.voiceConfidence=.82;S.voiceIntent='DISCOVERY';
  if(S.voiceStage==='greeting'){resp={say:brain.context(c),stage:'objection'};}
- else{var intent=brain.patterns.find(function(p){return p.m.some(function(k){return nt.indexOf(k)>-1;});});resp=intent?intent.r(c):brain.fallback(c);}
+ else if(S.voiceStage==='confirm'){
+  var yes=['yes','haan','ho','ok','sure','confirm','aam','haudu','avunu','athe','hya','shari'].some(function(k){return nt.indexOf(k)>-1;});
+  var no=['no','nahi','nako','vendam','illa','ledu','na','stop'].some(function(k){return nt.indexOf(k)>-1;});
+  if(yes){resp={say:({'hi-IN':'Dhanyavaad. Aapka promise securely record kar diya gaya hai.','en-IN':'Thank you. Your commitment has been securely recorded.','ta-IN':'Nandri. Ungal promise secure-a record seiyappattadhu.','kn-IN':'Dhanyavadagalu. Nimma promise secure agi record agide.','te-IN':'Dhanyavadalu. Mee promise secure ga record ayyindi.','mr-IN':'Dhanyavad. Tumcha promise securely record zala.','bn-IN':'Dhonnobad. Apnar promise secure bhabe record hoyeche.','ml-IN':'Nanni. Ningalude promise secure ayi record cheythu.'}[S.voiceLang]||'Thank you. Your commitment has been recorded.'),stage:'closed',outcome:'PROMISE_TO_PAY'};S.voiceIntent='PROMISE_TO_PAY';S.voiceConfidence=.96;}
+  else if(no){resp={say:'Understood. I will not record a promise. Would you like a payment link instead?',stage:'objection',outcome:'DISCOVERY'};S.voiceIntent='DECLINED';S.voiceConfidence=.9;}
+  else{resp={say:voiceConfirmationPrompt(),stage:'confirm'};}
+ }else{var ranked=brain.patterns.map(function(p){return{p:p,hits:p.m.filter(function(k){return nt.indexOf(k)>-1;}).length};}).sort(function(a,b){return b.hits-a.hits;});var winner=ranked[0];S.voiceConfidence=winner&&winner.hits?Math.min(.95,.58+winner.hits*.12):.32;S.voiceIntent=winner&&winner.hits?(winner.p.outcome||'ACTION'):'UNCLEAR';resp=winner&&winner.hits?winner.p.r(c):brain.fallback(c);if(resp.outcome==='PROMISE_TO_PAY'){resp.say=resp.say+' '+voiceConfirmationPrompt();resp.stage='confirm';}}
  setTimeout(function(){
   if(!S.voiceActive)return;
   S.voiceMsgs.push({role:'agent',text:resp.say});S.voiceStage=resp.stage||'objection';renderVoiceChat();
-  if(resp.stage==='closed'||resp.outcome==='PROMISE_TO_PAY'){speakText(resp.say,function(){setTimeout(function(){endCall(resp.outcome||'COMPLETED',text);},800);});}
+  if(resp.stage==='closed'){speakText(resp.say,function(){setTimeout(function(){endCall(resp.outcome||'COMPLETED',text);},800);});}
   else{speakText(resp.say,function(){if(S.voiceActive)setTimeout(startListening,400);});}
  },500);
 }
 function startVoiceCall(){
  var c=S.cases.find(function(x){return x.id===S.voiceCase;});
  if(!c){toast('w','Select Case','Choose a case first');return;}
- cleanupVoice();S.voiceActive=true;S.voiceMsgs=[];S.voiceStage='greeting';S.voiceStartTime=Date.now();
+ if(!S.voiceConsent){toast('w','Consent required','Confirm the simulated-call disclosure before starting.');return;}
+ cleanupVoice();S.voiceActive=true;S.voiceMsgs=[];S.voiceStage='greeting';S.voiceIntent='DISCOVERY';S.voiceConfidence=.9;S.voiceTurn=0;S.voiceStartTime=Date.now();
  go('voice');
- Api.recordVoiceEvent(c.id,{event_type:'voice_call_started'}).catch(function(err){console.warn('voice_call_started not recorded',err);});
+ Api.recordVoiceEvent(c.id,{event_type:'voice_call_started',language:S.voiceLang,confidence:S.voiceConfidence,consent_confirmed:S.voiceConsent}).catch(function(err){console.warn('voice_call_started not recorded',err);});
  setTimeout(function(){
   if(!S.voiceActive)return;
   var brain=VOICE_BRAIN[S.voiceLang];var resp={say:brain.greeting(c),stage:'context'};
@@ -1010,7 +1025,7 @@ function endCall(outcome,lastUtterance){
   var oc={PROMISE_TO_PAY:'Payment committed',PARTIAL_PAYMENT:'Partial payment committed',REQUEST_HUMAN:'Escalated to human agent',LINK_SENT:'Link sent',CALLBACK_SCHEDULED:'Callback scheduled',CALLBACK_LATER:'Callback requested',SOFT_REFUSAL:'Customer refused',COMPLETED:'Call completed',NAV_AWAY:'Ended (navigation)',MANUAL_END:'Ended by operator'};
   var isPromise=outcome==='PROMISE_TO_PAY'||outcome==='PARTIAL_PAYMENT';
   var eventType=isPromise?'voice_promise_captured':'voice_call_ended';
-  Api.recordVoiceEvent(c.id,{event_type:eventType,intent:outcome,transcript:lastUtterance||oc[outcome]||outcome}).then(function(){
+  Api.recordVoiceEvent(c.id,{event_type:eventType,intent:outcome,language:S.voiceLang,confidence:S.voiceConfidence,consent_confirmed:S.voiceConsent,transcript:lastUtterance||oc[outcome]||outcome}).then(function(){
    return refreshCasesAndAudit();
   }).then(function(){
    refreshDashboard();softGo();
@@ -1111,7 +1126,7 @@ document.addEventListener('keydown',function(e){
  }
 });
 document.getElementById('palInput').addEventListener('input',function(e){palIdx=0;renderPal(e.target.value);});
-document.addEventListener('change',function(e){if(e.target.id==='setLang'){S.voiceLang=e.target.value;toast('i','Language',VOICE_BRAIN[S.voiceLang].name);if(S.page==='settings')go('settings');}});
+document.addEventListener('change',function(e){if(e.target.id==='setLang'){S.voiceLang=e.target.value;toast('i','Language',VOICE_BRAIN[S.voiceLang].name);if(S.page==='settings')go('settings');}if(e.target.id==='voiceConsent'){S.voiceConsent=e.target.checked;softGo();}});
 /* ═══ INIT ══ */
 loadInitialData();
 </script>
