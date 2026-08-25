@@ -977,26 +977,34 @@ function renderVoiceChat(){
  if(q){var brain=VOICE_BRAIN[S.voiceLang];q.innerHTML=(brain.quickReplies||[]).map(function(s){return '<button data-act="quick-say" data-text="'+esc(s)+'">'+esc(s)+'</button>';}).join('');}
 }
 function voiceConfirmationPrompt(){return {'hi-IN':'Kya main isse payment promise ke roop mein record kar doon? Haan bolkar confirm karein.','en-IN':'Should I record that as your payment commitment? Please say yes to confirm.','ta-IN':'Idhai payment promise-a record seiyalama? Aam endru confirm seiyungal.','kn-IN':'Idannu payment promise agi record madabahuda? Haudu endu confirm madi.','te-IN':'Dinni payment promise ga record cheyyala? Avunu ani confirm cheyyandi.','mr-IN':'He payment promise mhanun record karu ka? Ho mhanun confirm kara.','bn-IN':'Eta payment promise hisebe record korbo? Hya bole confirm korun.','ml-IN':'Ithu payment promise ayi record cheyyatte? Athe ennu confirm cheyyuka.'}[S.voiceLang]||'Should I record this payment commitment? Say yes to confirm.';}
+function voicePhraseHit(text,phrase){var p=norm(phrase);if(!p)return false;return p.length<=3?new RegExp('(^|\\s)'+p.replace(/[.*+?^${}()|[\\]\\\\]/g,'\\\\$&')+'($|\\s)').test(text):text.indexOf(p)>-1;}
+function classifyVoiceIntent(brain,c,text){
+ var nt=norm(text),negative=/(^|\\s)(no|not|never|cannot|can't|dont|don't|nahi|nahi hai|nahi chahiye|nako|illa|ledu|vendam|panam illa|paisa nahi|balance nahi)(\\s|$)/.test(nt);
+ var ranked=brain.patterns.map(function(pattern){var score=0;pattern.m.forEach(function(phrase){if(voicePhraseHit(nt,phrase))score+=1+Math.min(norm(phrase).length,24)/24;});var preview=score?pattern.r(c):null;if(negative&&preview&&preview.outcome==='PROMISE_TO_PAY')score*=.12;return{pattern:pattern,score:score,preview:preview};}).filter(function(x){return x.score>0;}).sort(function(a,b){return b.score-a.score;});
+ if(!ranked.length)return{response:brain.fallback(c),confidence:.28,intent:'UNCLEAR'};
+ var best=ranked[0],margin=ranked.length>1?best.score-ranked[1].score:best.score;return{response:best.preview,confidence:Math.min(.97,.54+Math.min(best.score,2)*.16+Math.min(Math.max(margin,0),1)*.12),intent:best.preview.outcome||'ACTION'};
+}
 function voiceUserSaid(text){
- if(!S.voiceActive)return;if(!text||!text.trim())return;
- S.voiceMsgs.push({role:'user',text:text});renderVoiceChat();
+ if(!S.voiceActive||!text||!text.trim())return;
+ S.voiceMsgs.push({role:'user',text:text});S.voiceTurn++;renderVoiceChat();
  var inter=document.getElementById('vinterim');if(inter)inter.textContent='';
  var c=S.cases.find(function(x){return x.id===S.voiceCase;})||S.cases[0];if(!c)return;
- var brain=VOICE_BRAIN[S.voiceLang];var resp;var nt=norm(text);S.voiceConfidence=.82;S.voiceIntent='DISCOVERY';
- if(S.voiceStage==='greeting'){resp={say:brain.context(c),stage:'objection'};}
- else if(S.voiceStage==='confirm'){
-  var yes=['yes','haan','ho','ok','sure','confirm','aam','haudu','avunu','athe','hya','shari'].some(function(k){return nt.indexOf(k)>-1;});
-  var no=['no','nahi','nako','vendam','illa','ledu','na','stop'].some(function(k){return nt.indexOf(k)>-1;});
-  if(yes){resp={say:({'hi-IN':'Dhanyavaad. Aapka promise securely record kar diya gaya hai.','en-IN':'Thank you. Your commitment has been securely recorded.','ta-IN':'Nandri. Ungal promise secure-a record seiyappattadhu.','kn-IN':'Dhanyavadagalu. Nimma promise secure agi record agide.','te-IN':'Dhanyavadalu. Mee promise secure ga record ayyindi.','mr-IN':'Dhanyavad. Tumcha promise securely record zala.','bn-IN':'Dhonnobad. Apnar promise secure bhabe record hoyeche.','ml-IN':'Nanni. Ningalude promise secure ayi record cheythu.'}[S.voiceLang]||'Thank you. Your commitment has been recorded.'),stage:'closed',outcome:'PROMISE_TO_PAY'};S.voiceIntent='PROMISE_TO_PAY';S.voiceConfidence=.96;}
-  else if(no){resp={say:'Understood. I will not record a promise. Would you like a payment link instead?',stage:'objection',outcome:'DISCOVERY'};S.voiceIntent='DECLINED';S.voiceConfidence=.9;}
+ var brain=VOICE_BRAIN[S.voiceLang],resp,nt=norm(text);S.voiceConfidence=.82;S.voiceIntent='DISCOVERY';
+ var yes=['yes','yeah','haan','ho','ok','okay','sure','confirm','aam','haudu','avunu','athe','hya','shari'].some(function(k){return voicePhraseHit(nt,k);});
+ var no=['no','nahi','nako','vendam','illa','ledu','na','stop','wrong number'].some(function(k){return voicePhraseHit(nt,k);});
+ if(S.voiceStage==='permission'){
+  if(yes){resp={say:brain.context(c),stage:'objection'};S.voiceIntent='DISCOVERY';S.voiceConfidence=.92;}
+  else if(no){resp={say:({'hi-IN':'Theek hai, main aapko disturb nahi karungi. Dhanyavaad.','en-IN':'Understood. I will not continue the call. Thank you for your time.','ta-IN':'Sari, naan call-ai thodara maatten. Nandri.','kn-IN':'Sari, naanu call munduvarisalla. Dhanyavadagalu.','te-IN':'Sare, nenu call continue cheyyanu. Dhanyavadalu.'}[S.voiceLang]||'Understood. I will not continue the call. Thank you.'),stage:'closed',outcome:'CONSENT_DECLINED'};S.voiceIntent='CONSENT_DECLINED';S.voiceConfidence=.96;}
+  else{resp={say:({'hi-IN':'Koi baat nahi. Jab aap ready hon tab bataiye—kya abhi do minute hain?','en-IN':'No problem. Before we continue, do you have two minutes right now?','ta-IN':'Parava illai. Ippodhu rendu nimidam irukka?','kn-IN':'Paravagilla. Iga eradu nimisha samaya ideya?','te-IN':'Parvaledu. Ippudu rendu nimishalu unnaya?'}[S.voiceLang]||'No problem. Do you have two minutes right now?'),stage:'permission'};}
+ }else if(S.voiceStage==='confirm'){
+  if(yes){resp={say:({'hi-IN':'Dhanyavaad. Aapka payment promise securely record kar diya gaya hai.','en-IN':'Thank you. Your payment commitment has been securely recorded.','ta-IN':'Nandri. Ungal payment promise secure-a record seiyappattadhu.','kn-IN':'Dhanyavadagalu. Nimma payment promise secure agi record agide.','te-IN':'Dhanyavadalu. Mee payment promise secure ga record ayyindi.'}[S.voiceLang]||'Thank you. Your payment commitment has been securely recorded.'),stage:'closed',outcome:'PROMISE_TO_PAY'};S.voiceIntent='PROMISE_TO_PAY';S.voiceConfidence=.97;}
+  else if(no){resp={say:({'hi-IN':'Theek hai. Main promise record nahi karungi. Kya aap payment link chahenge?','en-IN':'Understood. I will not record a promise. Would you like a payment link instead?'}[S.voiceLang]||'Understood. I will not record a promise. Would you like a payment link instead?'),stage:'objection'};S.voiceIntent='DECLINED';S.voiceConfidence=.9;}
   else{resp={say:voiceConfirmationPrompt(),stage:'confirm'};}
- }else{var ranked=brain.patterns.map(function(p){return{p:p,hits:p.m.filter(function(k){return nt.indexOf(k)>-1;}).length};}).sort(function(a,b){return b.hits-a.hits;});var winner=ranked[0];S.voiceConfidence=winner&&winner.hits?Math.min(.95,.58+winner.hits*.12):.32;S.voiceIntent=winner&&winner.hits?(winner.p.outcome||'ACTION'):'UNCLEAR';resp=winner&&winner.hits?winner.p.r(c):brain.fallback(c);if(resp.outcome==='PROMISE_TO_PAY'){resp.say=resp.say+' '+voiceConfirmationPrompt();resp.stage='confirm';}}
- setTimeout(function(){
-  if(!S.voiceActive)return;
-  S.voiceMsgs.push({role:'agent',text:resp.say});S.voiceStage=resp.stage||'objection';renderVoiceChat();
-  if(resp.stage==='closed'){speakText(resp.say,function(){setTimeout(function(){endCall(resp.outcome||'COMPLETED',text);},800);});}
-  else{speakText(resp.say,function(){if(S.voiceActive)setTimeout(startListening,400);});}
- },500);
+ }else{
+  var result=classifyVoiceIntent(brain,c,text);resp=result.response;S.voiceConfidence=result.confidence;S.voiceIntent=result.intent;
+  if(resp.outcome==='PROMISE_TO_PAY'){resp.say=resp.say+' '+voiceConfirmationPrompt();resp.stage='confirm';}
+ }
+ setTimeout(function(){if(!S.voiceActive)return;S.voiceMsgs.push({role:'agent',text:resp.say});S.voiceStage=resp.stage||'objection';renderVoiceChat();if(resp.stage==='closed'){speakText(resp.say,function(){setTimeout(function(){endCall(resp.outcome||'COMPLETED',text);},800);});}else{speakText(resp.say,function(){if(S.voiceActive)setTimeout(startListening,400);});}},500);
 }
 function startVoiceCall(){
  var c=S.cases.find(function(x){return x.id===S.voiceCase;});
@@ -1008,7 +1016,7 @@ function startVoiceCall(){
  setTimeout(function(){
   if(!S.voiceActive)return;
   var brain=VOICE_BRAIN[S.voiceLang];var resp={say:brain.greeting(c),stage:'context'};
-  S.voiceMsgs.push({role:'agent',text:resp.say});S.voiceStage=resp.stage;renderVoiceChat();
+  S.voiceMsgs.push({role:'agent',text:resp.say});S.voiceStage='permission';renderVoiceChat();
   speakText(resp.say,function(){if(S.voiceActive)setTimeout(startListening,400);});
  },100);
  toast('i','Call Started',VOICE_BRAIN[S.voiceLang].name+' agent active');startVoiceTimer();
@@ -1025,7 +1033,7 @@ function endCall(outcome,lastUtterance){
  if(!S.voiceActive)return;cleanupVoice();S.voiceActive=false;S.voiceListening=false;S.voiceSpeaking=false;
  var c=S.cases.find(function(x){return x.id===S.voiceCase;});
  if(c){
-  var oc={PROMISE_TO_PAY:'Payment committed',PARTIAL_PAYMENT:'Partial payment committed',REQUEST_HUMAN:'Escalated to human agent',LINK_SENT:'Link sent',CALLBACK_SCHEDULED:'Callback scheduled',CALLBACK_LATER:'Callback requested',SOFT_REFUSAL:'Customer refused',COMPLETED:'Call completed',NAV_AWAY:'Ended (navigation)',MANUAL_END:'Ended by operator'};
+  var oc={PROMISE_TO_PAY:'Payment committed',PARTIAL_PAYMENT:'Partial payment committed',REQUEST_HUMAN:'Escalated to human agent',LINK_SENT:'Link sent',CALLBACK_SCHEDULED:'Callback scheduled',CALLBACK_LATER:'Callback requested',SOFT_REFUSAL:'Customer refused',CONSENT_DECLINED:'Customer did not consent',COMPLETED:'Call completed',NAV_AWAY:'Ended (navigation)',MANUAL_END:'Ended by operator'};
   var isPromise=outcome==='PROMISE_TO_PAY'||outcome==='PARTIAL_PAYMENT';
   var eventType=isPromise?'voice_promise_captured':'voice_call_ended';
   Api.recordVoiceEvent(c.id,{event_type:eventType,intent:outcome,language:S.voiceLang,confidence:S.voiceConfidence,consent_confirmed:S.voiceConsent,transcript:lastUtterance||oc[outcome]||outcome}).then(function(){
