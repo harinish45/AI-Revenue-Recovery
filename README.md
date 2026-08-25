@@ -46,6 +46,15 @@ The script starts the server and opens your browser:
 
 Then in the UI: click **Seed Data → Run Batch Recovery → Arm Failure Simulation → Execute** an open case.
 
+**Docker Compose:**
+
+```bash
+cp .env.example .env
+docker-compose up --build
+```
+
+Open `http://localhost:8000` after the backend reports that it is listening.
+
 ## Architecture
 
 ```text
@@ -99,6 +108,8 @@ GET  /api/audit/
 POST /api/cases/{case_id}/voice-events
 ```
 
+Execution requests require a unique `Idempotency-Key` header. Repeating the same key returns the original result without running the recovery twice.
+
 Execution payload:
 
 ```json
@@ -117,14 +128,15 @@ The deterministic failure simulation returns `status: "needs_human_review"` and 
 
 ## Environment Variables
 
-Backend variables are read from `backend/.env` (see `backend/.env.example`) via `backend/app/config.py`. Every backend variable below has a working default, so none are strictly required for the demo to run — set `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET` only if you want to exercise real Razorpay Test Mode calls instead of the built-in simulated gateway.
+Backend variables are read from `.env` when using Docker Compose and from `backend/.env` for a local uvicorn run. Copy `.env.example` to `.env`; the included values keep the demo in simulated gateway mode. Set `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET` only if you want to exercise real Razorpay Test Mode calls.
 
-| Variable | Description | Example | Required? |
+| Variable | Description | Sample value | Required? |
 |---|---|---|---|
-| `RAZORPAY_KEY_ID` | Razorpay Test Mode API key ID | `rzp_test_xxxxxxxxxxxx` | No — defaults to `dummy_key` |
-| `RAZORPAY_KEY_SECRET` | Razorpay Test Mode API key secret | `your_razorpay_test_key_secret` | No — defaults to `dummy_secret` |
+| `RAZORPAY_KEY_ID` | Razorpay Test Mode API key ID | `rzp_test_recoverai_demo` | No — blank uses simulated gateway |
+| `RAZORPAY_KEY_SECRET` | Razorpay Test Mode API key secret | `recoverai_demo_secret_not_production` | No — blank uses simulated gateway |
+| `RAZORPAY_SIMULATE` | Keep gateway calls simulated for the demo | `true` | Yes for the safe demo default |
 | `DATABASE_URL` | SQLAlchemy database URL (SQLite by default; no external DB needed) | `sqlite:///./recoverai.db` | No — defaults to `sqlite:///./recoverai.db` |
-| `CORS_ORIGINS` | JSON list of allowed CORS origins (only relevant if you open `RecoverAI-standalone.html` directly via `file://` instead of through the server) | `["null"]` | No — defaults to the same list |
+| `CORS_ORIGINS` | JSON list of allowed CORS origins — empty by default since the app is served same-origin at `/`; only needed if you open `RecoverAI-standalone.html` directly via `file://`, in which case set it to `["null"]` | `[]` | No — defaults to `[]` |
 | `MAX_RETRIES` | Maximum automated retry attempts per recovery case | `2` | No — defaults to `2` |
 | `MAX_AMOUNT` | Policy gate ceiling (in INR) above which automated recovery is blocked | `50000.0` | No — defaults to `50000.0` |
 | `RATE_LIMIT_EXECUTE` | Rate limit applied to `POST /api/execution/execute` | `20/minute` | No — defaults to `20/minute` |

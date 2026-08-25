@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from ..config import settings
 from ..database import get_db
 from ..middleware.rate_limit import limiter
-from ..models import AuditLog, Customer, DemoFlag, Execution, Payment, RecoveryCase
+from ..models import AuditLog, Customer, DemoFlag, Execution, IdempotencyKey, Payment, RecoveryCase
 from ..schemas import BatchResponse, SeedResponse, SimulateFailureResponse
 from ..services.audit_service import log_event
 from ..services.metrics_service import invalidate_metrics_cache
@@ -33,7 +33,7 @@ def reset_database(request: Request, db: Session = Depends(get_db)):
     db.query(Payment).delete()
     db.query(Customer).delete()
     db.query(DemoFlag).delete()
-    db.commit()
+    db.query(IdempotencyKey).delete()
     log_event(
         db,
         case_id=None,

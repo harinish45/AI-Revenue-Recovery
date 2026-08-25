@@ -1,6 +1,6 @@
-import uuid
 import hashlib
 import json
+import uuid
 from datetime import datetime
 
 from sqlalchemy.orm import Session
@@ -21,16 +21,26 @@ def log_event(
     timestamp = datetime.utcnow()
     event_id = f"AUD-{uuid.uuid4().hex[:6].upper()}"
     previous = (
-        db.query(AuditSeal).filter(AuditSeal.case_id == case_id)
-        .order_by(AuditSeal.created_at.desc()).first()
+        db.query(AuditSeal)
+        .filter(AuditSeal.case_id == case_id)
+        .order_by(AuditSeal.created_at.desc())
+        .first()
     )
     payload = {
-        "id": event_id, "case_id": case_id, "event_type": event_type,
-        "actor": actor, "decision": decision, "reason": reason,
-        "action": action, "result": result, "timestamp": timestamp.isoformat(),
+        "id": event_id,
+        "case_id": case_id,
+        "event_type": event_type,
+        "actor": actor,
+        "decision": decision,
+        "reason": reason,
+        "action": action,
+        "result": result,
+        "timestamp": timestamp.isoformat(),
         "previous_hash": previous.event_hash if previous else None,
     }
-    event_hash = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    event_hash = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
     log = AuditLog(
         id=event_id,
         case_id=case_id,
@@ -43,7 +53,13 @@ def log_event(
         timestamp=timestamp,
     )
     db.add(log)
-    db.add(AuditSeal(audit_id=event_id, case_id=case_id,
-                     previous_hash=previous.event_hash if previous else None,
-                     event_hash=event_hash, created_at=timestamp))
+    db.add(
+        AuditSeal(
+            audit_id=event_id,
+            case_id=case_id,
+            previous_hash=previous.event_hash if previous else None,
+            event_hash=event_hash,
+            created_at=timestamp,
+        )
+    )
     return log

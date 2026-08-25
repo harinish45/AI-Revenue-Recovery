@@ -87,6 +87,7 @@ class AuditLog(Base):
 
 class AuditSeal(Base):
     """Tamper-evident hash metadata for each audit event."""
+
     __tablename__ = "audit_seals"
     audit_id = Column(String, primary_key=True)
     case_id = Column(String, nullable=True)

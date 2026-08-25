@@ -39,12 +39,12 @@ function checkPython() {
     const v = execSync('python --version 2>&1').toString().trim();
     log(COLORS.green, '✓', `Python: ${v}`);
     return 'python';
-  } catch {
+  } catch (pythonError) {
     try {
       const v = execSync('python3 --version 2>&1').toString().trim();
       log(COLORS.green, '✓', `Python: ${v}`);
       return 'python3';
-    } catch {
+    } catch (python3Error) {
       log(COLORS.red, '✗', 'Python not found. Please install Python 3.9+');
       process.exit(1);
     }
@@ -57,8 +57,8 @@ function installBackendDeps(python) {
   try {
     execSync(`${python} -m pip install -r "${reqFile}" -q`, { stdio: 'pipe' });
     log(COLORS.green, '✓', 'Backend dependencies ready');
-  } catch {
-    log(COLORS.yellow, '!', 'pip install had warnings (continuing)');
+  } catch (installError) {
+    log(COLORS.yellow, '!', `pip install failed (${installError.message}); using installed packages`);
   }
 }
 
@@ -101,7 +101,7 @@ function waitForHealth(url, timeoutMs = 30000) {
 
 function cleanup(procs) {
   procs.forEach(p => {
-    try { p.kill(); } catch { /* already exited */ }
+    try { p.kill(); } catch (killError) { log(COLORS.yellow, '!', `Process already stopped: ${killError.message}`); }
   });
   process.exit(0);
 }

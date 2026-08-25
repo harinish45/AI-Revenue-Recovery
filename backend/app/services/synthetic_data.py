@@ -35,8 +35,6 @@ def generate_synthetic_data(db: Session):
     db.query(Payment).delete()
     db.query(Customer).delete()
     db.query(DemoFlag).delete()
-    db.commit()
-
     flag = DemoFlag(id=1, simulate_failure_active=False)
     db.add(flag)
 
@@ -45,12 +43,12 @@ def generate_synthetic_data(db: Session):
         c = Customer(
             id=f"cus_{i + 1:03d}",
             name=random.choice(INDIAN_NAMES),
-            email=f"user{i + 1}@example.com",
+            email=f"customer{i + 1}@recoverai.demo",
             phone=f"+9198{random.randint(10000000, 99999999)}",
         )
         customers.append(c)
     db.add_all(customers)
-    db.commit()
+    db.flush()
 
     payments = []
     for i in range(70):
@@ -64,7 +62,7 @@ def generate_synthetic_data(db: Session):
         payments.append(p)
 
     for i in range(20):
-        reason_code, reason_text, category = random.choice(FAILURE_REASONS)
+        _, reason_text, category = random.choice(FAILURE_REASONS)
         p = Payment(
             id=f"pay_fail_{i + 1:03d}",
             customer_id=random.choice(customers).id,
@@ -87,7 +85,7 @@ def generate_synthetic_data(db: Session):
         payments.append(p)
 
     db.add_all(payments)
-    db.commit()
+    db.flush()
 
     cases_created = 0
     failed_or_abandoned = (

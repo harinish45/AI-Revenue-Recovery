@@ -4,8 +4,9 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     RAZORPAY_KEY_ID: str = ""
     RAZORPAY_KEY_SECRET: str = ""
+    RAZORPAY_SIMULATE: bool = True
     DATABASE_URL: str = "sqlite:///./recoverai.db"
-    CORS_ORIGINS: list[str] = ["null", "http://localhost:5173", "http://localhost:3000"]
+    CORS_ORIGINS: list = []
     MAX_RETRIES: int = 2
     MAX_AMOUNT: float = 50000.0
     RATE_LIMIT_EXECUTE: str = "20/minute"

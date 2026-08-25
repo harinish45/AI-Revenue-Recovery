@@ -12,7 +12,8 @@ def evaluate_policy(db: Session, case: RecoveryCase, payment: Payment) -> tuple:
         "terminal_state_check": True,
         "amount_limit_check": True,
         "status_check": True,
-        "action_allowlist_check": case.recommended_action in {"retry_payment", "payment_link", "customer_reminder", "needs_human_review"},
+        "action_allowlist_check": case.recommended_action
+        in {"retry_payment", "payment_link", "customer_reminder", "needs_human_review"},
         "agent_confidence_check": float((case.evidence or {}).get("confidence", 1.0)) >= 0.70,
         "stopping_rules_check": (
             not (case.evidence or {}).get("agent")

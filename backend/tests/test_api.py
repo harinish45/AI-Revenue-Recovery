@@ -31,13 +31,19 @@ def test_execution_body_request(client: TestClient):
     case_id = cases["items"][0]["id"]
 
     # Test JSON body execution requested in final prompt
-    response = client.post("/api/execution/execute", json={"case_id": case_id})
+    response = client.post(
+        "/api/execution/execute",
+        json={"case_id": case_id},
+        headers={"Idempotency-Key": "qa-execute-1"},
+    )
     assert response.status_code == 200
     assert response.json()["case_id"] == case_id
 
     # Test standard path execution
     case_id_2 = cases["items"][1]["id"]
-    response = client.post(f"/api/recovery/cases/{case_id_2}/execute")
+    response = client.post(
+        f"/api/recovery/cases/{case_id_2}/execute", headers={"Idempotency-Key": "qa-execute-2"}
+    )
     assert response.status_code == 200
 
 
@@ -67,7 +73,11 @@ def test_simulate_failure(client: TestClient):
     assert response.status_code == 200
     case_id = response.json()["case_id"]
 
-    response = client.post("/api/execution/execute", json={"case_id": case_id})
+    response = client.post(
+        "/api/execution/execute",
+        json={"case_id": case_id},
+        headers={"Idempotency-Key": "qa-failure-1"},
+    )
     assert response.status_code == 200
     assert response.json()["status"] == "needs_human_review"
 

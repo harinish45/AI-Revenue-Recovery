@@ -8,7 +8,7 @@ def _make_customer_and_payment(
     db_session, status="failed", failure_reason="Gateway timeout", amount=2000.0
 ):
     customer = Customer(
-        id="cus_test", name="Test Customer", email="test@example.com", phone="+911234567890"
+        id="cus_qa", name="QA Customer", email="qa@recoverai.demo", phone="+919876543210"
     )
     payment = Payment(
         id="pay_test",

@@ -47,7 +47,8 @@ if not errorlevel 1 (
     backend\venv\Scripts\python.exe -m pip install --quiet --disable-pip-version-check "setuptools<81" >nul 2>&1
 )
 
-if not exist "backend\.env" copy backend\.env.example backend\.env >nul
+if not exist ".env" copy .env.example .env >nul
+if not exist "backend\.env" copy .env backend\.env >nul
 
 :launch
 echo [3/3] Starting RecoverAI on :8000 ...

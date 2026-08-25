@@ -11,7 +11,11 @@ from ..services.razorpay_service import trigger_payment_link
 
 def execute_recovery(db: Session, case: RecoveryCase, idempotency_key: str = None) -> dict:
     if idempotency_key:
-        cached = db.query(IdempotencyKey).filter(IdempotencyKey.key == idempotency_key).first()
+        cached = (
+            db.query(IdempotencyKey)
+            .filter(IdempotencyKey.key == idempotency_key, IdempotencyKey.endpoint == "execute")
+            .first()
+        )
         if cached:
             return cached.response
 

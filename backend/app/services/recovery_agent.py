@@ -38,36 +38,51 @@ def choose_intervention(reason_code: str, success_rate: float) -> AgentDecision:
     reason = (reason_code or "").lower()
     if "gateway" in reason or "timeout" in reason:
         return AgentDecision(
-            "temporary_gateway_failure", "retry_payment", "low",
+            "temporary_gateway_failure",
+            "retry_payment",
+            "low",
             "Transient gateway issue; retry once while the failure is recoverable.",
-            0.94, "payment_gateway",
+            0.94,
+            "payment_gateway",
             ["stop after 2 attempts", "escalate if the retry fails"],
         )
     if "insufficient" in reason:
         return AgentDecision(
-            "customer_liquidity_issue", "payment_link", "medium",
+            "customer_liquidity_issue",
+            "payment_link",
+            "medium",
             "Funds appear unavailable; offer a deferred payment path without repeated retries.",
-            0.91, "payment_link",
+            0.91,
+            "payment_link",
             ["do not retry the card", "escalate after the payment-link window expires"],
         )
     if "bank" in reason:
         return AgentDecision(
-            "bank_rejection", "needs_human_review", "high",
-            "The payment instrument was rejected; automated retries could frustrate the customer or increase risk.",
-            0.96, "human_review",
+            "bank_rejection",
+            "needs_human_review",
+            "high",
+            "Payment instrument rejected; automated retries risk frustrating the customer.",
+            0.96,
+            "human_review",
             ["never retry automatically", "require human approval for alternate collection"],
         )
     if "invalid" in reason:
         return AgentDecision(
-            "invalid_instrument", "needs_human_review", "high",
-            "Invalid payment details; automated retries could frustrate the customer or increase risk.",
-            0.96, "human_review",
+            "invalid_instrument",
+            "needs_human_review",
+            "high",
+            "Invalid payment details; automated retries risk frustrating the customer.",
+            0.96,
+            "human_review",
             ["never retry automatically", "require human approval for alternate collection"],
         )
     confidence = 0.86 if success_rate >= 40 else 0.72
     return AgentDecision(
-        "user_abandonment", "customer_reminder", "low",
+        "user_abandonment",
+        "customer_reminder",
+        "low",
         "Checkout appears abandoned; send one gentle reminder and stop if it is ignored.",
-        confidence, "customer_message",
+        confidence,
+        "customer_message",
         ["send at most one reminder", "do not contact after opt-out"],
     )

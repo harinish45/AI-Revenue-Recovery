@@ -35,7 +35,8 @@ echo "[2/3] Installing backend dependencies (skipped if already present)..."
 "$VPY" -m pip install --quiet --disable-pip-version-check -r backend/requirements.txt
 "$VPY" -m pip install --quiet --disable-pip-version-check "setuptools<81" >/dev/null 2>&1 || true
 
-[ -f backend/.env ] || cp backend/.env.example backend/.env
+[ -f .env ] || cp .env.example .env
+[ -f backend/.env ] || cp .env backend/.env
 
 # ---------- 3. launch ----------
 echo "[3/3] Starting RecoverAI on :8000 ..."

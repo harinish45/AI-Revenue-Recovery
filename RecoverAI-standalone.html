@@ -289,8 +289,9 @@ function nowTs(){return new Date().toTimeString().slice(0,8);}
 function relTime(iso){if(!iso)return '—';var ms=Date.now()-new Date(iso).getTime();var h=Math.floor(ms/3600000);if(h<1)return 'just now';if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
 /* ═══ API CLIENT — every call below hits the real FastAPI backend ═══ */
 var API_BASE=window.RECOVERAI_API_BASE||'';
-function apiRequest(method,path,body){
- return fetch(API_BASE+path,{method:method,headers:{'Content-Type':'application/json'},body:body!==undefined?JSON.stringify(body):undefined})
+function apiRequest(method,path,body,headers){
+ var requestHeaders={'Content-Type':'application/json'};Object.keys(headers||{}).forEach(function(k){requestHeaders[k]=headers[k];});
+ return fetch(API_BASE+path,{method:method,headers:requestHeaders,body:body!==undefined?JSON.stringify(body):undefined})
   .then(function(r){
    return r.json().catch(function(){return {};}).then(function(data){
     if(!r.ok){var msg=(data&&data.error&&data.error.message)||data.detail||('HTTP '+r.status);var e=new Error(msg);e.status=r.status;throw e;}
@@ -304,7 +305,7 @@ var Api={
  dashboard:function(){return apiRequest('GET','/api/dashboard/summary');},
  cases:function(qs){return apiRequest('GET','/api/cases'+(qs?('?'+qs):''));},
  case:function(id){return apiRequest('GET','/api/cases/'+encodeURIComponent(id));},
- execute:function(id){return apiRequest('POST','/api/execution/execute',{case_id:String(id)});},
+ execute:function(id){return apiRequest('POST','/api/execution/execute',{case_id:String(id)},{'Idempotency-Key':'recoverai-execute-'+String(id)+'-'+Date.now()});},
  audit:function(qs){return apiRequest('GET','/api/audit'+(qs?('?'+qs):''));},
  batch:function(){return apiRequest('POST','/api/demo/recovery-batch');},
  simulateFailure:function(){return apiRequest('POST','/api/demo/simulate-failure');},
@@ -426,58 +427,72 @@ var VOICE_BRAIN={
   greeting:function(c){return 'Namaste '+c.customer.split(' ')[0]+' ji, main RecoverAI team se bol rahi hoon. Aapke payment ke regarding baat karni thi. Kya abhi 2 minute hain?';},
   context:function(c){return 'Sir, aapka payment of '+fmtINR(c.amount)+' fail ho gaya tha. Reason hai '+c.category.name+'.';},
   patterns:[
-   {m:['haan','yes','theek','thik','ok','bolo','kar dunga','payment kar','sure','ho jayega'],r:function(){return{say:'Perfect sir! Main abhi ek secure payment link WhatsApp pe bhej rahi hoon.',stage:'link_sent',outcome:'PROMISE_TO_PAY'};}},
-   {m:['balance nahi','paisa nahi','paise nahi','abhi nahi','salary','khali','no money','no balance'],r:function(){return{say:'Koi baat nahi sir. Main 2 din baad automatic retry laga rahi hoon.',stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},
-   {m:['baad me','baad mein','later','kal','aaj nahi','busy','tarvata'],r:function(){return{say:'Bilkul sir, koi problem nahi. Main WhatsApp pe message bhej rahi hoon.',stage:'closed',outcome:'CALLBACK_LATER'};}},
-   {m:['nahi','no ','man nahi','mat karo','wrong number','vendam','ledu'],r:function(){return{say:'Theek hai sir, sorry for disturbing. WhatsApp pe details bhej rahi hoon.',stage:'closed',outcome:'SOFT_REFUSAL'};}},
-   {m:['kya hua','problem','kyun fail','link bhej','dobara','bhej do','send link'],r:function(){return{say:'Bilkul sir! Main abhi fresh secure payment link bhej rahi hoon.',stage:'closed',outcome:'LINK_SENT'};}},
-   {m:['dhanyavaad','thank','shukriya','thanks','bye'],r:function(){return{say:'Dhanyavaad sir! Aapka din shubh rahe.',stage:'closed',outcome:'POLITE_END'};}}],
+   {m:['haan','yes','theek hai','thik hai','ok','bolo','kar dunga','abhi kar deta','payment kar','sure','ho jayega','abhi karta hoon','pakka','definitely'],r:function(){return{say:'Perfect sir! Main abhi ek secure payment link WhatsApp pe bhej rahi hoon.',stage:'link_sent',outcome:'PROMISE_TO_PAY'};}},
+   {m:['adha','half payment','kuch hissa','installment mein','thoda thoda','split kar','partial'],r:function(){return{say:'Bilkul sir, hum isse do hisso mein bhi le sakte hain. Main partial payment ka link bhej deti hoon.',stage:'closed',outcome:'PARTIAL_PAYMENT'};}},
+   {m:['manager se baat','human se baat','agent chahiye','koi insaan','real person','complaint karni'],r:function(){return{say:'Bilkul sir, main aapko humari senior support team se turant connect kar rahi hoon.',stage:'closed',outcome:'REQUEST_HUMAN'};}},
+   {m:['balance nahi','paisa nahi','paise nahi','abhi nahi hai','salary nahi aayi','khali hai','no money','no balance','tangi chal rahi'],r:function(){return{say:'Koi baat nahi sir. Main 2 din baad automatic retry laga rahi hoon.',stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},
+   {m:['baad me','baad mein','later','kal baat','aaj nahi','busy hoon','tarvata','abhi meeting'],r:function(){return{say:'Bilkul sir, koi problem nahi. Main WhatsApp pe message bhej rahi hoon.',stage:'closed',outcome:'CALLBACK_LATER'};}},
+   {m:['nahi chahiye','mat karo','nahi karunga','wrong number','galat number','yeh mera nahi','delete kar do'],r:function(){return{say:'Theek hai sir, sorry for disturbing. WhatsApp pe details bhej rahi hoon.',stage:'closed',outcome:'SOFT_REFUSAL'};}},
+   {m:['kya hua','yeh kyun fail','problem kya thi','link bhej do','dobara bhejo','send link','link nahi mila'],r:function(){return{say:'Bilkul sir! Main abhi fresh secure payment link bhej rahi hoon.',stage:'closed',outcome:'LINK_SENT'};}},
+   {m:['dhanyavaad','thank you','shukriya','thanks','theek hai bye','chaliye bye'],r:function(){return{say:'Dhanyavaad sir! Aapka din shubh rahe.',stage:'closed',outcome:'POLITE_END'};}}],
   fallback:function(){return{say:'Sir, main theek se samajh nahi payi. Kya aap payment abhi kar sakte hain? Ya main link bhej doon?',stage:'objection'};},
-  quickReplies:['Haan bolo','Balance nahi hai','Payment kar dunga','Baad me call karo','Link bhej do']},
+  quickReplies:['Haan bolo','Balance nahi hai','Adha payment karunga','Manager se baat karao','Baad me call karo','Link bhej do']},
  'en-IN':{label:'English',name:'English',
   greeting:function(c){return 'Hello '+c.customer.split(' ')[0]+', this is the RecoverAI team. Do you have 2 minutes to discuss your pending payment?';},
   context:function(c){return 'Your payment of '+fmtINR(c.amount)+' failed due to '+c.category.name+'.';},
   patterns:[
-   {m:['yes','ok','sure','tell me','go ahead','fine','do it','send it','haan'],r:function(){return{say:'Great! I will send a secure payment link to your WhatsApp right now.',stage:'link_sent',outcome:'PROMISE_TO_PAY'};}},
-   {m:['no money','no balance','not now','later','salary','busy','cannot','paisa nahi'],r:function(){return{say:'No problem at all. I will schedule an automatic retry for 2 days from now.',stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},
-   {m:['no','dont','stop','wrong number','not interested','nahi'],r:function(){return{say:'No problem, sorry for the inconvenience. I will send details via WhatsApp.',stage:'closed',outcome:'SOFT_REFUSAL'};}},
-   {m:['send link','payment link','new link','resend','link bhej'],r:function(){return{say:'Absolutely! I am sending a fresh secure payment link right now.',stage:'closed',outcome:'LINK_SENT'};}},
-   {m:['thank','thanks','bye','shukriya'],r:function(){return{say:'Thank you for your time! Have a great day.',stage:'closed',outcome:'POLITE_END'};}}],
+   {m:['yes','yeah','ok','okay','sure','tell me','go ahead','fine','definitely','absolutely','do it','send it','i will pay','i can pay now'],r:function(){return{say:'Great! I will send a secure payment link to your WhatsApp right now.',stage:'link_sent',outcome:'PROMISE_TO_PAY'};}},
+   {m:['half payment','partial','split it','installment','pay in parts','half now'],r:function(){return{say:'That works — I can send a partial payment link for half the amount, and schedule the rest.',stage:'closed',outcome:'PARTIAL_PAYMENT'};}},
+   {m:['talk to a human','real person','speak to manager','speak to an agent','this is a bot','file a complaint'],r:function(){return{say:'Of course — connecting you to our senior support team right away.',stage:'closed',outcome:'REQUEST_HUMAN'};}},
+   {m:['no money','no balance','not enough funds','salary not credited','broke right now','tight on cash'],r:function(){return{say:'No problem at all. I will schedule an automatic retry for 2 days from now.',stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},
+   {m:['not now','later','call me tomorrow','busy right now','in a meeting','call back'],r:function(){return{say:'Understood, no rush. I will send details via WhatsApp for whenever works.',stage:'closed',outcome:'CALLBACK_LATER'};}},
+   {m:['no thanks','dont want','stop calling','wrong number','not interested','remove my number'],r:function(){return{say:'No problem, sorry for the inconvenience. I will send details via WhatsApp.',stage:'closed',outcome:'SOFT_REFUSAL'};}},
+   {m:['send link','payment link','new link','resend','link expired','never got the link'],r:function(){return{say:'Absolutely! I am sending a fresh secure payment link right now.',stage:'closed',outcome:'LINK_SENT'};}},
+   {m:['thank you','thanks','appreciate it','bye','goodbye'],r:function(){return{say:'Thank you for your time! Have a great day.',stage:'closed',outcome:'POLITE_END'};}}],
   fallback:function(){return{say:'I did not quite catch that. Can you make the payment now? Or should I send a link?',stage:'objection'};},
-  quickReplies:['Yes tell me','No balance','I will pay','Call later','Send link']},
+  quickReplies:['Yes tell me','No balance','I can pay half now','Talk to a human','Call later','Send link']},
  'ta-IN':{label:'Tamil',name:'Tamil',
   greeting:function(c){return 'Vanakkam '+c.customer.split(' ')[0]+', naan RecoverAI team pesugiren. Ungal payment pathi pesa 2 nimidam undo?';},
   context:function(c){return 'Ungal '+fmtINR(c.amount)+' payment failed aagiyulladhu. Kaaranam '+c.category.name+'.';},
   patterns:[
-   {m:['aam','sari','ok','yes','seiren','haan'],r:function(){return{say:'Nandri! Naan ippo secure payment link ungal WhatsApp anuppen.',stage:'link_sent',outcome:'PROMISE_TO_PAY'};}},
-   {m:['panam illai','balance illai','ippo illai','salary','later','no balance'],r:function(){return{say:'Paravailai. Naan 2 naal apparam automatic retry vaippen.',stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},
-   {m:['illai','vendam','wrong number','no'],r:function(){return{say:'Sari, thandara seiyathirku mannikka. WhatsApp details anuppen.',stage:'closed',outcome:'SOFT_REFUSAL'};}},
-   {m:['link anuppu','send link'],r:function(){return{say:'Ninchayamaga! Puthiya secure payment link anuppen.',stage:'closed',outcome:'LINK_SENT'};}},
-   {m:['nandri','thanks','thank'],r:function(){return{say:'Ungal nerathirku nandri! Nalla naal vazhthukiren.',stage:'closed',outcome:'POLITE_END'};}}],
+   {m:['aam','sari','ok','okay','seiren','pannuven','kandippa','ippa pannuren'],r:function(){return{say:'Nandri! Naan ippo secure payment link ungal WhatsApp anuppen.',stage:'link_sent',outcome:'PROMISE_TO_PAY'};}},
+   {m:['pathi thogai','partial','konjam pannuven','half amount','installment'],r:function(){return{say:'Sari, naan partial payment link anuppuren, meethi thogaikku pinnadi kaalam vaipom.',stage:'closed',outcome:'PARTIAL_PAYMENT'};}},
+   {m:['manager kooda pesanum','agent venum','oru aalu venum','complaint pannanum'],r:function(){return{say:'Sari, naan ungala engal senior support team kooda ippo connect pandren.',stage:'closed',outcome:'REQUEST_HUMAN'};}},
+   {m:['panam illai','balance illai','ippo illai','salary varala','kaasu illa'],r:function(){return{say:'Paravailai. Naan 2 naal apparam automatic retry vaippen.',stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},
+   {m:['appuram pesalam','later','naalaikku','busy irukken'],r:function(){return{say:'Sari, problem illai. Naan WhatsApp la message anuppuren.',stage:'closed',outcome:'CALLBACK_LATER'};}},
+   {m:['venam','illai vendam','wrong number','en number illa'],r:function(){return{say:'Sari, thandara seiyathirku mannikka. WhatsApp details anuppen.',stage:'closed',outcome:'SOFT_REFUSAL'};}},
+   {m:['link anuppu','send link','link kadaikala'],r:function(){return{say:'Ninchayamaga! Puthiya secure payment link anuppen.',stage:'closed',outcome:'LINK_SENT'};}},
+   {m:['nandri','thanks','thank you','vanakkam bye'],r:function(){return{say:'Ungal nerathirku nandri! Nalla naal vazhthukiren.',stage:'closed',outcome:'POLITE_END'};}}],
   fallback:function(){return{say:'Sariyaaga kelvigillai. Payment ippo seyya mudiyuma? Allathu link anuppattuma?',stage:'objection'};},
-  quickReplies:['Aam sollunk','Panam illai','Seiren','Piragu','Link anuppu']},
+  quickReplies:['Aam sollunk','Panam illai','Pathi thogai pannuven','Manager kooda pesanum','Appuram pesalam','Link anuppu']},
  'kn-IN':{label:'Kannada',name:'Kannada',
   greeting:function(c){return 'Namaskara '+c.customer.split(' ')[0]+', naanu RecoverAI team inda matanaduttiddene. Nimma payment bagge matanadalu 2 nimisha ideya?';},
   context:function(c){return 'Nimma '+fmtINR(c.amount)+' payment failed aagide. Karana '+c.category.name+'.';},
   patterns:[
-   {m:['haudu','sari','ok','yes','madi','haan'],r:function(){return{say:'Dhanyavadada! Naanu ippo ondu secure payment link nimma WhatsApp ge kaluhisuttiddene.',stage:'link_sent',outcome:'PROMISE_TO_PAY'};}},
-   {m:['hana illa','balance illa','ippu illa','salary','mattu','no balance'],r:function(){return{say:'Paravagilla. Naanu 2 dina muktavu automatic retry hakuttiddene.',stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},
-   {m:['beda','illa','wrong number','no'],r:function(){return{say:'Sari, tondarage talpa madi. WhatsApp details kaluhisuttiddene.',stage:'closed',outcome:'SOFT_REFUSAL'};}},
-   {m:['link kaluhisu','send link'],r:function(){return{say:'Khandita! Hos secure payment link kaluhisuttiddene.',stage:'closed',outcome:'LINK_SENT'};}},
-   {m:['dhanyavadada','thanks','thank'],r:function(){return{say:'Nimma samayakkagi dhanyavadada!',stage:'closed',outcome:'POLITE_END'};}}],
+   {m:['haudu','sari','ok','okay','madtini','khandita','ippa madtini'],r:function(){return{say:'Dhanyavadada! Naanu ippo ondu secure payment link nimma WhatsApp ge kaluhisuttiddene.',stage:'link_sent',outcome:'PROMISE_TO_PAY'};}},
+   {m:['ardha hana','partial','installment','konchu madtini','half amount'],r:function(){return{say:'Sari, naanu partial payment link kaluhisuttiddene, uliddu hanakke munde time kodtiddene.',stage:'closed',outcome:'PARTIAL_PAYMENT'};}},
+   {m:['manager jothe matanadabeku','agent beku','yaradru vyakti beku','complaint madabeku'],r:function(){return{say:'Sari, naanu nim'+"'"+'annu namma senior support team jothe ippa connect madtiddene.',stage:'closed',outcome:'REQUEST_HUMAN'};}},
+   {m:['hana illa','balance illa','ippu illa','salary bandilla'],r:function(){return{say:'Paravagilla. Naanu 2 dina muktavu automatic retry hakuttiddene.',stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},
+   {m:['aamele matadona','later','naale','busy iddene'],r:function(){return{say:'Sari, tondarage illa. Naanu WhatsApp nalli message kaluhisuttiddene.',stage:'closed',outcome:'CALLBACK_LATER'};}},
+   {m:['beda','illa','wrong number','nan number alla'],r:function(){return{say:'Sari, tondarage talpa madi. WhatsApp details kaluhisuttiddene.',stage:'closed',outcome:'SOFT_REFUSAL'};}},
+   {m:['link kaluhisu','send link','link sikkilla'],r:function(){return{say:'Khandita! Hos secure payment link kaluhisuttiddene.',stage:'closed',outcome:'LINK_SENT'};}},
+   {m:['dhanyavadada','thanks','thank you'],r:function(){return{say:'Nimma samayakkagi dhanyavadada!',stage:'closed',outcome:'POLITE_END'};}}],
   fallback:function(){return{say:'Sariyagi keluvudilla. Payment ippu madaballira? Allava link kaluhisaliya?',stage:'objection'};},
-  quickReplies:['Haudu heli','Hana illa','Madtini','Mettu','Link kaluhisu']},
+  quickReplies:['Haudu heli','Hana illa','Ardha hana kodtini','Manager jothe matadabeku','Aamele matadona','Link kaluhisu']},
  'te-IN':{label:'Telugu',name:'Telugu',
   greeting:function(c){return 'Namaste '+c.customer.split(' ')[0]+', nenu RecoverAI team nunche matladtunnanu. Mee payment gurinchi matladataniki 2 nimisham unnaya?';},
   context:function(c){return 'Mee '+fmtINR(c.amount)+' payment failed ayyindi. Karanam '+c.category.name+'.';},
   patterns:[
-   {m:['avunu','sare','ok','yes','chestanu','haan'],r:function(){return{say:'Dhanyavadalu! Nenu ippo oka secure payment link mee WhatsApp ki pampistunnanu.',stage:'link_sent',outcome:'PROMISE_TO_PAY'};}},
-   {m:['dabbu ledu','balance ledu','ippu ledu','salary','tarvata','no balance'],r:function(){return{say:'Parvaledu. Nenu 2 rojulu tarvata automatic retry pedtanu.',stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},
-   {m:['ledu','vaddu','wrong number','no'],r:function(){return{say:'Sare, disturb chesina anukuni kshaminchandi. WhatsApp details pampistunnanu.',stage:'closed',outcome:'SOFT_REFUSAL'};}},
-   {m:['link pampu','send link'],r:function(){return{say:'Tappakunda! Kotta secure payment link pampistunnanu.',stage:'closed',outcome:'LINK_SENT'};}},
-   {m:['dhanyavadalu','thanks','thank'],r:function(){return{say:'Mee samayam kosam dhanyavadalu!',stage:'closed',outcome:'POLITE_END'};}}],
+   {m:['avunu','sare','ok','okay','chestanu','tappakunda','ippude chestanu'],r:function(){return{say:'Dhanyavadalu! Nenu ippo oka secure payment link mee WhatsApp ki pampistunnanu.',stage:'link_sent',outcome:'PROMISE_TO_PAY'};}},
+   {m:['sagam','partial','installment','konchem kattestha','half amount'],r:function(){return{say:'Sare, nenu partial payment link pampistanu, migatadi kosam konchem time istanu.',stage:'closed',outcome:'PARTIAL_PAYMENT'};}},
+   {m:['manager tho matladali','agent kavali','evaraina vyakti','complaint cheyali'],r:function(){return{say:'Sare, nenu mimmalni ma senior support team tho ippude connect chestunnanu.',stage:'closed',outcome:'REQUEST_HUMAN'};}},
+   {m:['dabbu ledu','balance ledu','ippu ledu','salary raledu'],r:function(){return{say:'Parvaledu. Nenu 2 rojulu tarvata automatic retry pedtanu.',stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},
+   {m:['tarvata matladdam','later','repu','busy ga unna'],r:function(){return{say:'Sare, parvaledu. Nenu WhatsApp lo message pampistanu.',stage:'closed',outcome:'CALLBACK_LATER'};}},
+   {m:['vaddu','ledu vaddu','wrong number','naa number kaadu'],r:function(){return{say:'Sare, disturb chesina anukuni kshaminchandi. WhatsApp details pampistunnanu.',stage:'closed',outcome:'SOFT_REFUSAL'};}},
+   {m:['link pampu','send link','link randaledu'],r:function(){return{say:'Tappakunda! Kotta secure payment link pampistunnanu.',stage:'closed',outcome:'LINK_SENT'};}},
+   {m:['dhanyavadalu','thanks','thank you'],r:function(){return{say:'Mee samayam kosam dhanyavadalu!',stage:'closed',outcome:'POLITE_END'};}}],
   fallback:function(){return{say:'Sariga vinapadaledu. Payment ippu cheyagalaro? Leda link pampana?',stage:'objection'};},
-  quickReplies:['Avunu cheppu','Dabbu ledu','Chestanu','Tarvata','Link pampu']}
+  quickReplies:['Avunu cheppu','Dabbu ledu','Sagam kattestha','Manager tho matladali','Tarvata matladdam','Link pampu']}
 };
 /* ═══ HELPERS ═══ */
 var TICONS={s:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>',e:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h16.9a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',w:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg>'};
@@ -690,9 +705,11 @@ function renderAuditBody(){
 function hookAudit(){renderAuditBody();var inp=document.getElementById('auditSearch');if(inp)inp.addEventListener('input',function(){S.auditSearch=inp.value;renderAuditBody();});}
 function renderSettings(){
  var h='<div class="card"><div class="chead"><h3>Configuration</h3></div><div class="cbody" style="display:flex;flex-direction:column;gap:8px">';
- h+='<div class="swrow"><b>Voice Language</b><select id="setLang" style="background:var(--p1);border:1px solid var(--ln2);border-radius:8px;padding:6px 8px;color:var(--tx)">';
+ h+='<div class="swrow"><b>Voice Language</b><div style="display:flex;gap:6px;align-items:center"><select id="setLang" style="background:var(--p1);border:1px solid var(--ln2);border-radius:8px;padding:6px 8px;color:var(--tx)">';
  Object.keys(VOICE_BRAIN).forEach(function(code){h+='<option value="'+code+'" '+(S.voiceLang===code?'selected':'')+'>'+VOICE_BRAIN[code].name+'</option>';});
- h+='</select></div>';
+ h+='</select><button class="btn btn-g btn-sm" data-act="test-voice">▶ Test</button></div></div>';
+ var vinfo=voiceDiagnostics();
+ h+='<div class="swrow"><b>Resolved System Voice</b><span class="mono" style="color:'+(vinfo.exact?'#4ade80':'#fbbf24')+';font-size:11px;text-align:right;max-width:220px">'+esc(vinfo.label)+'</span></div>';
  h+='<div class="swrow" data-act="toggle-arm" role="switch" aria-checked="'+S.armed+'"><b>Failure Simulation</b><div class="sw '+(S.armed?'on armed-pulse':'')+'"></div></div>';
  h+='<div class="swrow"><b>Auto-cap</b><span class="mono" style="color:#fbbf24">Rs.'+POLICY.maxAmount.toLocaleString('en-IN')+'</span></div>';
  h+='<div class="swrow"><b>Max Retries</b><span class="mono" style="color:#fbbf24">'+POLICY.maxRetries+'</span></div>';
@@ -861,17 +878,58 @@ function doReset(){
   S.loading=false;updateConnBadge();toast('w','Reset','All backend data cleared');go(S.page);
  }).catch(function(err){S.loading=false;toast('e','Reset failed',err.message);renderShell();});
 }
-/* ═══ VOICE AGENT ═══ */
-var recog=null,VOICES=[];
-function loadVoices(){if(!window.speechSynthesis)return;VOICES=speechSynthesis.getVoices()||[];}
+/* ═══ VOICE AGENT ═══
+   Web Speech API voice quality/selection is entirely device-dependent — the
+   browser only exposes whatever TTS voices the OS has installed, this page
+   can't bundle or download better ones. What IS in our control: picking the
+   best of what's available (prefer an exact-language match, then prefer a
+   non-local/cloud voice since those are consistently clearer than the
+   platform's bundled robotic ones, matching gendered pronouns used in the
+   dialogue), caching that choice per language instead of re-resolving every
+   utterance, tuning rate/pitch per language, and telling the presenter
+   honestly when a language has no dedicated voice on this device instead of
+   silently sounding wrong with no explanation. */
+var recog=null,VOICES=[],voiceCache={},warnedNoVoice={};
+var VOICE_TUNING={'hi-IN':{rate:0.95,pitch:1.05},'en-IN':{rate:1.0,pitch:1.0},'ta-IN':{rate:0.88,pitch:1.05},'kn-IN':{rate:0.88,pitch:1.05},'te-IN':{rate:0.88,pitch:1.05}};
+var FEMALE_VOICE_HINTS=['female','heera','veena','lekha','kalpana','swara','neerja','priya','deepa','shreya','aditi','raveena','google'];
+function loadVoices(){if(!window.speechSynthesis)return;VOICES=speechSynthesis.getVoices()||[];voiceCache={};}
 if(window.speechSynthesis){loadVoices();speechSynthesis.onvoiceschanged=loadVoices;}
-function getVoice(){if(!VOICES.length)loadVoices();return VOICES.find(function(v){return v.lang===S.voiceLang;})||VOICES.find(function(v){return v.lang.indexOf(S.voiceLang.slice(0,2))===0;})||VOICES.find(function(v){return v.lang.indexOf('IN')>-1;})||VOICES[0];}
+function scoreVoice(v,lang){
+ var score=0;
+ if(v.lang===lang)score+=100;
+ else if(v.lang.toLowerCase().indexOf(lang.slice(0,2).toLowerCase())===0)score+=60;
+ else if(v.lang.indexOf('IN')>-1)score+=20;
+ if(v.localService===false)score+=15;
+ var name=(v.name||'').toLowerCase();
+ if(FEMALE_VOICE_HINTS.some(function(h){return name.indexOf(h)>-1;}))score+=10;
+ return score;
+}
+function getVoice(){
+ if(!VOICES.length)loadVoices();
+ if(!VOICES.length)return null;
+ if(voiceCache[S.voiceLang])return voiceCache[S.voiceLang];
+ var best=null,bestScore=-1;
+ VOICES.forEach(function(v){var s=scoreVoice(v,S.voiceLang);if(s>bestScore){bestScore=s;best=v;}});
+ voiceCache[S.voiceLang]=best;
+ if(best&&best.lang!==S.voiceLang&&!warnedNoVoice[S.voiceLang]){
+  warnedNoVoice[S.voiceLang]=true;
+  toast('i','No '+VOICE_BRAIN[S.voiceLang].name+' voice on this device','Falling back to '+(best.name||best.lang)+' — install a matching system voice for full accuracy.');
+ }
+ return best;
+}
+function voiceDiagnostics(){
+ if(!window.speechSynthesis)return{label:'Speech synthesis not supported in this browser',exact:false};
+ var v=getVoice();
+ if(!v)return{label:'No system voices installed',exact:false};
+ return {label:v.name+' ('+v.lang+')'+(v.lang===S.voiceLang?'':' — not an exact match'),exact:v.lang===S.voiceLang};
+}
 function speakText(text,cb){
  if(!window.speechSynthesis){if(cb)cb();return;}
  try{speechSynthesis.cancel();}catch(e){}
  var u=new SpeechSynthesisUtterance(text);var v=getVoice();
+ var tune=VOICE_TUNING[S.voiceLang]||{rate:1,pitch:1};
  if(v){u.voice=v;u.lang=v.lang;}else{u.lang=S.voiceLang;}
- u.rate=0.95;u.pitch=1.05;
+ u.rate=tune.rate;u.pitch=tune.pitch;
  u.onstart=function(){S.voiceSpeaking=true;updateVoiceUI();};
  u.onend=function(){S.voiceSpeaking=false;updateVoiceUI();if(cb)cb();};
  u.onerror=function(){S.voiceSpeaking=false;updateVoiceUI();if(cb)cb();};
@@ -919,7 +977,7 @@ function voiceUserSaid(text){
  setTimeout(function(){
   if(!S.voiceActive)return;
   S.voiceMsgs.push({role:'agent',text:resp.say});S.voiceStage=resp.stage||'objection';renderVoiceChat();
-  if(resp.stage==='closed'){speakText(resp.say,function(){setTimeout(function(){endCall(resp.outcome||'COMPLETED',text);},800);});}
+  if(resp.stage==='closed'||resp.outcome==='PROMISE_TO_PAY'){speakText(resp.say,function(){setTimeout(function(){endCall(resp.outcome||'COMPLETED',text);},800);});}
   else{speakText(resp.say,function(){if(S.voiceActive)setTimeout(startListening,400);});}
  },500);
 }
@@ -949,14 +1007,15 @@ function endCall(outcome,lastUtterance){
  if(!S.voiceActive)return;cleanupVoice();S.voiceActive=false;S.voiceListening=false;S.voiceSpeaking=false;
  var c=S.cases.find(function(x){return x.id===S.voiceCase;});
  if(c){
-  var oc={PROMISE_TO_PAY:'Payment committed',LINK_SENT:'Link sent',CALLBACK_SCHEDULED:'Callback scheduled',CALLBACK_LATER:'Callback requested',SOFT_REFUSAL:'Customer refused',COMPLETED:'Call completed',NAV_AWAY:'Ended (navigation)',MANUAL_END:'Ended by operator'};
-  var eventType=outcome==='PROMISE_TO_PAY'?'voice_promise_captured':'voice_call_ended';
+  var oc={PROMISE_TO_PAY:'Payment committed',PARTIAL_PAYMENT:'Partial payment committed',REQUEST_HUMAN:'Escalated to human agent',LINK_SENT:'Link sent',CALLBACK_SCHEDULED:'Callback scheduled',CALLBACK_LATER:'Callback requested',SOFT_REFUSAL:'Customer refused',COMPLETED:'Call completed',NAV_AWAY:'Ended (navigation)',MANUAL_END:'Ended by operator'};
+  var isPromise=outcome==='PROMISE_TO_PAY'||outcome==='PARTIAL_PAYMENT';
+  var eventType=isPromise?'voice_promise_captured':'voice_call_ended';
   Api.recordVoiceEvent(c.id,{event_type:eventType,intent:outcome,transcript:lastUtterance||oc[outcome]||outcome}).then(function(){
    return refreshCasesAndAudit();
   }).then(function(){
    refreshDashboard();softGo();
   }).catch(function(err){console.warn('voice event not recorded',err);});
-  toast(outcome==='PROMISE_TO_PAY'?'s':outcome==='SOFT_REFUSAL'?'w':'i','Call Ended',oc[outcome]||outcome.replace(/_/g,' '));
+  toast(isPromise?'s':outcome==='SOFT_REFUSAL'?'w':'i','Call Ended',oc[outcome]||outcome.replace(/_/g,' '));
  }
  go('voice');
 }
@@ -1021,6 +1080,7 @@ document.addEventListener('click',function(e){
   else if(a==='quick-say')voiceUserSaid(txt);
   else if(a==='send-text'){var inp=document.getElementById('vinput');if(inp&&inp.value.trim()){voiceUserSaid(inp.value.trim());inp.value='';}}
   else if(a==='scan-prom')scanPromises();
+  else if(a==='test-voice'){var sampleC={customer:'Priya Sharma',amount:2499,category:{name:'Gateway Timeout'}};speakText(VOICE_BRAIN[S.voiceLang].greeting(sampleC));}
   else if(a==='audit-filter'){S.auditFilter=type;go('audit');}
   else if(a==='toggle-json'){var nodes=document.querySelectorAll('.tlev');nodes.forEach(function(n){if(n.dataset.id===id)n.classList.toggle('raw');});}
   else if(a==='export-audit')exportAudit();
@@ -1051,7 +1111,7 @@ document.addEventListener('keydown',function(e){
  }
 });
 document.getElementById('palInput').addEventListener('input',function(e){palIdx=0;renderPal(e.target.value);});
-document.addEventListener('change',function(e){if(e.target.id==='setLang'){S.voiceLang=e.target.value;toast('i','Language',VOICE_BRAIN[S.voiceLang].name);}});
+document.addEventListener('change',function(e){if(e.target.id==='setLang'){S.voiceLang=e.target.value;toast('i','Language',VOICE_BRAIN[S.voiceLang].name);if(S.page==='settings')go('settings');}});
 /* ═══ INIT ══ */
 loadInitialData();
 </script>
