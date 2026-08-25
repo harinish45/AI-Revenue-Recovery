@@ -97,7 +97,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .rb,.sb{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:99px;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
 .rb i,.sb i{width:5px;height:5px;border-radius:50%;background:currentColor}
 .rb.low{background:rgba(34,197,94,.1);color:var(--grn2)}.rb.medium{background:rgba(245,158,11,.1);color:var(--amb2)}.rb.high{background:rgba(239,68,68,.1);color:var(--red2)}
-.sb.open{background:rgba(59,130,246,.1);color:var(--blu2)}.sb.recovered{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.escalated{background:rgba(239,68,68,.12);color:var(--red2)}.sb.closed{background:rgba(255,255,255,.05);color:var(--mut)}.sb.pending{background:rgba(245,158,11,.1);color:var(--amb2)}.sb.fulfilled{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.broken{background:rgba(239,68,68,.1);color:var(--red2)}
+.sb.open{background:rgba(59,130,246,.1);color:var(--blu2)}.sb.recovered{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.escalated{background:rgba(239,68,68,.12);color:var(--red2)}.sb.skipped{background:rgba(245,158,11,.1);color:var(--amb2)}.sb.closed{background:rgba(255,255,255,.05);color:var(--mut)}.sb.pending{background:rgba(245,158,11,.1);color:var(--amb2)}.sb.fulfilled{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.broken{background:rgba(239,68,68,.1);color:var(--red2)}
 .toolbar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--ln);flex-wrap:wrap}
 .srch{flex:1;max-width:280px;min-width:140px}
 .srch input{width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--ln2);background:var(--p1);font-size:12px;color:var(--tx)}
@@ -312,7 +312,8 @@ var Api={
  audit:function(qs){return apiRequest('GET','/api/audit'+(qs?('?'+qs):''));},
  batch:function(){return apiRequest('POST','/api/demo/recovery-batch');},
  simulateFailure:function(){return apiRequest('POST','/api/demo/simulate-failure');},
- recordVoiceEvent:function(caseId,body){return apiRequest('POST','/api/cases/'+encodeURIComponent(caseId)+'/voice-events',body);}
+ recordVoiceEvent:function(caseId,body){return apiRequest('POST','/api/cases/'+encodeURIComponent(caseId)+'/voice-events',body);},
+ verifyAudit:function(id){return apiRequest('GET','/api/audit/'+encodeURIComponent(id)+'/verify');}
 };
 /* ═══ NORMALIZATION — real API shapes → the field names render*() expects ═══ */
 var CATEGORY_META={
@@ -322,7 +323,7 @@ var CATEGORY_META={
  bank_rejection:{code:'BANK_DECLINE',name:'Bank Rejection'},
  user_abandonment:{code:'ABANDON',name:'Checkout Abandoned'}
 };
-var STATUS_MAP={pending:'open',failed:'open',recovered:'recovered',needs_human_review:'escalated',blocked:'escalated'};
+var STATUS_MAP={pending:'open',failed:'open',recovered:'recovered',needs_human_review:'escalated',blocked:'escalated',skipped:'skipped'};
 function normalizeCase(item){
  var cm=CATEGORY_META[item.failure_category]||{code:'UNKNOWN',name:pretty(item.failure_category||'unknown')};
  var risk=(item.risk_level||'medium').toLowerCase();
@@ -332,7 +333,7 @@ function normalizeCase(item){
   action:pretty(item.recommended_action),recommended_action:item.recommended_action,
   txn:item.payment_id,created:relTime(item.created_at),createdAt:item.created_at,
   attempts:item.retry_count||0,maxAttempts:item.max_retries!=null?item.max_retries:POLICY.maxRetries,
-  recovered_amount:item.recovered_amount||0};
+  recovered_amount:item.recovered_amount||0,compliance_score:item.compliance_score||0,next_retry_at:item.next_retry_at||null};
 }
 /* Every backend event_type maps onto one of the 6 audit lanes below — VOICE
    is the one lane with no analogue in the original design (added since the
@@ -345,6 +346,8 @@ var EVENT_MAP={
  recovery_attempted:{type:'EXECUTION',color:'#22c55e'},
  recovery_succeeded:{type:'EXECUTION',color:'#22c55e'},
  recovery_failed:{type:'EXECUTION',color:'#22c55e'},
+ recovery_skipped:{type:'EXECUTION',color:'#fbbf24'},
+ razorpay_webhook_received:{type:'DETECTION',color:'#3b82f6'},
  escalated_to_human:{type:'ESCALATION',color:'#ef4444'},
  demo_reset:{type:'DECISION',color:'#f59e0b'},
  failure_simulation_armed:{type:'DECISION',color:'#f59e0b'},
@@ -358,7 +361,7 @@ function normalizeAuditEntry(item){
  var desc=(item.case_id||'system')+' — '+pretty(item.event_type||'event');
  if(item.reason)desc+=': '+item.reason;
  var result=item.result?String(item.result).toUpperCase():(m.type==='ESCALATION'?'ESCALATED':(item.event_type==='policy_check_failed'?'BLOCKED':'SUCCESS'));
- return {id:item.id,type:m.type,color:m.color,desc:desc,actor:item.actor||'system',decision:item.decision||'—',
+ return {id:item.id,type:m.type,color:m.color,desc:desc,actor:item.actor||'system',decision:item.decision||'—',eventHash:item.event_hash||'',previousHash:item.previous_hash||'',
   reason:item.reason||'',result:result,ts:item.timestamp?new Date(item.timestamp).toTimeString().slice(0,8):nowTs(),caseId:item.case_id||null,raw:item};
 }
 function trackMetric(key,val){var h=S.history[key];if(!h)return;h.push(val);if(h.length>20)h.shift();}
@@ -602,13 +605,13 @@ function renderCaseBody(){
  var el=document.getElementById('caseBody');if(!el)return;
  var list=caseList();var h='';
  if(S.caseView==='table'){
-  h+='<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Case ID</th><th>Customer</th><th>Amount</th><th>Diagnosis</th><th>Risk</th><th>Status</th><th></th></tr></thead><tbody>';
-  if(list.length===0){h+='<tr><td colspan="7"><div class="empty"><h4>No cases found</h4><p>Adjust filters or seed data.</p></div></td></tr>';}
+  h+='<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Case ID</th><th>Customer</th><th>Amount</th><th>Diagnosis</th><th>Risk</th><th>Compliance</th><th>Status</th><th></th></tr></thead><tbody>';
+  if(list.length===0){h+='<tr><td colspan="8"><div class="empty"><h4>No cases found</h4><p>Adjust filters or seed data.</p></div></td></tr>';}
   else{list.forEach(function(c){
    h+='<tr data-act="case-detail" data-id="'+c.id+'"><td class="mono" style="color:#4ade80">'+c.id+'</td>';
    h+='<td><div class="cust"><div class="ava">'+esc(c.customer.split(' ').map(function(w){return w[0];}).join(''))+'</div><div><b>'+esc(c.customer)+'</b><span>'+c.created+' · '+c.category.code+'</span></div></div></td>';
    h+='<td class="amt">'+fmt(c.amount)+'</td><td style="color:#9d9da6;font-size:11px">'+esc(c.category.name)+'</td>';
-   h+='<td><span class="rb '+c.risk+'"><i></i>'+c.risk+'</span></td>';
+   h+='<td><span class="rb '+c.risk+'"><i></i>'+c.risk+'</span></td><td><span class="rb '+(c.compliance_score>=80?'low':c.compliance_score>=60?'medium':'high')+'">'+Math.round(c.compliance_score)+'% safe</span></td>';
    h+='<td><span class="sb '+c.status+'"><i></i>'+c.status+'</span></td>';
    h+='<td>'+(c.status==='open'?'<button class="btn btn-p btn-sm" data-act="exec-case" data-id="'+c.id+'">Execute</button>':'')+'</td></tr>';});}
   h+='</tbody></table></div>';
@@ -724,7 +727,7 @@ function renderAuditBody(){
   return true;});
  var cnt=document.getElementById('auditCount');if(cnt)cnt.textContent=list.length+' events';
  if(list.length===0){el.innerHTML='<div class="empty"><h4>No events</h4></div>';return;}
- el.innerHTML=list.map(function(e){return '<div class="tlev" data-act="toggle-json" data-id="'+e.id+'" style="--evc:'+e.color+'" title="Click for raw JSON"><div class="tlt"><span class="tltype">'+e.type+'</span><span class="tltime">'+e.ts+'</span></div><div class="tlreason">'+esc(e.desc)+'</div><div class="tlmeta"><span>Actor: '+esc(e.actor)+'</span> - <span>Result: <b style="color:'+(e.result==='SUCCESS'?'#4ade80':'#f87171')+'">'+e.result+'</b></span></div><pre class="tljson">'+esc(JSON.stringify(e.raw,null,1))+'</pre></div>';}).join('');
+ el.innerHTML=list.map(function(e){return '<div class="tlev" data-act="toggle-json" data-id="'+e.id+'" style="--evc:'+e.color+'" title="Click for raw JSON"><div class="tlt"><span class="tltype">'+e.type+'</span><span class="tltime">'+e.ts+'</span></div><div class="tlreason">'+esc(e.desc)+'</div><div class="tlmeta"><span>Actor: '+esc(e.actor)+'</span> - <span>Result: <b style="color:'+(e.result==='SUCCESS'?'#4ade80':'#f87171')+'">'+e.result+'</b></span>'+(e.eventHash?'<button class="btn btn-g btn-sm" data-act="verify-audit" data-id="'+e.id+'" title="Verify chained seal">🔒 Seal</button>':'')+'</div><pre class="tljson">'+esc(JSON.stringify(e.raw,null,1))+'</pre></div>';}).join('');
 }
 function hookAudit(){renderAuditBody();var inp=document.getElementById('auditSearch');if(inp)inp.addEventListener('input',function(){S.auditSearch=inp.value;renderAuditBody();});}
 function renderSettings(){
@@ -742,6 +745,7 @@ function renderSettings(){
  h+='<div class="card"><div class="chead"><h3>Data</h3></div><div class="cbody" style="display:flex;gap:8px"><button class="btn btn-g" data-act="seed">Seed</button><button class="btn btn-r" data-act="reset">Reset All</button></div></div>';
  h+='<div class="card"><div class="chead"><h3>Live Readiness</h3><span class="hint">demo → production handoff</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px">'+[['✓','Backend connected','FastAPI health + live case reads'],['✓','Bounded policy','amount, retry and terminal stops'],['✓','Idempotent execution','duplicate-safe execution key'],['✓','Audit trail','raw event inspection + export'],['✓','Human escalation','policy blocks never auto-bypass'],['✓','Multilingual voice',Object.keys(VOICE_BRAIN).length+' language packs retained'],['!','Provider adapters','connect real PSP/CRM credentials before production']].map(function(x){return '<div class="swrow"><div><b style="color:'+(x[0]==='!'?'#fbbf24':'#4ade80')+'">'+x[0]+' '+x[1]+'</b><small>'+x[2]+'</small></div><span class="mono" style="font-size:10px;color:'+(x[0]==='!'?'#fbbf24':'#4ade80')+'">'+(x[0]==='!'?'NEXT':'READY')+'</span></div>';}).join('')+'</div></div>';
  h+='<div class="card"><div class="chead"><h3>System</h3></div><div class="cbody" style="display:flex;flex-direction:column;gap:6px"><div class="swrow"><b>Version</b><span class="mono">v5.2</span></div><div class="swrow"><b>Track</b><span class="mono">03 - AI Revenue Recovery</span></div><div class="swrow"><b>Backend</b><span class="mono">'+(S.live?'Connected':'Unavailable')+'</span></div></div></div>';
+ h+='<div class="card"><div class="chead"><h3>Live Mode Readiness</h3><span class="hint">explicit upgrade path</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px">'+[['NEXT','Signed Razorpay webhooks','Validate, deduplicate, and enqueue events'],['NEXT','Durable event queue','Move worker seam to Celery, RQ, or managed queues'],['OPTIONAL','LLM diagnosis adapter','Enable only with privacy, cost, and eval review'],['NEXT','Live payment data','Replace synthetic seed data with tenant-scoped reads'],['READY','Consent management','Voice gate, promise confirmation, and opt-out stop'],['NEXT','Real provider adapters','Razorpay Test Mode, Exotel/Twilio, CRM'],['NEXT','Persistent scheduler','Store retry windows and execute through a worker']].map(function(x){return '<div class="swrow"><div><b style="color:'+(x[0]==='READY'?'#4ade80':'#fbbf24')+'">'+x[1]+'</b><small>'+x[2]+'</small></div><span class="mono" style="font-size:10px;color:'+(x[0]==='READY'?'#4ade80':'#fbbf24')+'">'+x[0]+'</span></div>';}).join('')+'</div></div>';
  return h;
 }
 /* ═══ ACTIONS — every one below hits the real backend ═══ */
@@ -801,9 +805,9 @@ function runBatch(){
   function step(){
    if(i>=pending.length){
     S.running=false;
-    var failedN=Math.max(0,result.attempted-result.successful-result.escalated);
-    blogPush('lt','--- Done: '+result.successful+' recovered, '+result.escalated+' escalated, '+failedN+' failed ---');
-    S.batchStats={proc:result.attempted,rec:result.successful,esc:result.escalated,skp:failedN,amt:result.amount_recovered,cost:Math.round(result.attempted*18)};
+    var skippedN=result.skipped||0,failedN=Math.max(0,result.attempted-result.successful-result.escalated-skippedN);
+    blogPush('lt','--- Done: '+result.successful+' recovered, '+result.escalated+' escalated, '+skippedN+' smart-skipped, '+failedN+' failed ---');
+    S.batchStats={proc:result.attempted,rec:result.successful,esc:result.escalated,skp:skippedN,amt:result.amount_recovered,cost:result.estimated_cost||0};
     S.batchHistory.unshift({ts:nowTs(),rec:result.successful,esc:result.escalated,amt:result.amount_recovered});
     if(S.batchHistory.length>6)S.batchHistory.pop();
     toast('s','Batch Complete',result.successful+' recovered · '+fmt(result.amount_recovered));
@@ -872,14 +876,15 @@ function openCaseDetail(id){
   var h='<div style="display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid var(--ln);margin-bottom:12px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="mono" style="color:#4ade80;font-weight:700;font-size:14px">'+c.id+'</span><span class="sb '+c.status+'"><i></i>'+c.status+'</span><span class="rb '+c.risk+'"><i></i>'+c.risk+'</span></div><button class="btn btn-g btn-sm" data-act="close-exec" aria-label="Close">X</button></div>';
   h+='<div style="display:flex;justify-content:space-between;margin-bottom:12px"><div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:700">At Risk</div><div class="mono" style="font-size:24px;font-weight:700">'+fmtINR(c.amount)+'</div></div><div style="text-align:right;font-size:11px;color:#9d9da6;font-family:var(--fm)"><div>'+esc(c.customer)+'</div><div>'+c.category.code+' - '+c.created+'</div></div></div>';
   h+='<div class="grid2"><div class="dcell"><span>Diagnosis</span><b>'+esc(c.category.name)+'</b></div><div class="dcell"><span>Action</span><b style="color:#4ade80">'+esc(c.action)+'</b></div></div>';
-  h+='<div class="grid2" style="margin-top:10px"><div class="dcell"><span>Retries</span><b>'+c.attempts+' / '+c.maxAttempts+'</b></div><div class="dcell"><span>Transaction</span><b class="mono" style="font-size:10px;cursor:pointer" data-act="copy-txn" data-text="'+c.txn+'" title="Copy txn">'+c.txn+' ⧉</b></div></div>';
+  h+='<div class="grid2" style="margin-top:10px"><div class="dcell"><span>Retries</span><b>'+c.attempts+' / '+c.maxAttempts+'</b><small style="display:block;color:var(--dim);font-size:10px">'+(detail.next_retry_at?'Next retry '+relTime(detail.next_retry_at):'No retry scheduled')+'</small></div><div class="dcell"><span>Compliance</span><b style="color:'+(detail.compliance_score>=80?'#4ade80':detail.compliance_score>=60?'#fbbf24':'#f87171')+'">'+Math.round(detail.compliance_score)+'% policy-safe</b><small style="display:block;color:var(--dim);font-size:10px">Stopping rules and action allowlist</small></div></div>';
+  h+='<div class="grid2" style="margin-top:10px"><div class="dcell"><span>Transaction</span><b class="mono" style="font-size:10px;cursor:pointer" data-act="copy-txn" data-text="'+c.txn+'" title="Copy txn">'+c.txn+' ⧉</b></div><div class="dcell"><span>Diagnosis mode</span><b>'+esc(evidence.diagnosis_mode||'deterministic_fallback')+'</b></div></div>';
   h+='<div class="diag"><h4>AI Analysis</h4><p style="font-size:12px;color:#9d9da6">'+esc(detail.reason||c.category.name)+'</p>';
   if(evidence.success_rate_percent!=null){h+='<div class="conf"><span>Customer success rate</span><div class="meter"><i style="width:'+evidence.success_rate_percent+'%;background:'+(evidence.success_rate_percent>70?'#22c55e':'#f59e0b')+'"></i></div><span class="mono">'+evidence.success_rate_percent+'%</span></div>';}
   h+='</div>';
   var checks=detail.policy_checks&&Object.keys(detail.policy_checks).length?detail.policy_checks:null;
   if(checks){var passed=Object.values(checks).every(Boolean);h+='<div class="polnote">Policy checks ('+(passed?'passed':'blocked')+'): '+Object.keys(checks).map(function(k){return pretty(k)+'='+(checks[k]?'OK':'FAIL');}).join(', ')+'</div>';}
   else{h+='<div class="polnote">Max Rs.'+POLICY.maxAmount.toLocaleString('en-IN')+' - '+POLICY.maxRetries+' retries - policy is evaluated live when executed</div>';}
-  if(evs.length){h+='<div style="margin-top:10px">'+evs.map(function(e){return '<div class="actrow" style="padding:6px 4px"><span class="lt">'+e.ts+'</span><span class="tag b">'+e.type+'</span><span class="ax">'+esc(e.desc)+'</span></div>';}).join('')+'</div>';}
+  if(evs.length){h+='<div style="margin-top:12px"><div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:800;letter-spacing:.1em;margin-bottom:5px">Customer timeline</div>'+evs.map(function(e){return '<div class="actrow" style="padding:7px 4px"><span class="lt">'+e.ts+'</span><span class="tag b">'+e.type+'</span><span class="ax">'+esc(e.desc)+'</span>'+(e.eventHash?'<button class="btn btn-g btn-sm" data-act="verify-audit" data-id="'+e.id+'" title="Verify tamper-evident seal">🔒</button>':'')+'</div>';}).join('')+'</div>';}
   h+='<div class="efoot">';
   if(c.status==='open'){h+='<button class="btn btn-p" data-act="exec-case" data-id="'+c.id+'">Execute</button>';h+='<button class="btn btn-v" data-act="start-voice-from" data-id="'+c.id+'">Voice Call</button>';}
   h+='<button class="btn btn-g" data-act="close-exec">Close</button></div>';
@@ -1127,6 +1132,7 @@ document.addEventListener('click',function(e){
   else if(a==='test-voice'){var sampleC={customer:'Priya Sharma',amount:2499,category:{name:'Gateway Timeout'}};speakText(VOICE_BRAIN[S.voiceLang].greeting(sampleC));}
   else if(a==='audit-filter'){S.auditFilter=type;go('audit');}
   else if(a==='toggle-json'){var nodes=document.querySelectorAll('.tlev');nodes.forEach(function(n){if(n.dataset.id===id)n.classList.toggle('raw');});}
+  else if(a==='verify-audit'){Api.verifyAudit(id).then(function(v){toast(v.chain_verified?'s':'e','Audit Seal '+(v.chain_verified?'Verified':'Invalid'),'Event '+v.audit_id+' · '+v.event_hash.slice(0,16)+'…'+(v.previous_hash?' · previous '+v.previous_hash.slice(0,10)+'…':' · chain root'));}).catch(function(err){toast('e','Seal Verification Failed',err.message);});}
   else if(a==='export-audit')exportAudit();
   else if(a==='export-report')exportReport();
   else if(a==='copy-txn')safeCopy(act.dataset.text);

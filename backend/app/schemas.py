@@ -15,6 +15,7 @@ class DashboardSummary(BaseModel):
     successful_recoveries: int
     failed_recoveries: int
     escalated_cases: int
+    recovery_cost_per_attempt: float = 18.0
 
 
 class CaseOut(BaseModel):
@@ -33,6 +34,8 @@ class CaseOut(BaseModel):
     recovered_amount: float
     retry_count: int
     created_at: datetime
+    compliance_score: float = 0.0
+    next_retry_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -63,6 +66,8 @@ class CaseDetailResponse(BaseModel):
     recovered_amount: float
     created_at: datetime
     updated_at: datetime
+    compliance_score: float = 0.0
+    next_retry_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -89,6 +94,8 @@ class AuditLogOut(BaseModel):
     action: Optional[str]
     result: Optional[str]
     timestamp: datetime
+    event_hash: Optional[str] = None
+    previous_hash: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -114,6 +121,23 @@ class BatchResponse(BaseModel):
     amount_at_risk: float
     amount_recovered: float
     recovery_rate: float
+    skipped: int = 0
+    estimated_cost: float = 0.0
+    net_recovered: float = 0.0
+
+
+class AuditSealVerifyResponse(BaseModel):
+    audit_id: str
+    chain_verified: bool
+    event_hash: str
+    previous_hash: Optional[str] = None
+    case_id: Optional[str] = None
+
+
+class WebhookResponse(BaseModel):
+    accepted: bool
+    event_id: str
+    message: str
 
 
 class SimulateFailureResponse(BaseModel):

@@ -2,6 +2,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from ..models import Execution, Payment, RecoveryCase
+from ..config import settings
 from ..utils.cache import TTLCache
 
 _cache = TTLCache(ttl_seconds=3)
@@ -65,4 +66,5 @@ def _compute_metrics(db: Session) -> dict:
         "successful_recoveries": successful_recoveries,
         "failed_recoveries": failed_recoveries,
         "escalated_cases": escalated_cases,
+        "recovery_cost_per_attempt": settings.RECOVERY_COST_PER_ATTEMPT,
     }

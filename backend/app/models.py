@@ -1,10 +1,9 @@
 import uuid
-from datetime import datetime
-
 from sqlalchemy import JSON, Boolean, Column, DateTime, Float, ForeignKey, Integer, String
 from sqlalchemy.orm import relationship
 
 from .database import Base
+from .utils.time import utcnow
 
 
 class Customer(Base):
@@ -24,7 +23,7 @@ class Payment(Base):
     currency = Column(String, default="INR")
     status = Column(String)  # success, failed, pending, abandoned
     failure_reason = Column(String, nullable=True)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=utcnow)
 
     customer = relationship("Customer", back_populates="payments")
     recovery_case = relationship("RecoveryCase", back_populates="payment", uselist=False)
@@ -50,8 +49,8 @@ class RecoveryCase(Base):
     )  # pending, recovered, failed, needs_human_review, blocked
     recovered_amount = Column(Float, default=0.0)
     action_status = Column(String, default="eligible")
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     payment = relationship("Payment", back_populates="recovery_case")
     executions = relationship("Execution", back_populates="case")
@@ -65,7 +64,7 @@ class Execution(Base):
     action_taken = Column(String)
     result = Column(String)
     amount_recovered = Column(Float, default=0.0)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=utcnow)
 
     case = relationship("RecoveryCase", back_populates="executions")
 
@@ -80,7 +79,7 @@ class AuditLog(Base):
     reason = Column(String, nullable=True)
     action = Column(String, nullable=True)
     result = Column(String, nullable=True)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=utcnow)
 
     case = relationship("RecoveryCase", back_populates="audit_logs")
 
@@ -93,7 +92,7 @@ class AuditSeal(Base):
     case_id = Column(String, nullable=True)
     previous_hash = Column(String, nullable=True)
     event_hash = Column(String, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
 
 
 class DemoFlag(Base):
@@ -107,4 +106,4 @@ class IdempotencyKey(Base):
     key = Column(String, primary_key=True)
     endpoint = Column(String)
     response = Column(JSON)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)

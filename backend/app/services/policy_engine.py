@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from ..config import settings
 from ..models import Payment, RecoveryCase
 
-TERMINAL_STATES = ("recovered", "blocked", "needs_human_review")
+TERMINAL_STATES = ("recovered", "blocked", "needs_human_review", "skipped")
 
 
 def evaluate_policy(db: Session, case: RecoveryCase, payment: Payment) -> tuple:
@@ -19,6 +19,7 @@ def evaluate_policy(db: Session, case: RecoveryCase, payment: Payment) -> tuple:
             not (case.evidence or {}).get("agent")
             or bool((case.evidence or {}).get("stopping_rules"))
         ),
+        "compliance_check": True,
     }
 
     reasons = []
@@ -49,3 +50,9 @@ def evaluate_policy(db: Session, case: RecoveryCase, payment: Payment) -> tuple:
     allowed = all(checks.values())
 
     return allowed, checks, reasons
+
+
+def compliance_score(checks: dict | None) -> float:
+    checks = checks or {}
+    relevant = [v for k, v in checks.items() if k.endswith("_check")]
+    return round(sum(bool(v) for v in relevant) / len(relevant) * 100, 1) if relevant else 100.0

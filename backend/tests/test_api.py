@@ -112,3 +112,31 @@ def test_voice_event_rejects_unknown_case(client: TestClient):
         json={"event_type": "voice_call_started"},
     )
     assert response.status_code == 404
+
+
+def test_audit_seal_is_exposed_and_verifiable(client: TestClient):
+    client.post("/api/demo/seed")
+    event = client.get("/api/audit").json()["items"][0]
+    assert event["event_hash"]
+    verified = client.get(f"/api/audit/{event['id']}/verify")
+    assert verified.status_code == 200
+    assert verified.json()["chain_verified"] is True
+
+
+def test_smart_skip_is_backend_measured(client: TestClient):
+    client.post("/api/demo/seed")
+    cases = client.get("/api/cases", params={"limit": 100}).json()["items"]
+    tiny = next(item for item in cases if item["amount"] == 25.0)
+    result = client.post(
+        "/api/execution/execute",
+        json={"case_id": tiny["id"]},
+        headers={"Idempotency-Key": "qa-smart-skip-1"},
+    )
+    assert result.status_code == 200
+    assert result.json()["status"] == "skipped"
+
+
+def test_webhook_ingestion_is_audited(client: TestClient):
+    response = client.post("/api/webhooks/razorpay", json={"id": "wh_demo_1", "event": "payment.failed"})
+    assert response.status_code == 200
+    assert response.json()["accepted"] is True

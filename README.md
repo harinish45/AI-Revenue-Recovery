@@ -145,3 +145,55 @@ Backend variables are read from `.env` when using Docker Compose and from `backe
 ## Development Boundary
 
 Do not add production payment credentials or real money movement to this project.
+
+## Why this matters
+
+Revenue leakage is a sequence, not a single failure: a checkout is abandoned,
+a payment degrades, a subscription retry fails, or an invoice goes overdue.
+RecoverAI closes that loop in Test Mode: detect the risk, diagnose the cause,
+choose the least-cost intervention, recover measurable money, or escalate
+without crossing a policy boundary.
+
+## What is genuinely working
+
+- FastAPI backend and same-origin dashboard run end to end with synthetic data.
+- Optional OpenAI-compatible structured diagnosis can propose an action; the
+  deterministic engine is the safe default and policy always authorizes execution.
+- Batch runs report recovered, escalated, failed, smart-skipped, estimated cost,
+  net recovery, and a bounded retry sequence.
+- Every meaningful action is stored in a chained SHA-256 audit seal; the UI can
+  verify a seal and export JSON or CSV.
+- Voice recovery supports Hindi/Hinglish, English, Tamil, Kannada, Telugu,
+  Marathi, Bengali, and Malayalam with consent and promise confirmation.
+- Razorpay webhook ingestion and a worker seam are present as production-readiness
+  boundaries; the demo intentionally does not mutate money from a webhook.
+
+![RecoverAI architecture](docs/architecture.svg)
+
+## Risk × action policy matrix
+
+| Signal | Low-value / transient | High-value / sensitive |
+|---|---|---|
+| Gateway timeout | bounded retry, then stop | retry only under amount/retry cap |
+| Insufficient funds | payment link or smart skip if uneconomic | payment link, never repeated card retries |
+| Bank or instrument rejection | human review | human review, no autonomous collection |
+| Checkout abandonment | one gentle reminder | reminder plus human review if policy requires |
+
+## What's next for live readiness
+
+Connect signed Razorpay webhooks to a durable queue, replace the demo worker with
+Celery/RQ/managed queues, add production authentication and tenant isolation,
+move SQLite to PostgreSQL with Alembic migrations, connect a real voice provider,
+and enable the optional model adapter only after privacy, cost, and prompt review.
+
+## Demo and project links
+
+- Local demo: http://localhost:8000
+- API documentation: http://localhost:8000/docs
+- Canonical contract: docs/api-contract.md
+- Security boundary: docs/security.md
+- Architecture: docs/architecture.svg
+- Issue tracker: https://github.com/harinish45/AI-Revenue-Recovery/issues
+
+package.json contains only optional Node helper scripts; the application itself
+is a Python/FastAPI service with no frontend build step.

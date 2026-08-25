@@ -2,6 +2,7 @@ import uuid
 
 from sqlalchemy.orm import Session
 
+from ..config import settings
 from ..models import DemoFlag, Execution, IdempotencyKey, Payment, RecoveryCase
 from ..services.audit_service import log_event
 from ..services.metrics_service import invalidate_metrics_cache
@@ -33,6 +34,20 @@ def execute_recovery(db: Session, case: RecoveryCase, idempotency_key: str = Non
 
 def _run_recovery(db: Session, case: RecoveryCase) -> dict:
     payment = db.query(Payment).filter(Payment.id == case.payment_id).first()
+
+    if payment and payment.amount < settings.SMART_SKIP_MIN_AMOUNT:
+        case.recovery_status = "skipped"
+        case.action_status = "skipped"
+        audit = log_event(
+            db, case.id, "recovery_skipped", action="smart_skip", result="skipped",
+            reason=f"Expected recovery value {payment.amount:.2f} is below the "
+                   f"configured intervention floor {settings.SMART_SKIP_MIN_AMOUNT:.2f}.",
+        )
+        return {
+            "case_id": case.id, "status": "skipped", "recovered_amount": 0.0,
+            "message": "Smart skip: intervention cost exceeds recovery value.",
+            "audit_event_id": audit.id,
+        }
 
     flag = db.query(DemoFlag).filter(DemoFlag.id == 1).first()
     if flag and flag.simulate_failure_active:
@@ -186,7 +201,7 @@ def run_batch_recovery(db: Session) -> dict:
     total_cases = len(pending_cases)
     amount_at_risk = sum(c.amount_at_risk for c in pending_cases)
 
-    attempted, successful, failed, escalated = 0, 0, 0, 0
+    attempted, successful, failed, escalated, skipped = 0, 0, 0, 0, 0
     amount_recovered = 0.0
 
     for case in pending_cases:
@@ -199,6 +214,8 @@ def run_batch_recovery(db: Session) -> dict:
             failed += 1
         elif result["status"] in ("needs_human_review", "blocked"):
             escalated += 1
+        elif result["status"] == "skipped":
+            skipped += 1
 
     recovery_rate = (amount_recovered / amount_at_risk * 100) if amount_at_risk > 0 else 0.0
 
@@ -211,4 +228,7 @@ def run_batch_recovery(db: Session) -> dict:
         "amount_at_risk": amount_at_risk,
         "amount_recovered": amount_recovered,
         "recovery_rate": round(recovery_rate, 2),
+        "skipped": skipped,
+        "estimated_cost": round(attempted * settings.RECOVERY_COST_PER_ATTEMPT, 2),
+        "net_recovered": round(max(0.0, amount_recovered - attempted * settings.RECOVERY_COST_PER_ATTEMPT), 2),
     }

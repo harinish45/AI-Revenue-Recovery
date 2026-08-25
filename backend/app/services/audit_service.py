@@ -1,11 +1,10 @@
 import hashlib
 import json
 import uuid
-from datetime import datetime
-
 from sqlalchemy.orm import Session
 
 from ..models import AuditLog, AuditSeal
+from ..utils.time import utcnow
 
 
 def log_event(
@@ -18,7 +17,7 @@ def log_event(
     action: str = None,
     result: str = None,
 ) -> AuditLog:
-    timestamp = datetime.utcnow()
+    timestamp = utcnow()
     event_id = f"AUD-{uuid.uuid4().hex[:6].upper()}"
     previous = (
         db.query(AuditSeal)

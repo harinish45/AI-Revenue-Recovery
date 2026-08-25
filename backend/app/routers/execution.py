@@ -8,7 +8,6 @@ from ..database import get_db
 from ..middleware.rate_limit import limiter
 from ..models import RecoveryCase
 from ..schemas import ExecuteRequest, ExecuteResponse
-from ..services.policy_engine import TERMINAL_STATES
 from ..services.recovery_executor import execute_recovery
 
 router = APIRouter()
@@ -20,12 +19,6 @@ def _execute_case(db: Session, case_id: str, idempotency_key: Optional[str]) -> 
     case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
-    if not idempotency_key and case.recovery_status in TERMINAL_STATES:
-        raise HTTPException(
-            status_code=409,
-            detail=f"Case {case_id} is already in terminal state "
-            f"'{case.recovery_status}' and cannot be re-executed.",
-        )
     return execute_recovery(db, case, idempotency_key)
 
 

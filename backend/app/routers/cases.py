@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Payment, RecoveryCase
 from ..schemas import CaseDetailResponse, CaseOut, CasesListResponse
+from ..services.policy_engine import compliance_score
 
 router = APIRouter()
 
@@ -39,6 +40,10 @@ def get_cases(
     items = []
     for c in cases:
         payment = payments_by_id.get(c.payment_id)
+        next_retry_at = None
+        if c.recovery_status in {"pending", "failed"} and c.retry_count < c.max_retries:
+            from datetime import timedelta
+            next_retry_at = c.updated_at + timedelta(hours=4 if c.retry_count == 0 else 24)
         items.append(
             CaseOut(
                 id=c.id,
@@ -56,6 +61,8 @@ def get_cases(
                 recovered_amount=c.recovered_amount,
                 retry_count=c.retry_count,
                 created_at=c.created_at,
+                compliance_score=compliance_score(c.policy_checks),
+                next_retry_at=next_retry_at,
             )
         )
 
@@ -69,6 +76,11 @@ def get_case(case_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Case not found")
 
     payment = db.query(Payment).filter(Payment.id == case.payment_id).first()
+
+    next_retry_at = None
+    if case.recovery_status in {"pending", "failed"} and case.retry_count < case.max_retries:
+        from datetime import timedelta
+        next_retry_at = case.updated_at + timedelta(hours=4 if case.retry_count == 0 else 24)
 
     return CaseDetailResponse(
         id=case.id,
@@ -89,4 +101,6 @@ def get_case(case_id: str, db: Session = Depends(get_db)):
         recovered_amount=case.recovered_amount,
         created_at=case.created_at,
         updated_at=case.updated_at,
+        compliance_score=compliance_score(case.policy_checks),
+        next_retry_at=next_retry_at,
     )

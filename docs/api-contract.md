@@ -1,37 +1,27 @@
-# RecoverAI API Contract (Final Integration Update)
+# RecoverAI API Contract
 
-In addition to the `/api/recovery/*` routes, the backend explicitly exposes the following root-level routes to guarantee frontend compatibility:
+Base URL: http://localhost:8000
 
-## GET /api/cases/
-Equivalent to `/api/recovery/cases`.
+## Canonical endpoints
 
-## GET /api/cases/{id}
-Equivalent to `/api/recovery/cases/{id}`.
+- POST /api/demo/seed
+- POST /api/demo/reset
+- GET /api/dashboard/summary
+- GET /api/cases
+- GET /api/cases/{case_id}
+- POST /api/execution/execute with {"case_id":"RC-..."} and an Idempotency-Key
+- GET /api/audit
+- GET /api/audit/{audit_id}/verify
+- POST /api/demo/recovery-batch
+- POST /api/demo/simulate-failure
+- POST /api/cases/{case_id}/voice-events
+- POST /api/webhooks/razorpay
 
-## POST /api/execution/execute
-Executes recovery using a JSON body.
-Request:
-```json
-{
-  "case_id": "RC-..."
-}
-```
-Response: Same as `ExecuteResponse`.
+Execution is policy-gated and never authorizes money movement by itself.
+Webhooks validate an optional HMAC secret, append an audit event, and return an
+enqueue acknowledgement; a production worker is the next integration boundary.
 
-## GET /api/audit/
-Equivalent to `/api/recovery/audit`.
+## Compatibility
 
-## POST /api/batch/process
-Equivalent to `/api/demo/recovery-batch`. Returns batch metrics:
-```json
-{
-  "total_cases": 20,
-  "attempted": 15,
-  "successful": 9,
-  "failed": 4,
-  "escalated": 2,
-  "amount_at_risk": 18750.0,
-  "amount_recovered": 7250.0,
-  "recovery_rate": 38.67
-}
-```
+/api/recovery/* and /api/batch/process remain deprecated aliases for older
+hackathon clients. New clients must use the canonical paths above.
