@@ -41,7 +41,11 @@ export const api = {
   getCases: () => request('/api/cases/').then(normalizeCases),
   getCase: (id) => request(`/api/cases/${id}`).then(normalizeCase),
   // Backend contract explicitly accepts JSON: { "case_id": "<OPEN_CASE_ID>" }.
-  executeRecovery: (id) => request('/api/execution/execute', { method: 'POST', body: JSON.stringify({ case_id: String(id) }) }),
+  executeRecovery: (id) => request('/api/execution/execute', {
+    method: 'POST',
+    body: JSON.stringify({ case_id: String(id) }),
+    headers: { 'Idempotency-Key': `recoverai-react-${id}-${Date.now()}` },
+  }),
   getAudit: () => request('/api/audit/').then(normalizeAudit),
   seedDemo: () => request('/api/demo/seed', { method: 'POST' }),
   resetDemo: () => request('/api/demo/reset', { method: 'POST' }),
