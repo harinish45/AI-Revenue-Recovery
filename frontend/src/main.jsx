@@ -76,6 +76,8 @@ function App() {
   const [progress, setProgress] = React.useState(0);
   const [inFlight, setInFlight] = React.useState({});
   const [sealStatus, setSealStatus] = React.useState({});
+  const [lastUpdated, setLastUpdated] = React.useState(null);
+  const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
 
   const pushNotice = notice => setNotices(previous => [...previous, { ...notice, id: `${Date.now()}-${Math.random()}` }].slice(-4));
 
@@ -96,6 +98,7 @@ function App() {
       setCases(c.items || []);
       setAudit(a.items || []);
       setLive(true);
+      setLastUpdated(new Date());
       return true;
     } catch {
       setLive(false);
@@ -104,6 +107,16 @@ function App() {
   }, []);
 
   React.useEffect(() => { refresh(); }, [refresh]);
+
+  React.useEffect(() => {
+    const onKeyDown = event => {
+      const tag = event.target?.tagName;
+      if (event.key === '?' && tag !== 'INPUT' && tag !== 'TEXTAREA') setShortcutsOpen(true);
+      if (event.key === 'Escape') setShortcutsOpen(false);
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
 
   // Generic action wrapper: loading state + success/error toast
   const action = async (fn, text, type = 'success') => {
@@ -199,6 +212,14 @@ function App() {
       .toLowerCase()
       .includes(search.toLowerCase())
   );
+  const complianceAverage = cases.length
+    ? cases.reduce((total, item) => total + Number(item.compliance_score ?? 100), 0) / cases.length
+    : 100;
+  const escalationPenalty = Math.min(100, Number(summary.escalated_cases || 0) * 5);
+  const healthScore = Math.max(0, Math.min(100, Math.round(
+    (Number(summary.recovery_rate_percent || 0) * 0.4) + (complianceAverage * 0.4) + ((100 - escalationPenalty) * 0.2),
+  )));
+  const freshness = lastUpdated ? `Updated ${lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : 'Waiting for backend';
 
   return (
     <div className="app-shell">
@@ -219,6 +240,7 @@ function App() {
         </div>
         <div className="top-actions">
           <span className={`connection-state ${live ? 'online' : 'demo'}`}><span />{live ? 'Backend connected' : 'Demo fallback'}</span>
+          <button className="ghost-btn shortcut-btn" onClick={() => setShortcutsOpen(true)} title="Keyboard shortcuts">? Shortcuts</button>
           <button className="ghost-btn" disabled={loading} onClick={seed}>Seed Data</button>
           <button className="ghost-btn" disabled={loading} onClick={reset}>Reset</button>
         </div>
@@ -242,6 +264,12 @@ function App() {
           <Metric label="Recovery rate" value={summary.recovery_rate_percent ?? 0} />
           <Metric label="Open cases" value={summary.open_cases ?? 0} />
           <Metric label="Escalated cases" value={summary.escalated_cases ?? 0} />
+          <div className={`health-score-card ${healthScore >= 75 ? 'healthy' : healthScore >= 50 ? 'watch' : 'critical'}`}>
+            <div className="metric-label">Recovery Health Score</div>
+            <div className="health-score-value">{healthScore}<small>/100</small></div>
+            <div className="health-score-bar"><span style={{ width: `${healthScore}%` }} /></div>
+            <span>{healthScore >= 75 ? 'Healthy operating signal' : healthScore >= 50 ? 'Watch intervention quality' : 'Needs operator attention'}</span>
+          </div>
         </section>
 
         {/* Action center */}
@@ -270,7 +298,7 @@ function App() {
             <div>
               <div className="eyebrow">Recovery queue</div>
               <h2>Payment recovery cases</h2>
-              <p>{live ? cases.length + ' cases loaded from backend' : 'Backend unavailable — showing demo fallback'} · showing {filtered.length}</p>
+              <p>{live ? cases.length + ' cases loaded from backend' : 'Backend unavailable — showing demo fallback'} · showing {filtered.length} · {freshness}</p>
             </div>
             <div className="panel-tools">
               <input
@@ -373,6 +401,7 @@ function App() {
               <div><span>Net recovered</span><strong className="positive">{money(batchResult.net_recovered)}</strong></div>
               <div><span>Recovery rate</span><strong>{batchResult.recovery_rate}%</strong></div>
             </div>
+            {Number(batchResult.skipped || 0) > 0 && <div className="smart-skip-note"><strong>Smart skip protected unit economics</strong><span>{batchResult.skipped} case{batchResult.skipped === 1 ? '' : 's'} were not contacted because the expected recovery value did not justify the intervention cost. This keeps the agent bounded and net-recovery positive.</span></div>}
             <p className="modal-footnote">Backend batch metrics · Razorpay Test Mode · bounded recovery workflow.</p>
           </div>
         </div>
@@ -454,6 +483,16 @@ function App() {
                 : <div className="empty-state">No audit events yet. Seed and execute a case to populate live compliance events.</div>}
             </div>
           </aside>
+        </div>
+      )}
+
+      {shortcutsOpen && (
+        <div className="modal-backdrop" onMouseDown={() => setShortcutsOpen(false)}>
+          <div className="case-modal shortcuts-modal" onMouseDown={event => event.stopPropagation()} role="dialog" aria-label="Keyboard shortcuts">
+            <div className="modal-header"><div><div className="eyebrow">Operator controls</div><h2>Keyboard shortcuts</h2></div><button className="close-btn" onClick={() => setShortcutsOpen(false)} aria-label="Close">×</button></div>
+            <div className="shortcut-list"><div><kbd>?</kbd><span>Open this help panel</span></div><div><kbd>Esc</kbd><span>Close any open panel</span></div><div><kbd>Ctrl / ⌘ K</kbd><span>Open the full agent cockpit</span></div></div>
+            <p className="modal-footnote">Shortcuts never execute a money action. Recovery actions remain behind explicit buttons and backend policy gates.</p>
+          </div>
         </div>
       )}
     </div>

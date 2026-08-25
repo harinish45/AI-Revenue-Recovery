@@ -1,16 +1,27 @@
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
 
 async function request(path, options = {}) {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options,
-  });
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    const message = payload?.detail || payload?.error?.message || payload?.message || 'Request failed.';
-    throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+  const controller = new AbortController();
+  const timeout = window.setTimeout(() => controller.abort(), 10000);
+  try {
+    const response = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      signal: controller.signal,
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      const message = payload?.detail || payload?.error?.message || payload?.message || 'Request failed.';
+      throw new Error(typeof message === 'string' ? message : JSON.stringify(message));
+    }
+    return payload;
+  } catch (error) {
+    if (error.name === 'AbortError') throw new Error('RecoverAI backend timed out. Showing safe demo data.');
+    if (error instanceof TypeError) throw new Error('Unable to reach RecoverAI backend. Showing safe demo data.');
+    throw error;
+  } finally {
+    window.clearTimeout(timeout);
   }
-  return payload;
 }
 
 const toOpen = (s) => (String(s || '').toUpperCase() === 'PENDING' ? 'OPEN' : String(s || '').toUpperCase());
