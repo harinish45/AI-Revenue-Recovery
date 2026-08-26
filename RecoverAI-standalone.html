@@ -815,11 +815,13 @@ function execCase(id){
    toast('e','Execution failed',err.message);
    document.getElementById('eCont').hidden=false;
    return;
-  }
+ }
   var ok=res.status==='recovered';
   document.getElementById('eRes').innerHTML='<div class="res '+(ok?'ok':'bad')+'"><div class="escb '+(ok?'ok':'')+'">'+esc(pretty(res.status).toUpperCase())+'</div><div>'+esc(res.message)+(ok?' — '+fmtINR(res.recovered_amount)+' reclaimed':'')+'</div></div>';
-  toast(ok?'s':(res.status==='needs_human_review'||res.status==='blocked'?'w':'e'),pretty(res.status),res.message);
+  var titleEl=document.querySelector('#execContent .etitle');
+  if(titleEl)titleEl.textContent='Result: '+c.id;
   document.getElementById('eCont').hidden=false;
+  setTimeout(function(){var closeBtn=document.getElementById('eCont');if(closeBtn)closeBtn.focus();},50);
   refreshCasesAndAudit().then(refreshDashboard).then(softGo);
  });
 }
