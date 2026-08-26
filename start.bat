@@ -50,6 +50,9 @@ if not errorlevel 1 (
 if not exist ".env" copy .env.example .env >nul
 if not exist "backend\.env" copy .env backend\.env >nul
 
+findstr /R /C:"^RAZORPAY_KEY_ID=.+" .env >nul 2>&1
+if errorlevel 1 echo   NOTE: Razorpay keys not set in .env - running in simulated (Test Mode) demo.
+
 :launch
 echo [3/3] Starting RecoverAI on :8000 ...
 start "RecoverAI" cmd /k "cd backend && venv\Scripts\python.exe -m uvicorn app.main:app --port 8000"

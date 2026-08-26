@@ -17,7 +17,9 @@ services:
     depends_on:
       - backend
     ports:
-      - "5173:80"
+      # nginx serves the built static frontend on container port 80;
+      # exposed on host :3000 (not :5173, which is the Vite dev server port)
+      - "3000:80"
     networks:
       - recoverai
 

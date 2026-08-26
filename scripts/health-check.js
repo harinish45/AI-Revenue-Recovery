@@ -33,7 +33,7 @@ function check(url, label, timeoutMs = 3000) {
 }
 
 async function main() {
-  const appOk = await check('http://localhost:8000/', 'RecoverAI');
+  const appOk = await check('http://localhost:8000/api/health', 'RecoverAI');
   process.exit(appOk ? 0 : 1);
 }
 

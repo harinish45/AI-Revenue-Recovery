@@ -38,6 +38,10 @@ echo "[2/3] Installing backend dependencies (skipped if already present)..."
 [ -f .env ] || cp .env.example .env
 [ -f backend/.env ] || cp .env backend/.env
 
+if [ -z "$(grep -E '^RAZORPAY_KEY_ID=.+' .env 2>/dev/null)" ]; then
+    echo "  NOTE: Razorpay keys not set in .env — running in simulated (Test Mode) demo."
+fi
+
 # ---------- 3. launch ----------
 echo "[3/3] Starting RecoverAI on :8000 ..."
 (cd backend && ./venv/bin/python -m uvicorn app.main:app --port 8000) &

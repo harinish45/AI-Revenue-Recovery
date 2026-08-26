@@ -20,7 +20,7 @@ from .middleware.error_handler import (
     validation_exception_handler,
 )
 from .middleware.rate_limit import limiter
-from .routers import audit, batch, cases, dashboard, demo, execution, voice, webhooks
+from .routers import audit, batch, cases, dashboard, demo, execution, health, voice, webhooks
 
 STANDALONE_HTML_PATH = Path(__file__).resolve().parent.parent.parent / "RecoverAI-standalone.html"
 
@@ -59,6 +59,8 @@ async def security_headers(request: Request, call_next):
     logger.info(json.dumps({"request_id": request_id, "method": request.method, "path": request.url.path, "status": response.status_code, "duration_ms": round((perf_counter() - started) * 1000, 2)}))
     return response
 
+
+app.include_router(health.router, prefix="/api", tags=["Health"])
 
 app.include_router(dashboard.router, prefix="/api/dashboard", tags=["Dashboard"])
 
