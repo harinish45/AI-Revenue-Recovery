@@ -521,8 +521,8 @@ function spark(data,color){
  var pts=data.map(function(v,i){return (i/(data.length-1))*w+','+(h-((v-min)/((max-min)||1))*(h-4)-2);}).join(' ');
  return '<svg width="100%" height="'+h+'" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true"><polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="1.5" opacity=".7"/></svg>';
 }
-function safeCopy(text){if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){toast('s','Copied',text);},function(){fbCopy(text);});}else fbCopy(text);}
-function fbCopy(text){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');toast('s','Copied',text);}catch(e){toast('w','Copy failed','');}document.body.removeChild(ta);}
+function safeCopy(text){if(navigator.clipboard&&window.isSecureContext&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){toast('s','Copied',text);},function(){fbCopy(text);});}else fbCopy(text);}
+function fbCopy(text){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.top='0';ta.style.left='0';ta.style.opacity='0';ta.setAttribute('readonly','');document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,99999);try{var ok=document.execCommand('copy');if(ok)toast('s','Copied',text);else toast('w','Copy failed','');}catch(e){toast('w','Copy failed','');}document.body.removeChild(ta);}
 /* ═══ ROUTING ═══ */
 var META={overview:['Overview','Revenue at a glance'],cases:['Cases','Search, filter, execute'],batch:['Batch Run','Pipeline execution'],playbooks:['Playbooks','Autonomous strategies'],voice:['Voice Agent','Multi-language recovery'],promises:['Promises','Commitment tracking'],audit:['Audit Trail','Decision log'],settings:['Settings','Configuration']};
 function go(page){
@@ -610,12 +610,13 @@ function renderCaseBody(){
   h+='<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Case ID</th><th>Customer</th><th>Amount</th><th>Diagnosis</th><th>Risk</th><th>Compliance</th><th>Status</th><th></th></tr></thead><tbody>';
   if(list.length===0){h+='<tr><td colspan="8"><div class="empty"><h4>No cases found</h4><p>Adjust filters or seed data.</p></div></td></tr>';}
   else{list.forEach(function(c){
+   var isTerm=['recovered','blocked','needs_human_review','skipped'].indexOf(c.status)>-1||['recovered','blocked','needs_human_review','skipped'].indexOf(c.recovery_status)>-1;
    h+='<tr data-act="case-detail" data-id="'+c.id+'"><td class="mono" style="color:#4ade80">'+c.id+'</td>';
    h+='<td><div class="cust"><div class="ava">'+esc(c.customer.split(' ').map(function(w){return w[0];}).join(''))+'</div><div><b>'+esc(c.customer)+'</b><span>'+c.created+' · '+c.category.code+'</span></div></div></td>';
    h+='<td class="amt">'+fmt(c.amount)+'</td><td style="color:#9d9da6;font-size:11px">'+esc(c.category.name)+'</td>';
    h+='<td><span class="rb '+c.risk+'"><i></i>'+c.risk+'</span></td><td><span class="rb '+(c.compliance_score>=80?'low':c.compliance_score>=60?'medium':'high')+'">'+Math.round(c.compliance_score)+'% safe</span></td>';
    h+='<td><span class="sb '+c.status+'"><i></i>'+c.status+'</span></td>';
-   h+='<td>'+(c.status==='open'?'<button class="btn btn-p btn-sm" data-act="exec-case" data-id="'+c.id+'">Execute</button>':'')+'</td></tr>';});}
+   h+='<td>'+(isTerm?'<button class="btn btn-g btn-sm" disabled style="opacity:.35;cursor:not-allowed;">Done</button>':c.status==='open'?'<button class="btn btn-p btn-sm" data-act="exec-case" data-id="'+c.id+'">Execute</button>':'')+'</td></tr>';});}
   h+='</tbody></table></div>';
  }else{
   h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px">';
@@ -623,7 +624,8 @@ function renderCaseBody(){
    var items=list.filter(function(c){return c.status===col.n;});
    h+='<div style="background:var(--p1);border:1px solid var(--ln);border-radius:12px;padding:10px;min-height:200px"><div style="font-size:10px;font-weight:800;text-transform:uppercase;color:'+col.c+';padding:4px 6px 10px">'+col.n+' · '+items.length+'</div>';
    items.forEach(function(c){
-    h+='<div data-act="case-detail" data-id="'+c.id+'" style="background:var(--p2);border:1px solid var(--ln2);border-radius:8px;padding:11px;margin-bottom:9px;cursor:pointer"><div style="display:flex;justify-content:space-between"><span class="mono" style="font-size:10px;color:#4ade80">'+c.id+'</span><span class="rb '+c.risk+'">'+c.risk+'</span></div><p style="font-size:11px;color:var(--mut);margin:3px 0 8px">'+esc(c.customer)+'</p><div style="display:flex;justify-content:space-between;align-items:center"><span class="amt">'+fmt(c.amount)+'</span>'+(c.status==='open'?'<button class="btn btn-p btn-sm" data-act="exec-case" data-id="'+c.id+'">Exec</button>':'')+'</div></div>';});
+    var isTerm=['recovered','blocked','needs_human_review','skipped'].indexOf(c.status)>-1||['recovered','blocked','needs_human_review','skipped'].indexOf(c.recovery_status)>-1;
+    h+='<div data-act="case-detail" data-id="'+c.id+'" style="background:var(--p2);border:1px solid var(--ln2);border-radius:8px;padding:11px;margin-bottom:9px;cursor:pointer"><div style="display:flex;justify-content:space-between"><span class="mono" style="font-size:10px;color:#4ade80">'+c.id+'</span><span class="rb '+c.risk+'">'+c.risk+'</span></div><p style="font-size:11px;color:var(--mut);margin:3px 0 8px">'+esc(c.customer)+'</p><div style="display:flex;justify-content:space-between;align-items:center"><span class="amt">'+fmt(c.amount)+'</span>'+(isTerm?'<button class="btn btn-g btn-sm" disabled style="opacity:.35;cursor:not-allowed;">Done</button>':c.status==='open'?'<button class="btn btn-p btn-sm" data-act="exec-case" data-id="'+c.id+'">Exec</button>':'')+'</div></div>';});
    if(items.length===0)h+='<div style="text-align:center;color:#5c5c66;font-size:11px;padding:20px">No cases</div>';
    h+='</div>';});
   h+='</div>';
@@ -731,7 +733,14 @@ function renderAuditBody(){
  if(list.length===0){el.innerHTML='<div class="empty"><h4>No events</h4></div>';return;}
  el.innerHTML=list.map(function(e){return '<div class="tlev" data-act="toggle-json" data-id="'+e.id+'" style="--evc:'+e.color+'" title="Click for raw JSON"><div class="tlt"><span class="tltype">'+e.type+'</span><span class="tltime">'+e.ts+'</span></div><div class="tlreason">'+esc(e.desc)+'</div><div class="tlmeta"><span>Actor: '+esc(e.actor)+'</span> - <span>Result: <b style="color:'+(e.result==='SUCCESS'?'#4ade80':'#f87171')+'">'+e.result+'</b></span>'+(e.eventHash?'<button class="btn btn-g btn-sm" data-act="verify-audit" data-id="'+e.id+'" title="Verify chained seal">🔒 Seal</button>':'')+'</div><pre class="tljson">'+esc(JSON.stringify(e.raw,null,1))+'</pre></div>';}).join('');
 }
-function hookAudit(){renderAuditBody();var inp=document.getElementById('auditSearch');if(inp)inp.addEventListener('input',function(){S.auditSearch=inp.value;renderAuditBody();});}
+function hookAudit(){
+ Api.audit('limit=200').then(function(r){
+  S.audit=(r.items||[]).map(normalizeAuditEntry);
+  renderAuditBody();
+ }).catch(function(){});
+ renderAuditBody();
+ var inp=document.getElementById('auditSearch');if(inp)inp.addEventListener('input',function(){S.auditSearch=inp.value;renderAuditBody();});
+}
 function renderSettings(){
  var h='<div class="card"><div class="chead"><h3>Configuration</h3></div><div class="cbody" style="display:flex;flex-direction:column;gap:8px">';
  h+='<div class="swrow"><b>Voice Language</b><div style="display:flex;gap:6px;align-items:center"><select id="setLang" style="background:var(--p1);border:1px solid var(--ln2);border-radius:8px;padding:6px 8px;color:var(--tx)">';
@@ -753,8 +762,26 @@ function renderSettings(){
 /* ═══ ACTIONS — every one below hits the real backend ═══ */
 function toggleArm(){
  Api.simulateFailure().then(function(r){
-  S.armed=true;toast('w','Armed',r.message||'Next execution will escalate');
-  return refreshCasesAndAudit();
+  S.armed=true;
+  var targetCaseId=r.case_id||r.target_case_id;
+  var msg=r.message||'Next execution will escalate';
+  if(targetCaseId&&targetCaseId!=='NONE'){
+   msg+=' (Target: '+targetCaseId+')';
+  }
+  toast('w','Failure Simulation Armed',msg);
+  return refreshCasesAndAudit().then(function(){
+   if(targetCaseId&&targetCaseId!=='NONE'){
+    setTimeout(function(){
+     var row=document.querySelector('[data-id="'+targetCaseId+'"]');
+     if(row){
+      row.scrollIntoView({behavior:'smooth',block:'nearest'});
+      row.style.outline='2px solid #ef4444';
+      row.style.boxShadow='0 0 12px rgba(239,68,68,.5)';
+      setTimeout(function(){row.style.outline='';row.style.boxShadow='';},4000);
+     }
+    },150);
+   }
+  });
  }).then(function(){go(S.page);}).catch(function(err){toast('e','Failed to arm',err.message);});
 }
 function togglePause(){S.agentPaused=!S.agentPaused;toast(S.agentPaused?'w':'s',S.agentPaused?'Agent Paused':'Agent Resumed',S.agentPaused?'No new autonomous batch or playbook actions will start.':'Bounded actions may start after policy checks.');go(S.page);}
@@ -777,8 +804,9 @@ function openExec(title,apiPromiseFactory,onResult){
 function closeExec(){execSeq++;document.getElementById('execOvl').classList.remove('show');}
 function execCase(id){
  var c=S.cases.find(function(x){return x.id===id;});if(!c)return;
- if(isTerminalCase(c)){
-  toast('w','No action needed',c.id+' is already '+pretty(c.recovery_status||c.status)+'.');
+ var terminalStates=['recovered','blocked','needs_human_review','skipped'];
+ if(terminalStates.indexOf(c.status)>-1||terminalStates.indexOf(c.recovery_status)>-1){
+  toast('w','Already Processed','Case '+id+' is already '+(c.status||c.recovery_status)+'.');
   return;
  }
  openExec('Executing '+c.id,function(){return Api.execute(id);},function(err,res){
@@ -797,11 +825,12 @@ function execCase(id){
 }
 function blogPush(cls,txt){S.batchLog.push({cls:cls,txt:txt});var log=document.getElementById('batchLog');if(log){log.innerHTML+='<div class="ln '+cls+'">'+txt+'</div>';log.scrollTop=log.scrollHeight;}}
 function runBatch(){
- if(S.running)return;if(S.agentPaused){toast('w','Agent Paused','Resume the agent from the control plane before starting a batch.');return;}S.running=true;
+ if(S.running)return;if(S.agentPaused){toast('w','Agent Paused','Resume the agent from the control plane before starting a batch.');return;}
  var pending=pendingCases();
+ if(pending.length===0){toast('w','No Pending Cases','No pending cases to recover. Seed data or all cases processed.');return;}
+ S.running=true;
  S.batchLog=[];S.batchStats=null;S.batchTotal=pending.length;
  go('batch');
- if(pending.length===0){blogPush('lt','No eligible cases. Seed data first.');S.running=false;softGo();return;}
  blogPush('lt','--- Batch started: '+pending.length+' cases ---');
  Api.batch().then(function(result){
   return refreshCasesAndAudit().then(function(){return result;});
@@ -894,7 +923,9 @@ function openCaseDetail(id){
   else{h+='<div class="polnote">Max Rs.'+POLICY.maxAmount.toLocaleString('en-IN')+' - '+POLICY.maxRetries+' retries - policy is evaluated live when executed</div>';}
   if(evs.length){h+='<div style="margin-top:12px"><div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:800;letter-spacing:.1em;margin-bottom:5px">Customer timeline</div>'+evs.map(function(e){return '<div class="actrow" style="padding:7px 4px"><span class="lt">'+e.ts+'</span><span class="tag b">'+e.type+'</span><span class="ax">'+esc(e.desc)+'</span>'+(e.eventHash?'<button class="btn btn-g btn-sm" data-act="verify-audit" data-id="'+e.id+'" title="Verify tamper-evident seal">🔒</button>':'')+'</div>';}).join('')+'</div>';}
   h+='<div class="efoot">';
-  if(c.status==='open'){h+='<button class="btn btn-p" data-act="exec-case" data-id="'+c.id+'">Execute</button>';h+='<button class="btn btn-v" data-act="start-voice-from" data-id="'+c.id+'">Voice Call</button>';}
+  var isDetailTerm=['recovered','blocked','needs_human_review','skipped'].indexOf(c.status)>-1||['recovered','blocked','needs_human_review','skipped'].indexOf(c.recovery_status)>-1;
+  if(c.status==='open'&&!isDetailTerm){h+='<button class="btn btn-p" data-act="exec-case" data-id="'+c.id+'">Execute</button>';h+='<button class="btn btn-v" data-act="start-voice-from" data-id="'+c.id+'">Voice Call</button>';}
+  else if(isDetailTerm){h+='<button class="btn btn-g btn-sm" disabled style="opacity:.35;cursor:not-allowed;">Already '+pretty(c.status)+'</button>';}
   h+='<button class="btn btn-g" data-act="close-exec">Close</button></div>';
   document.getElementById('execContent').innerHTML=h;
  }).catch(function(err){
@@ -912,10 +943,17 @@ function doSeed(){
 }
 function doReset(){
  S.loading=true;renderShell();
- Api.reset().then(function(){return refreshCasesAndAudit();}).then(function(){return refreshDashboard();}).then(function(){
+ Api.reset().then(function(){
+  S.cases=[];S.audit=[];S.dashboard=null;
+  return Api.seed();
+ }).then(function(){
+  return refreshCasesAndAudit();
+ }).then(function(){
+  return refreshDashboard();
+ }).then(function(){
   cleanupVoice();S.armed=false;S.running=false;S.batchLog=[];S.batchStats=null;S.batchHistory=[];S.batchTotal=0;S.pbStats={};
   S.voiceActive=false;S.voiceCase=null;S.voiceMsgs=[];S.search='';S.auditSearch='';S.filter='all';
-  S.loading=false;updateConnBadge();toast('w','Reset','All backend data cleared');go(S.page);
+  S.loading=false;updateConnBadge();toast('s','Reset & Reseeded','Database reset and freshly seeded with demo data');go(S.page);
  }).catch(function(err){S.loading=false;toast('e','Reset failed',err.message);renderShell();});
 }
 /* ═══ VOICE AGENT ═══
@@ -1157,16 +1195,21 @@ document.addEventListener('click',function(e){
  if(e.target.closest('#eCont')){closeExec();return;}
 });
 document.addEventListener('keydown',function(e){
+ var tag=e.target&&e.target.tagName?e.target.tagName.toUpperCase():'';
+ if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT'){
+  if(e.key==='Escape'){e.target.blur();if(document.getElementById('palOvl').classList.contains('show'))closePal();else closeExec();}
+  var inp=document.getElementById('vinput');
+  if(inp&&document.activeElement===inp&&e.key==='Enter'){var v=inp.value.trim();if(v){inp.value='';voiceUserSaid(v);}}
+  return;
+ }
  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();if(document.getElementById('palOvl').classList.contains('show'))closePal();else openPal();return;}
  if(e.key==='Escape'){if(document.getElementById('palOvl').classList.contains('show'))closePal();else closeExec();return;}
+ if(e.key==='?'&&!e.metaKey&&!e.ctrlKey){openPal();return;}
  if(document.getElementById('palOvl').classList.contains('show')){
   var q=document.getElementById('palInput').value;var f=window.__PALF||palFiltered(q);
   if(e.key==='ArrowDown'){e.preventDefault();palIdx=Math.min(palIdx+1,f.length-1);renderPal(q);}
   if(e.key==='ArrowUp'){e.preventDefault();palIdx=Math.max(palIdx-1,0);renderPal(q);}
   if(e.key==='Enter'&&f[palIdx]){f[palIdx].fn();closePal();}
- }else{
-  var inp=document.getElementById('vinput');
-  if(inp&&document.activeElement===inp&&e.key==='Enter'){var v=inp.value.trim();if(v){inp.value='';voiceUserSaid(v);}}
  }
 });
 document.getElementById('palInput').addEventListener('input',function(e){palIdx=0;renderPal(e.target.value);});

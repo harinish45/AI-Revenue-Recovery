@@ -142,10 +142,21 @@ function App() {
     } catch { /* clipboard unavailable */ }
   };
 
+  const openAuditDrawer = async () => {
+    setAuditOpen(true);
+    try {
+      const a = await api.getAudit();
+      setAudit(a.items || []);
+    } catch {
+      /* retain state on failure */
+    }
+  };
+
   const execute = async item => {
-    const currentState = String(item.recovery_status || item.status || '').toLowerCase();
-    if (TERMINAL_STATES.has(currentState)) {
-      pushNotice({ type: 'warning', text: `Case ${item.id} is already ${pretty(currentState)}. No action needed.` });
+    const terminal = ['recovered', 'blocked', 'needs_human_review', 'skipped'];
+    const statusStr = String(item.status || item.recovery_status || '').toLowerCase();
+    if (terminal.includes(statusStr)) {
+      pushNotice({ type: 'warning', text: `Case #${item.id} is already ${pretty(statusStr)}.` });
       return;
     }
     if (inFlight[item.id]) return;
@@ -170,10 +181,32 @@ function App() {
 
   const seed = () => action(api.seedDemo, '100 synthetic payments seeded successfully.');
   const reset = async () => {
-    const r = await action(api.resetDemo, 'Demo database reset complete.');
-    if (r) { setFailureArmed(false); setBatchResult(null); }
+    setLoading(true);
+    try {
+      await api.resetDemo();
+      setFailureArmed(false);
+      setBatchResult(null);
+      setCases([]);
+      setAudit([]);
+      setSummary(demoSummary);
+      pushNotice({ type: 'success', text: 'Database reset. Re-seeding demo data...' });
+      await api.seedDemo();
+      await refresh();
+    } catch (e) {
+      pushNotice({ type: 'error', text: e.message });
+    } finally {
+      setLoading(false);
+    }
   };
   const batch = async () => {
+    const pendingCases = cases.filter(c => {
+      const s = String(c.status || c.recovery_status || '').toLowerCase();
+      return s === 'open' || s === 'pending';
+    });
+    if (pendingCases.length === 0) {
+      pushNotice({ type: 'warning', text: 'No pending cases to recover.' });
+      return;
+    }
     setLoading(true); setProgress(8);
     const progressTimer = setInterval(() => setProgress(previous => Math.min(92, previous + 9)), 260);
     try {
@@ -246,6 +279,7 @@ function App() {
         </div>
         <div className="top-actions">
           <span className={`connection-state ${live ? 'online' : 'demo'}`}><span />{live ? 'Backend connected' : 'Demo fallback'}</span>
+          {!live && <button className="ghost-btn" disabled={loading} onClick={refresh} title="Retry API connection">Retry Connection</button>}
           <button className="ghost-btn shortcut-btn" onClick={() => setShortcutsOpen(true)} title="Keyboard shortcuts">? Shortcuts</button>
           <button className="ghost-btn" disabled={loading} onClick={seed}>Seed Data</button>
           <button className="ghost-btn" disabled={loading} onClick={reset}>Reset</button>
@@ -292,7 +326,7 @@ function App() {
             <button className={`failure-btn ${failureArmed ? 'armed' : ''}`} disabled={loading || failureArmed || !live} onClick={arm}>
               {failureArmed ? '⚠ Failure Armed — Next Execute Will Escalate' : '⚠ Arm Failure Simulation'}
             </button>
-            <button className="audit-btn" onClick={() => setAuditOpen(true)}>View Compliance Audit</button>
+            <button className="audit-btn" onClick={openAuditDrawer}>View Compliance Audit</button>
             <a className="audit-btn" href="/" title="Open the full multilingual agent cockpit">Open Full Agent Cockpit</a>
           </div>
           {progress > 0 && <div className="batch-progress" aria-label={`Batch progress ${progress}%`}><span style={{ width: `${progress}%` }} /><small>{progress >= 100 ? 'Recovery complete' : `Agent processing ${progress}%`}</small></div>}
@@ -347,25 +381,35 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(item => (
-                  <tr key={item.id}>
-                    <td><strong>#{item.id}</strong></td>
-                    <td>{item.customer?.name || item.customer_name || item.payment?.customer_name || 'Customer'}</td>
-                    <td className="muted">{item.payment_id}</td>
-                    <td className="amount">{money(item.amount ?? item.payment?.amount)}</td>
-                    <td><RiskBadge risk={item.risk_level} /></td>
-                    <td><span className={`status-badge ${Number(item.compliance_score) >= 80 ? 'recovered' : 'pending'}`}>{Math.round(item.compliance_score || 0)}% safe</span></td>
-                    <td className="muted">{item.next_retry_at ? new Date(item.next_retry_at).toLocaleString() : '—'}</td>
-                    <td className="diagnosis">{item.diagnosis || item.failure_reason || item.payment?.failure_reason || 'Payment failure detected'}</td>
-                    <td>{pretty(item.recommended_action)}</td>
-                    <td><Badge status={item.status} /></td>
-                    <td>
-                      {String(item.status).toUpperCase() === 'OPEN' && live
-                        ? <button className={`execute-btn ${loading ? 'is-busy' : ''}`} disabled={loading} onClick={() => execute(item)}>{loading ? 'Executing…' : 'Execute'}</button>
-                        : <button className="details-btn" onClick={() => setSelected(item)}>Details</button>}
-                    </td>
-                  </tr>
-                ))}
+                {filtered.map(item => {
+                  const itemStatus = String(item.status || item.recovery_status || '').toLowerCase();
+                  const isTerm = ['recovered', 'blocked', 'needs_human_review', 'skipped'].includes(itemStatus);
+                  return (
+                    <tr key={item.id}>
+                      <td><strong>#{item.id}</strong></td>
+                      <td>{item.customer?.name || item.customer_name || item.payment?.customer_name || 'Customer'}</td>
+                      <td className="muted">{item.payment_id}</td>
+                      <td className="amount">{money(item.amount ?? item.payment?.amount)}</td>
+                      <td><RiskBadge risk={item.risk_level} /></td>
+                      <td><span className={`status-badge ${Number(item.compliance_score) >= 80 ? 'recovered' : 'pending'}`}>{Math.round(item.compliance_score || 0)}% safe</span></td>
+                      <td className="muted">{item.next_retry_at ? new Date(item.next_retry_at).toLocaleString() : '—'}</td>
+                      <td className="diagnosis">{item.diagnosis || item.failure_reason || item.payment?.failure_reason || 'Payment failure detected'}</td>
+                      <td>{pretty(item.recommended_action)}</td>
+                      <td><Badge status={item.status} /></td>
+                      <td>
+                        {isTerm ? (
+                          <button className="execute-btn" disabled style={{ opacity: 0.35, cursor: 'not-allowed' }}>Done</button>
+                        ) : String(item.status).toUpperCase() === 'OPEN' && live ? (
+                          <button className={`execute-btn ${loading ? 'is-busy' : ''}`} disabled={loading} onClick={() => execute(item)}>
+                            {loading && inFlight[item.id] ? 'Executing…' : 'Execute'}
+                          </button>
+                        ) : (
+                          <button className="details-btn" onClick={() => setSelected(item)}>Details</button>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
             {filtered.length === 0 && <div className="empty-state">No recovery cases match your search.</div>}

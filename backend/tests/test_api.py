@@ -140,3 +140,25 @@ def test_webhook_ingestion_is_audited(client: TestClient):
     response = client.post("/api/webhooks/razorpay", json={"id": "wh_demo_1", "event": "payment.failed"})
     assert response.status_code == 200
     assert response.json()["accepted"] is True
+
+
+def test_voice_event_rejected_on_terminal_case(client: TestClient):
+    client.post("/api/demo/seed")
+    cases = client.get("/api/cases", params={"limit": 100}).json()["items"]
+    open_case = cases[0]
+    client.post(
+        "/api/execution/execute",
+        json={"case_id": open_case["id"]},
+        headers={"Idempotency-Key": f"qa-voice-term-{open_case['id']}"},
+    )
+    response = client.post(
+        f"/api/cases/{open_case['id']}/voice-events",
+        json={"event_type": "voice_promise_captured", "consent_confirmed": True, "intent": "PROMISE_TO_PAY"},
+    )
+    assert response.status_code == 409
+    body = response.json()
+    msg = body.get("error", {}).get("message", "") or body.get("detail", "")
+    assert "already" in msg.lower()
+
+
+

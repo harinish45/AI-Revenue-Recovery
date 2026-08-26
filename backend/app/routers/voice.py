@@ -7,6 +7,7 @@ from ..middleware.rate_limit import limiter
 from ..models import RecoveryCase
 from ..schemas import VoiceEventRequest, VoiceEventResponse
 from ..services.audit_service import log_event
+from ..services.policy_engine import TERMINAL_STATES
 
 router = APIRouter()
 
@@ -19,6 +20,12 @@ def record_voice_event(
     case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
+
+    if case.recovery_status in TERMINAL_STATES:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Case is already {case.recovery_status}. Voice events not accepted.",
+        )
 
     if body.event_type == "voice_promise_captured" and body.consent_confirmed is False:
         raise HTTPException(status_code=400, detail="A payment promise requires explicit confirmation")

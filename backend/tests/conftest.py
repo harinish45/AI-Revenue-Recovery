@@ -30,6 +30,7 @@ def db_session():
 @pytest.fixture()
 def client():
     Base.metadata.create_all(bind=engine)
+    app.state.limiter.enabled = False
 
     def override_get_db():
         db = TestingSessionLocal()
@@ -44,3 +45,5 @@ def client():
 
     app.dependency_overrides.clear()
     Base.metadata.drop_all(bind=engine)
+    app.state.limiter.enabled = True
+
