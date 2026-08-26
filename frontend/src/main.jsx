@@ -18,6 +18,7 @@ const demoCases = [
 ];
 
 const RISKS = ['all', 'LOW', 'MEDIUM', 'HIGH'];
+const TERMINAL_STATES = new Set(['recovered', 'blocked', 'needs_human_review', 'skipped']);
 
 /* ---------- small components ---------- */
 function Badge({ status }) {
@@ -142,6 +143,11 @@ function App() {
   };
 
   const execute = async item => {
+    const currentState = String(item.recovery_status || item.status || '').toLowerCase();
+    if (TERMINAL_STATES.has(currentState)) {
+      pushNotice({ type: 'warning', text: `Case ${item.id} is already ${pretty(currentState)}. No action needed.` });
+      return;
+    }
     if (inFlight[item.id]) return;
     setInFlight(previous => ({ ...previous, [item.id]: true })); setLoading(true);
     try {

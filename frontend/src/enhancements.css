@@ -58,6 +58,7 @@
 .audit-event > i, .lifecycle-timeline i { position: absolute; left: -6px; top: 15px; width: 10px; height: 10px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px #090f19; }
 .audit-event.positive > i { background: var(--green); }.audit-event.negative > i { background: var(--red); }.audit-event.warning > i { background: var(--amber); }
 .audit-event > div { display: grid; gap: 4px; }.audit-event strong { color: var(--text-strong); font-size: 11px; }.audit-event span,.audit-event small { color: var(--text-faint); font-size: 9px; }.audit-event em { color: var(--green); font-size: 9px; font-style: normal; }
+.execute-btn:disabled { opacity: .35; cursor: not-allowed; border-color: #2c3850; background: #0c121e; color: #627088; }
 .lifecycle-timeline { position: relative; margin: 0 22px 18px 28px; border-left: 2px solid #26334b; }
 .lifecycle-timeline > div { position: relative; display: grid; gap: 3px; padding: 0 0 13px 18px; }.lifecycle-timeline > div i { top: 3px; }.lifecycle-timeline strong { color: var(--text-strong); font-size: 10px; }.lifecycle-timeline span,.lifecycle-timeline small { color: var(--text-faint); font-size: 9px; }.lifecycle-timeline > p { color: var(--text-faint); font-size: 10px; padding-left: 18px; }
 .error-state { min-height: 100vh; display: grid; place-content: center; gap: 10px; padding: 30px; text-align: center; color: var(--text-muted); }.error-state h2 { color: var(--text-strong); }

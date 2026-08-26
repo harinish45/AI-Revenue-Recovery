@@ -283,6 +283,8 @@ auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],bat
 /* Mirrors backend/app/config.py Settings exactly — not editable here, this
    panel just displays what the server actually enforces. */
 var POLICY={maxAmount:50000,maxRetries:2,rateExecute:'20/minute',rateDemo:'10/minute'};
+var TERMINAL_STATES=['recovered','blocked','needs_human_review','skipped'];
+function isTerminalCase(c){return !!c&&TERMINAL_STATES.indexOf(String(c.recovery_status||c.status||'').toLowerCase())!==-1;}
 function fmtINR(n){return 'Rs.'+Math.round(n).toLocaleString('en-IN');}
 function fmt(n){if(n>=100000)return 'Rs.'+(n/100000).toFixed(1)+'L';if(n>=1000)return 'Rs.'+(n/1000).toFixed(1)+'K';return 'Rs.'+Math.round(n).toLocaleString('en-IN');}
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
@@ -775,6 +777,10 @@ function openExec(title,apiPromiseFactory,onResult){
 function closeExec(){execSeq++;document.getElementById('execOvl').classList.remove('show');}
 function execCase(id){
  var c=S.cases.find(function(x){return x.id===id;});if(!c)return;
+ if(isTerminalCase(c)){
+  toast('w','No action needed',c.id+' is already '+pretty(c.recovery_status||c.status)+'.');
+  return;
+ }
  openExec('Executing '+c.id,function(){return Api.execute(id);},function(err,res){
   if(err){
    document.getElementById('eRes').innerHTML='<div class="res bad"><div class="escb">FAILED</div><div>'+esc(err.message)+'</div></div>';
@@ -833,6 +839,7 @@ function runPlaybook(id){
   var results=[];
   function runOne(i){
    if(i>=eligible.length)return Promise.resolve(results);
+   if(isTerminalCase(eligible[i])){results.push({case:eligible[i],result:{status:'skipped',message:'Terminal case was not re-executed.'}});return runOne(i+1);}
    return Api.execute(eligible[i].id).then(function(r){results.push({case:eligible[i],result:r});return runOne(i+1);}).catch(function(e){results.push({case:eligible[i],result:{status:'error',message:e.message}});return runOne(i+1);});
   }
   return runOne(0).then(function(){return refreshCasesAndAudit().then(function(){return results;});});
@@ -859,6 +866,7 @@ function runAll(){
   if(eligible.length===0){next(i+1);return;}
   function runOne(j){
    if(j>=eligible.length)return Promise.resolve();
+   if(isTerminalCase(eligible[j]))return runOne(j+1);
    return Api.execute(eligible[j].id).catch(function(){return null;}).then(function(){return runOne(j+1);});
   }
   runOne(0).then(function(){return refreshCasesAndAudit();}).then(function(){next(i+1);softGo();});
