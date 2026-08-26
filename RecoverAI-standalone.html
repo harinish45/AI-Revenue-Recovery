@@ -805,7 +805,7 @@ function closeExec(){execSeq++;document.getElementById('execOvl').classList.remo
 function execCase(id){
  var c=S.cases.find(function(x){return x.id===id;});if(!c)return;
  var terminalStates=['recovered','blocked','needs_human_review','skipped'];
- if(terminalStates.indexOf(c.status)>-1||terminalStates.indexOf(c.recovery_status)>-1){
+ if(terminalStates.indexOf(String(c.status||'').toLowerCase())>-1||terminalStates.indexOf(String(c.recovery_status||'').toLowerCase())>-1){
   toast('w','Already Processed','Case '+id+' is already '+(c.status||c.recovery_status)+'.');
   return;
  }

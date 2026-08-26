@@ -21,10 +21,11 @@ def record_voice_event(
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
 
-    if case.recovery_status in TERMINAL_STATES:
+    TERMINAL_STATES = {"recovered", "blocked", "needs_human_review", "skipped"}
+    if str(case.recovery_status or "").lower() in TERMINAL_STATES:
         raise HTTPException(
             status_code=409,
-            detail=f"Case is already {case.recovery_status}. Voice events not accepted.",
+            detail=f"Case is already {case.recovery_status}",
         )
 
     if body.event_type == "voice_promise_captured" and body.consent_confirmed is False:
