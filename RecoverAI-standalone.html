@@ -1115,10 +1115,9 @@ function endCall(outcome,lastUtterance){
    return refreshCasesAndAudit();
   }).then(function(){
    refreshDashboard();softGo();
-  }).catch(function(err){console.warn('voice event not recorded',err);});
+  }).catch(function(err){console.warn('voice event not recorded',err);toast('e','Call not saved','The call ended, but its outcome could not be written to the audit trail.');});
   toast(isPromise?'s':outcome==='SOFT_REFUSAL'?'w':'i','Call Ended',oc[outcome]||outcome.replace(/_/g,' '));
  }
- go('voice');
 }
 function cleanupVoice(){if(window.speechSynthesis){try{speechSynthesis.cancel();}catch(e){}}if(recog){try{recog.stop();}catch(e){}}if(S.voiceTimer){clearInterval(S.voiceTimer);S.voiceTimer=null;}}
 /* ═══ PALETTE ═══ */
@@ -1222,7 +1221,7 @@ document.addEventListener('keydown',function(e){
  }
 });
 document.getElementById('palInput').addEventListener('input',function(e){palIdx=0;renderPal(e.target.value);});
-document.addEventListener('change',function(e){if(e.target.id==='setLang'){S.voiceLang=e.target.value;toast('i','Language',VOICE_BRAIN[S.voiceLang].name);if(S.page==='settings')go('settings');}if(e.target.id==='voiceConsent'){S.voiceConsent=e.target.checked;softGo();}if(e.target.id==='caseRiskFilter'){S.filter=e.target.value;renderCaseBody();}if(e.target.id==='caseStatusFilter'){S.statusFilter=e.target.value;renderCaseBody();}});
+document.addEventListener('change',function(e){if(e.target.id==='setLang'){S.voiceLang=e.target.value;toast('i','Language',VOICE_BRAIN[S.voiceLang].name);if(S.page==='settings')go('settings');}if(e.target.id==='voiceConsent'){S.voiceConsent=e.target.checked;toast(S.voiceConsent?'s':'w','Consent gate',S.voiceConsent?'Consent recorded for this test call.':'Consent cleared — call start is locked.');softGo();}if(e.target.id==='caseRiskFilter'){S.filter=e.target.value;renderCaseBody();}if(e.target.id==='caseStatusFilter'){S.statusFilter=e.target.value;renderCaseBody();}});
 /* ═══ INIT ══ */
 loadInitialData();
 </script>
