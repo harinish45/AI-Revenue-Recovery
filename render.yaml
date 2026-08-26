@@ -1,15 +1,21 @@
-# This single service serves both the API and the app UI (RecoverAI-standalone.html, at "/").
+# Render Blueprint configuration for RecoverAI
+# Serves both the FastAPI backend and the standalone web dashboard at "/"
 services:
   - type: web
     name: recoverai
     runtime: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
-    rootDir: backend
+    plan: free
+    buildCommand: "pip install -r backend/requirements.txt"
+    startCommand: "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: "/api/health"
     envVars:
       - key: DATABASE_URL
         value: sqlite:///./recoverai.db
       - key: APP_ENV
         value: production
+      - key: RAZORPAY_SIMULATE
+        value: "true"
       - key: CORS_ORIGINS
         value: '["*"]'
+      - key: PYTHON_VERSION
+        value: 3.11.9

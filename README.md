@@ -1,6 +1,8 @@
 # RecoverAI
 
-AI-powered revenue recovery for Razorpay Test Mode.
+> 🚀 **Live Demo:** [https://ai-revenue-recovery.onrender.com](https://ai-revenue-recovery.onrender.com) &nbsp;|&nbsp; [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/harinish45/AI-Revenue-Recovery)
+
+AI-powered revenue recovery for Razorpay Test Mode. Deterministic policy gating, multi-language voice agent, cryptographically chained audit seals, and real-time revenue analytics.
 
 ## Hackathon Track
 
@@ -58,6 +60,19 @@ docker-compose up --build
 ```
 
 Open `http://localhost:8000` after the backend reports that it is listening.
+
+**☁️ Deploy Live to Render (1-Click):**
+
+Click the button below to deploy your own live instance instantly using the included [`render.yaml`](render.yaml) Blueprint:
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/harinish45/AI-Revenue-Recovery)
+
+*Manual Render Setup:*
+1. In the [Render Dashboard](https://dashboard.render.com), click **New +** → **Web Service**.
+2. Connect repository `harinish45/AI-Revenue-Recovery`.
+3. Set **Runtime** to `Python 3`, **Build Command** to `pip install -r backend/requirements.txt`, and **Start Command** to `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
+4. Add Environment Variable: `RAZORPAY_SIMULATE=true` and `APP_ENV=production`.
+5. Click **Create Web Service**. Your live demo will be up at `https://<service-name>.onrender.com`.
 
 ## Architecture
 

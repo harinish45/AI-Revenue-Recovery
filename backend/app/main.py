@@ -22,7 +22,20 @@ from .middleware.error_handler import (
 from .middleware.rate_limit import limiter
 from .routers import audit, batch, cases, dashboard, demo, execution, health, voice, webhooks
 
-STANDALONE_HTML_PATH = Path(__file__).resolve().parent.parent.parent / "RecoverAI-standalone.html"
+def _resolve_standalone_html_path() -> Path:
+    candidates = [
+        Path(__file__).resolve().parent.parent.parent / "RecoverAI-standalone.html",
+        Path(__file__).resolve().parent.parent / "RecoverAI-standalone.html",
+        Path.cwd() / "RecoverAI-standalone.html",
+        Path.cwd().parent / "RecoverAI-standalone.html",
+    ]
+    for candidate in candidates:
+        if candidate.is_file():
+            return candidate
+    return candidates[0]
+
+
+STANDALONE_HTML_PATH = _resolve_standalone_html_path()
 
 Base.metadata.create_all(bind=engine)
 
