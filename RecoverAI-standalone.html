@@ -99,7 +99,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .rb.low{background:rgba(34,197,94,.1);color:var(--grn2)}.rb.medium{background:rgba(245,158,11,.1);color:var(--amb2)}.rb.high{background:rgba(239,68,68,.1);color:var(--red2)}
 .sb.open{background:rgba(59,130,246,.1);color:var(--blu2)}.sb.recovered{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.escalated{background:rgba(239,68,68,.12);color:var(--red2)}.sb.skipped{background:rgba(245,158,11,.1);color:var(--amb2)}.sb.closed{background:rgba(255,255,255,.05);color:var(--mut)}.sb.pending{background:rgba(245,158,11,.1);color:var(--amb2)}.sb.fulfilled{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.broken{background:rgba(239,68,68,.1);color:var(--red2)}
 .toolbar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--ln);flex-wrap:wrap}
-.filter-group{display:flex;align-items:center;gap:5px;flex-wrap:wrap}.filter-label{font-size:9px;color:var(--dim);font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-right:2px}
+.filter-group{display:flex;align-items:center;gap:6px}.filter-label{font-size:9px;color:var(--dim);font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-right:1px}.filter-select{display:flex;align-items:center;gap:6px}.filter-select select{min-width:106px;padding:7px 25px 7px 9px;border:1px solid var(--ln2);border-radius:8px;background:var(--p2);color:var(--tx);font-size:11px;font-weight:700;cursor:pointer}.filter-select select:focus{outline:2px solid var(--grn);outline-offset:1px}
 .srch{flex:1;max-width:280px;min-width:140px}
 .srch input{width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--ln2);background:var(--p1);font-size:12px;color:var(--tx)}
 .srch input:focus{outline:none;border-color:var(--grn)}
@@ -594,10 +594,11 @@ function renderGovernance(){
  return '<div class="card" style="border-color:'+(paused?'rgba(245,158,11,.35)':'rgba(34,197,94,.22)')+'"><div class="chead"><h3>Agent Control Plane</h3><span class="hint">operator safety boundary</span></div><div class="cbody" style="display:grid;grid-template-columns:1.3fr 1fr;gap:12px;align-items:center"><div><b style="color:'+(paused?'#fbbf24':'#4ade80')+'">'+(paused?'PAUSED · no new autonomous actions':'ARMED · bounded autonomous mode')+'</b><p style="font-size:11px;color:var(--mut);margin-top:3px">'+(paused?'Resume only after an operator reviews the queue.':'Every action remains policy-gated, idempotent, rate-limited and auditable.')+'</p></div><div style="display:flex;justify-content:flex-end;gap:7px;flex-wrap:wrap"><button class="btn '+(paused?'btn-p':'btn-r')+' btn-sm" data-act="toggle-pause">'+(paused?'Resume Agent':'Pause Agent')+'</button><button class="btn btn-g btn-sm" data-act="go" data-pg="settings">Readiness</button></div></div></div>';
 }
 function renderCases(){
- var h='<div class="card"><div class="toolbar"><div class="srch"><input id="caseSearch" placeholder="Search cases..." value="'+esc(S.search)+'" aria-label="Search cases"></div><div class="filter-group"><span class="filter-label">Risk</span>';
- ['all','low','medium','high'].forEach(function(r){h+='<button class="chip '+(S.filter===r?'on':'')+'" data-act="filter" data-risk="'+r+'">'+r+'</button>';});
- h+='</div><div class="filter-group"><span class="filter-label">Status</span>';
- [['all','all'],['open','open'],['recovered','recovered'],['escalated','human review'],['skipped','skipped']].forEach(function(s){h+='<button class="chip '+(S.statusFilter===s[0]?'on':'')+'" data-act="status-filter" data-status="'+s[0]+'">'+s[1]+'</button>';});
+ var h='<div class="card"><div class="toolbar"><div class="srch"><input id="caseSearch" placeholder="Search cases..." value="'+esc(S.search)+'" aria-label="Search cases"></div><label class="filter-select"><span class="filter-label">Risk</span><select id="caseRiskFilter" aria-label="Filter by risk">';
+ [['all','All risks'],['low','Low'],['medium','Medium'],['high','High']].forEach(function(r){h+='<option value="'+r[0]+'" '+(S.filter===r[0]?'selected':'')+'>'+r[1]+'</option>';});
+ h+='</select></label><label class="filter-select"><span class="filter-label">Status</span><select id="caseStatusFilter" aria-label="Filter by status">';
+ [['all','All statuses'],['open','Open'],['recovered','Recovered'],['escalated','Human review'],['skipped','Skipped']].forEach(function(s){h+='<option value="'+s[0]+'" '+(S.statusFilter===s[0]?'selected':'')+'>'+s[1]+'</option>';});
+ h+='</select></label>';
  h+='</div><div class="vtog" style="margin-left:auto"><button class="'+(S.caseView==='table'?'on':'')+'" data-act="set-view" data-view="table">Table</button><button class="'+(S.caseView==='kanban'?'on':'')+'" data-act="set-view" data-view="kanban">Board</button></div></div>';
  h+='<div id="caseBody"></div></div>';
  return h;
@@ -1221,7 +1222,7 @@ document.addEventListener('keydown',function(e){
  }
 });
 document.getElementById('palInput').addEventListener('input',function(e){palIdx=0;renderPal(e.target.value);});
-document.addEventListener('change',function(e){if(e.target.id==='setLang'){S.voiceLang=e.target.value;toast('i','Language',VOICE_BRAIN[S.voiceLang].name);if(S.page==='settings')go('settings');}if(e.target.id==='voiceConsent'){S.voiceConsent=e.target.checked;softGo();}});
+document.addEventListener('change',function(e){if(e.target.id==='setLang'){S.voiceLang=e.target.value;toast('i','Language',VOICE_BRAIN[S.voiceLang].name);if(S.page==='settings')go('settings');}if(e.target.id==='voiceConsent'){S.voiceConsent=e.target.checked;softGo();}if(e.target.id==='caseRiskFilter'){S.filter=e.target.value;renderCaseBody();}if(e.target.id==='caseStatusFilter'){S.statusFilter=e.target.value;renderCaseBody();}});
 /* ═══ INIT ══ */
 loadInitialData();
 </script>
