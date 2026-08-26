@@ -99,6 +99,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .rb.low{background:rgba(34,197,94,.1);color:var(--grn2)}.rb.medium{background:rgba(245,158,11,.1);color:var(--amb2)}.rb.high{background:rgba(239,68,68,.1);color:var(--red2)}
 .sb.open{background:rgba(59,130,246,.1);color:var(--blu2)}.sb.recovered{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.escalated{background:rgba(239,68,68,.12);color:var(--red2)}.sb.skipped{background:rgba(245,158,11,.1);color:var(--amb2)}.sb.closed{background:rgba(255,255,255,.05);color:var(--mut)}.sb.pending{background:rgba(245,158,11,.1);color:var(--amb2)}.sb.fulfilled{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.broken{background:rgba(239,68,68,.1);color:var(--red2)}
 .toolbar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--ln);flex-wrap:wrap}
+.filter-group{display:flex;align-items:center;gap:5px;flex-wrap:wrap}.filter-label{font-size:9px;color:var(--dim);font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-right:2px}
 .srch{flex:1;max-width:280px;min-width:140px}
 .srch input{width:100%;padding:7px 10px;border-radius:8px;border:1px solid var(--ln2);background:var(--p1);font-size:12px;color:var(--tx)}
 .srch input:focus{outline:none;border-color:var(--grn)}
@@ -277,7 +278,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
    S.cases / S.audit are always the real backend rows (normalized onto the
    field names the render*() functions below expect). Nothing here is
    client-generated — see Api + normalizeCase/normalizeAuditEntry. */
-var S={page:'overview',cases:[],audit:[],dashboard:null,live:false,loading:true,loadError:null,armed:false,running:false,filter:'all',search:'',caseView:'table',
+var S={page:'overview',cases:[],audit:[],dashboard:null,live:false,loading:true,loadError:null,armed:false,running:false,filter:'all',statusFilter:'all',search:'',caseView:'table',
 voiceCase:null,voiceLang:'hi-IN',voiceActive:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceTimer:null,voiceStartTime:0,voiceConsent:false,voiceConfidence:0,voiceIntent:'DISCOVERY',voiceVoiceName:'Browser voice',voiceTurn:0,
 auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,agentPaused:false,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
 /* Mirrors backend/app/config.py Settings exactly — not editable here, this
@@ -582,7 +583,7 @@ function renderOverview(){
  h+='</div><div class="glist"><div>Max autonomous: Rs.'+POLICY.maxAmount.toLocaleString('en-IN')+'</div><div>Max '+POLICY.maxRetries+' retries (stopping rule)</div><div>Rate limit: '+POLICY.rateExecute+' on execute</div><div>Idempotency-Key supported on execute</div></div></div></div>';
  h+='</div>';
  var escalated=S.cases.filter(function(c){return c.status==='escalated';}).slice(0,4);
- h+='<div class="card"><div class="chead"><h3>Escalation Inbox</h3><span class="hint">human-in-the-loop queue · '+escN+' open</span></div>';
+ h+='<div class="card"><div class="chead"><h3>Human Review</h3><span class="hint">'+escN+' cases need attention</span><button class="btn btn-g btn-sm" style="margin-left:8px" data-act="status-filter" data-status="escalated">View cases</button></div>';
  if(!escalated.length)h+='<div class="empty" style="padding:22px"><h4>Queue clear</h4><p>High-risk or policy-blocked cases appear here for review.</p></div>';
  else escalated.forEach(function(c){h+='<div class="actrow"><span class="tag r">REVIEW</span><span class="mono" style="color:#f87171;font-size:10px">'+c.id+'</span><span class="ax"><b>'+esc(c.customer)+'</b> · '+esc(c.category.name)+' · '+fmt(c.amount)+'</span><button class="btn btn-g btn-sm" data-act="case-detail" data-id="'+c.id+'">Inspect</button></div>';});
  h+='</div>';
@@ -593,14 +594,17 @@ function renderGovernance(){
  return '<div class="card" style="border-color:'+(paused?'rgba(245,158,11,.35)':'rgba(34,197,94,.22)')+'"><div class="chead"><h3>Agent Control Plane</h3><span class="hint">operator safety boundary</span></div><div class="cbody" style="display:grid;grid-template-columns:1.3fr 1fr;gap:12px;align-items:center"><div><b style="color:'+(paused?'#fbbf24':'#4ade80')+'">'+(paused?'PAUSED · no new autonomous actions':'ARMED · bounded autonomous mode')+'</b><p style="font-size:11px;color:var(--mut);margin-top:3px">'+(paused?'Resume only after an operator reviews the queue.':'Every action remains policy-gated, idempotent, rate-limited and auditable.')+'</p></div><div style="display:flex;justify-content:flex-end;gap:7px;flex-wrap:wrap"><button class="btn '+(paused?'btn-p':'btn-r')+' btn-sm" data-act="toggle-pause">'+(paused?'Resume Agent':'Pause Agent')+'</button><button class="btn btn-g btn-sm" data-act="go" data-pg="settings">Readiness</button></div></div></div>';
 }
 function renderCases(){
- var h='<div class="card"><div class="toolbar"><div class="srch"><input id="caseSearch" placeholder="Search cases..." value="'+esc(S.search)+'" aria-label="Search cases"></div><div style="display:flex;gap:5px">';
+ var h='<div class="card"><div class="toolbar"><div class="srch"><input id="caseSearch" placeholder="Search cases..." value="'+esc(S.search)+'" aria-label="Search cases"></div><div class="filter-group"><span class="filter-label">Risk</span>';
  ['all','low','medium','high'].forEach(function(r){h+='<button class="chip '+(S.filter===r?'on':'')+'" data-act="filter" data-risk="'+r+'">'+r+'</button>';});
+ h+='</div><div class="filter-group"><span class="filter-label">Status</span>';
+ [['all','all'],['open','open'],['recovered','recovered'],['escalated','human review'],['skipped','skipped']].forEach(function(s){h+='<button class="chip '+(S.statusFilter===s[0]?'on':'')+'" data-act="status-filter" data-status="'+s[0]+'">'+s[1]+'</button>';});
  h+='</div><div class="vtog" style="margin-left:auto"><button class="'+(S.caseView==='table'?'on':'')+'" data-act="set-view" data-view="table">Table</button><button class="'+(S.caseView==='kanban'?'on':'')+'" data-act="set-view" data-view="kanban">Board</button></div></div>';
  h+='<div id="caseBody"></div></div>';
  return h;
 }
 function caseList(){return S.cases.filter(function(c){
  if(S.filter!=='all'&&c.risk!==S.filter)return false;
+ if(S.statusFilter!=='all'&&c.status!==S.statusFilter)return false;
  if(S.search){var q=S.search.toLowerCase();if(c.customer.toLowerCase().indexOf(q)===-1&&c.id.toLowerCase().indexOf(q)===-1&&c.category.name.toLowerCase().indexOf(q)===-1)return false;}
  return true;}).sort(function(a,b){return b.amount-a.amount;});}
 function renderCaseBody(){
@@ -917,13 +921,13 @@ function openCaseDetail(id){
   h+='<div class="grid2"><div class="dcell"><span>Diagnosis</span><b>'+esc(c.category.name)+'</b></div><div class="dcell"><span>Action</span><b style="color:#4ade80">'+esc(c.action)+'</b></div></div>';
   h+='<div class="grid2" style="margin-top:10px"><div class="dcell"><span>Retries</span><b>'+c.attempts+' / '+c.maxAttempts+'</b><small style="display:block;color:var(--dim);font-size:10px">'+(detail.next_retry_at?'Next retry '+relTime(detail.next_retry_at):'No retry scheduled')+'</small></div><div class="dcell"><span>Compliance</span><b style="color:'+(detail.compliance_score>=80?'#4ade80':detail.compliance_score>=60?'#fbbf24':'#f87171')+'">'+Math.round(detail.compliance_score)+'% policy-safe</b><small style="display:block;color:var(--dim);font-size:10px">Stopping rules and action allowlist</small></div></div>';
   h+='<div class="grid2" style="margin-top:10px"><div class="dcell"><span>Transaction</span><b class="mono" style="font-size:10px;cursor:pointer" data-act="copy-txn" data-text="'+c.txn+'" title="Copy txn">'+c.txn+' ⧉</b></div><div class="dcell"><span>Diagnosis mode</span><b>'+esc(evidence.diagnosis_mode||'deterministic_fallback')+'</b></div></div>';
-  h+='<div class="diag"><h4>AI Analysis</h4><p style="font-size:12px;color:#9d9da6">'+esc(detail.reason||c.category.name)+'</p>';
+  h+='<div class="diag"><h4>Why this case is here</h4><p style="font-size:12px;color:#9d9da6">'+esc(detail.reason||c.category.name)+'</p>';
   if(evidence.success_rate_percent!=null){h+='<div class="conf"><span>Customer success rate</span><div class="meter"><i style="width:'+evidence.success_rate_percent+'%;background:'+(evidence.success_rate_percent>70?'#22c55e':'#f59e0b')+'"></i></div><span class="mono">'+evidence.success_rate_percent+'%</span></div>';}
   h+='</div>';
   var checks=detail.policy_checks&&Object.keys(detail.policy_checks).length?detail.policy_checks:null;
   if(checks){var passed=Object.values(checks).every(Boolean);h+='<div class="polnote">Policy checks ('+(passed?'passed':'blocked')+'): '+Object.keys(checks).map(function(k){return pretty(k)+'='+(checks[k]?'OK':'FAIL');}).join(', ')+'</div>';}
   else{h+='<div class="polnote">Max Rs.'+POLICY.maxAmount.toLocaleString('en-IN')+' - '+POLICY.maxRetries+' retries - policy is evaluated live when executed</div>';}
-  if(evs.length){h+='<div style="margin-top:12px"><div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:800;letter-spacing:.1em;margin-bottom:5px">Customer timeline</div>'+evs.map(function(e){return '<div class="actrow" style="padding:7px 4px"><span class="lt">'+e.ts+'</span><span class="tag b">'+e.type+'</span><span class="ax">'+esc(e.desc)+'</span>'+(e.eventHash?'<button class="btn btn-g btn-sm" data-act="verify-audit" data-id="'+e.id+'" title="Verify tamper-evident seal">🔒</button>':'')+'</div>';}).join('')+'</div>';}
+  if(evs.length){h+='<div style="margin-top:12px"><div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:800;letter-spacing:.1em;margin-bottom:5px">Recent activity</div>'+evs.map(function(e){return '<div class="actrow" style="padding:7px 4px"><span class="lt">'+e.ts+'</span><span class="tag b">'+e.type+'</span><span class="ax">'+esc(e.desc)+'</span>'+(e.eventHash?'<button class="btn btn-g btn-sm" data-act="verify-audit" data-id="'+e.id+'" title="Verify tamper-evident seal">🔒</button>':'')+'</div>';}).join('')+'</div>';}
   h+='<div class="efoot">';
   var isDetailTerm=['recovered','blocked','needs_human_review','skipped'].indexOf(c.status)>-1||['recovered','blocked','needs_human_review','skipped'].indexOf(c.recovery_status)>-1;
   if(c.status==='open'&&!isDetailTerm){h+='<button class="btn btn-p" data-act="exec-case" data-id="'+c.id+'">Execute</button>';h+='<button class="btn btn-v" data-act="start-voice-from" data-id="'+c.id+'">Voice Call</button>';}
@@ -954,7 +958,7 @@ function doReset(){
   return refreshDashboard();
  }).then(function(){
   cleanupVoice();S.armed=false;S.running=false;S.batchLog=[];S.batchStats=null;S.batchHistory=[];S.batchTotal=0;S.pbStats={};
-  S.voiceActive=false;S.voiceCase=null;S.voiceMsgs=[];S.search='';S.auditSearch='';S.filter='all';
+  S.voiceActive=false;S.voiceCase=null;S.voiceMsgs=[];S.search='';S.auditSearch='';S.filter='all';S.statusFilter='all';
   S.loading=false;updateConnBadge();toast('s','Reset & Reseeded','Database reset and freshly seeded with demo data');go(S.page);
  }).catch(function(err){S.loading=false;toast('e','Reset failed',err.message);renderShell();});
 }
@@ -1153,6 +1157,7 @@ function renderPal(q){
 document.addEventListener('click',function(e){
  if(e.target.id==='palOvl'){closePal();return;}
  if(e.target.id==='execOvl'){closeExec();return;}
+ if(e.target.closest('button:disabled'))return;
  var navBtn=e.target.closest('.nav button[data-pg]');
  if(navBtn){go(navBtn.dataset.pg);return;}
  var act=e.target.closest('[data-act]');
@@ -1167,6 +1172,7 @@ document.addEventListener('click',function(e){
   else if(a==='run-pb')runPlaybook(id);
   else if(a==='run-all')runAll();
   else if(a==='filter'){S.filter=risk;go('cases');}
+  else if(a==='status-filter'){S.statusFilter=act.dataset.status||'all';go('cases');}
   else if(a==='set-view'){S.caseView=view;go('cases');}
   else if(a==='sel-voice'){if(S.voiceActive){toast('w','In call','End the call first');return;}S.voiceCase=id;go('voice');}
   else if(a==='set-vlang'){S.voiceLang=lang;go('voice');}
