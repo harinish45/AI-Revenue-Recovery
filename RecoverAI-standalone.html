@@ -226,6 +226,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .toast.e{border-left-color:var(--red)}.toast.e .tic{background:rgba(239,68,68,.14);color:var(--red2)}
 .toast.w{border-left-color:var(--amb)}.toast.w .tic{background:rgba(245,158,16,.12);color:var(--amb2)}
 .toast.i .tic{background:rgba(59,130,246,.12);color:var(--blu2)}
+.focus-ring{position:fixed;z-index:1000;display:none;pointer-events:none;border:2px solid #a78bfa;border-radius:10px;box-shadow:0 0 0 5px rgba(167,139,250,.16),0 0 32px rgba(167,139,250,.34);transition:all .18s ease}.focus-ring.show{display:block}.focus-ring span{position:absolute;left:-2px;top:-31px;padding:5px 9px;border-radius:6px;background:#211b3d;color:#ddd1ff;border:1px solid #725ec1;font-size:10px;font-weight:800;white-space:nowrap;letter-spacing:.04em}.focus-active{border-color:#a78bfa!important;color:#ddd1ff!important;background:rgba(124,92,201,.14)!important}
 @media(max-width:1150px){.kpis{grid-template-columns:repeat(3,1fr)}.ovgrid{grid-template-columns:1fr}.pbgrid{grid-template-columns:1fr 1fr}.vgrid{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
 @media(max-width:900px){.shell{grid-template-columns:56px 1fr}.brand div,.nav .nl,.nav .nbadge,.ncap,.side-foot small,.conn span{display:none}.brand{justify-content:center}.nav button{justify-content:center}.kpis{grid-template-columns:1fr 1fr}}
 @media(max-width:620px){.shell{grid-template-columns:1fr}.side{position:fixed;bottom:0;left:0;right:0;top:auto;height:56px;flex-direction:row;align-items:center;z-index:80;background:#000;border-top:1px solid var(--ln);overflow-y:hidden}.brand,.side-foot{display:none}.nav{flex-direction:row;flex:1;gap:2px;overflow-x:auto;padding:0 6px}.nav button{flex:none;min-width:48px;justify-content:center;padding:6px}main{padding-bottom:76px}.kpis{grid-template-columns:1fr}.pbgrid{grid-template-columns:1fr}.bmrow{grid-template-columns:repeat(2,1fr)}}
@@ -261,7 +262,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
     <header class="top">
       <div class="crumb"><b id="ptitle">Overview</b><br><span id="psub">Revenue at a glance</span></div>
       <div class="top-r">
-        <button class="btn btn-pitch btn-sm" id="pitchBtn" title="Open guided pitch mode">✦ Pitch Mode</button><button class="btn btn-g btn-sm" id="searchBtn" title="Command palette (Ctrl/⌘+K)">⌘K Search</button>
+        <button class="btn btn-pitch btn-sm" id="pitchBtn" title="Open guided pitch mode">✦ Pitch Mode</button><button class="btn btn-g btn-sm" id="focusBtn" title="Highlight clicked controls while presenting">◎ Focus</button><button class="btn btn-g btn-sm" id="searchBtn" title="Command palette (Ctrl/⌘+K)">⌘K Search</button>
         <button class="btn btn-g btn-sm" id="seedBtn">Seed Data</button>
       </div>
     </header>
@@ -274,6 +275,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 <div class="ovl top" id="palOvl"><div class="pal"><input id="palInput" autocomplete="off" placeholder="Search or command…" aria-label="Command palette"><div class="pal-list" id="palList"></div></div></div>
 <div class="ovl" id="execOvl"><div class="exec" id="execContent" role="dialog" aria-modal="true"></div></div>
 <div class="pitch-ovl" id="pitchOvl"><section class="pitch-card" role="dialog" aria-modal="true" aria-labelledby="pitchTitle"><div class="pitch-head"><div><div class="pitch-kicker">RecoverAI / 90-second story</div><h2 id="pitchTitle">Turn failed payments into recovered revenue.</h2><p>Presenter mode · use the arrows or controls to move through the product story.</p></div><button class="pitch-close" id="pitchClose" aria-label="Close pitch mode">×</button></div><div class="pitch-body"><div class="pitch-progress" id="pitchProgress"></div><div class="pitch-step" id="pitchStep"></div></div><div class="pitch-foot"><small id="pitchCounter">01 / 05</small><div><button class="btn btn-g btn-sm" id="pitchPrev">← Back</button> <button class="btn btn-pitch btn-sm" id="pitchNext">Next →</button></div></div></section></div>
+<div class="focus-ring" id="focusRing" aria-hidden="true"><span id="focusLabel">Presenter focus</span></div>
 <div class="twrap2" id="toastWrap" aria-live="polite"></div>
 
 <script>
@@ -283,7 +285,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
    client-generated — see Api + normalizeCase/normalizeAuditEntry. */
 var S={page:'overview',cases:[],audit:[],dashboard:null,live:false,loading:true,loadError:null,armed:false,running:false,filter:'all',statusFilter:'all',search:'',caseView:'table',
 voiceCase:null,voiceLang:'hi-IN',voiceActive:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceTimer:null,voiceStartTime:0,voiceConsent:false,voiceConfidence:0,voiceIntent:'DISCOVERY',voiceVoiceName:'Browser voice',voiceTurn:0,
-auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,agentPaused:false,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
+auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,agentPaused:false,focusMode:false,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
 /* Mirrors backend/app/config.py Settings exactly — not editable here, this
    panel just displays what the server actually enforces. */
 var POLICY={maxAmount:50000,maxRetries:2,rateExecute:'20/minute',rateDemo:'10/minute'};
@@ -1136,6 +1138,8 @@ function renderPitch(){var s=PITCH_STEPS[pitchIdx];document.getElementById('pitc
 function openPitch(){pitchIdx=0;renderPitch();document.getElementById('pitchOvl').classList.add('show');document.getElementById('pitchNext').focus();}
 function closePitch(){document.getElementById('pitchOvl').classList.remove('show');}
 function pitchMove(delta){pitchIdx=Math.max(0,Math.min(PITCH_STEPS.length-1,pitchIdx+delta));renderPitch();}
+function focusTarget(el){if(!S.focusMode||!el||el.closest('.focus-ring,.pitch-ovl,.ovl'))return;var r=el.getBoundingClientRect(),ring=document.getElementById('focusRing'),label=document.getElementById('focusLabel');if(!r.width||!r.height)return;ring.style.left=Math.max(4,r.left-7)+'px';ring.style.top=Math.max(34,r.top-7)+'px';ring.style.width=r.width+14+'px';ring.style.height=r.height+14+'px';label.textContent=(el.dataset.focus||el.getAttribute('title')||el.textContent||'Presenter focus').replace(/\s+/g,' ').trim().slice(0,54);ring.classList.add('show');clearTimeout(window.__focusTimer);window.__focusTimer=setTimeout(function(){ring.classList.remove('show');},1800);}
+function toggleFocus(){S.focusMode=!S.focusMode;var b=document.getElementById('focusBtn');b.classList.toggle('focus-active',S.focusMode);b.setAttribute('aria-pressed',String(S.focusMode));if(!S.focusMode)document.getElementById('focusRing').classList.remove('show');toast('i',S.focusMode?'Presenter Focus on':'Presenter Focus off',S.focusMode?'Click any metric, filter, action, or case to spotlight it.':'Normal interaction restored.');}
 var palIdx=0;
 function buildCmds(){
  var c=[
@@ -1169,11 +1173,13 @@ function renderPal(q){
  window.__PALF=f;
 }
 /* ═══ EVENTS ═══ */
+document.addEventListener('click',function(e){focusTarget(e.target.closest('button,.card,.kpi,.metric,.tbl tbody tr,[data-act],.tlev,.pbcard,.swrow'));},true);
 document.addEventListener('click',function(e){
  if(e.target.id==='pitchOvl'){closePitch();return;}
  if(e.target.id==='pitchClose'){closePitch();return;}
  if(e.target.id==='pitchPrev'){pitchMove(-1);return;}
  if(e.target.id==='pitchNext'){if(pitchIdx===PITCH_STEPS.length-1){closePitch();toast('s','Pitch ready','The RecoverAI story is ready to present.');}else pitchMove(1);return;}
+ if(e.target.id==='focusBtn'){toggleFocus();return;}
  if(e.target.id==='palOvl'){closePal();return;}
  if(e.target.id==='execOvl'){closeExec();return;}
  if(e.target.closest('button:disabled'))return;
