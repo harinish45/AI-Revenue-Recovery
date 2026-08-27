@@ -2,4 +2,5 @@
 *.wav
 *.txt
 preview-frame.png
+real-website-capture/
 .recoverai-*
