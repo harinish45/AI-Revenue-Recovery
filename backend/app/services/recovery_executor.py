@@ -1,4 +1,5 @@
 import uuid
+from sqlalchemy.exc import IntegrityError
 
 from sqlalchemy.orm import Session
 
@@ -18,13 +19,23 @@ def execute_recovery(db: Session, case: RecoveryCase, idempotency_key: str = Non
             .first()
         )
         if cached:
+            if cached.response and cached.response.get("case_id") != case.id:
+                from fastapi import HTTPException
+                raise HTTPException(status_code=409, detail="Idempotency-Key is already used for another case")
             return cached.response
 
     try:
         result = _run_recovery(db, case)
         if idempotency_key:
             db.add(IdempotencyKey(key=idempotency_key, endpoint="execute", response=result))
-        db.commit()
+        try:
+            db.commit()
+        except IntegrityError:
+            db.rollback()
+            cached = db.query(IdempotencyKey).filter(IdempotencyKey.key == idempotency_key, IdempotencyKey.endpoint == "execute").first()
+            if cached and cached.response and cached.response.get("case_id") == case.id:
+                return cached.response
+            raise
         invalidate_metrics_cache()
         return result
     except Exception:

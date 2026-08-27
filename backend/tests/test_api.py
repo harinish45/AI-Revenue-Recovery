@@ -142,6 +142,24 @@ def test_webhook_ingestion_is_audited(client: TestClient):
     assert response.json()["accepted"] is True
 
 
+def test_webhook_duplicate_is_idempotent(client: TestClient):
+    payload = {"id": "wh_duplicate", "event": "payment.failed"}
+    first = client.post("/api/webhooks/razorpay", json=payload)
+    second = client.post("/api/webhooks/razorpay", json=payload)
+    assert first.status_code == second.status_code == 200
+    assert "duplicate" in second.json()["message"].lower()
+    assert client.get("/api/audit", params={"limit": 100}).json()["total"] == 1
+
+
+def test_idempotency_key_cannot_cross_cases(client: TestClient):
+    client.post("/api/demo/seed")
+    cases = client.get("/api/cases", params={"limit": 100}).json()["items"]
+    key = "same-key-cross-case"
+    assert client.post("/api/execution/execute", json={"case_id": cases[0]["id"]}, headers={"Idempotency-Key": key}).status_code == 200
+    response = client.post("/api/execution/execute", json={"case_id": cases[1]["id"]}, headers={"Idempotency-Key": key})
+    assert response.status_code == 409
+
+
 def test_voice_event_rejected_on_terminal_case(client: TestClient):
     client.post("/api/demo/seed")
     cases = client.get("/api/cases", params={"limit": 100}).json()["items"]

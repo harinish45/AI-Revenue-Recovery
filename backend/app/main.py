@@ -8,6 +8,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
+from sqlalchemy import inspect, text
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 
@@ -37,6 +38,20 @@ def _resolve_standalone_html_path() -> Path:
 
 STANDALONE_HTML_PATH = _resolve_standalone_html_path()
 
+
+def _ensure_sqlite_compatibility():
+    """Apply additive fixes for demo databases created by an older checkout."""
+    if engine.dialect.name != "sqlite":
+        return
+    inspector = inspect(engine)
+    if "audit_seals" in inspector.get_table_names():
+        columns = {column["name"] for column in inspector.get_columns("audit_seals")}
+        if "created_at" not in columns:
+            with engine.begin() as connection:
+                connection.execute(text("ALTER TABLE audit_seals ADD COLUMN created_at DATETIME"))
+
+
+_ensure_sqlite_compatibility()
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="RecoverAI Backend", description="Autonomous Revenue Recovery Agent API")

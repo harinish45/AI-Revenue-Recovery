@@ -3,7 +3,7 @@ from datetime import timedelta
 
 from sqlalchemy.orm import Session
 
-from ..models import AuditLog, AuditSeal, Customer, DemoFlag, IdempotencyKey, Payment, RecoveryCase
+from ..models import AuditLog, AuditSeal, Customer, DemoFlag, IdempotencyKey, Payment, RecoveryCase, WebhookEvent
 from .audit_service import log_event
 from .decision_engine import diagnose_and_recommend
 from .metrics_service import invalidate_metrics_cache
@@ -34,6 +34,7 @@ def generate_synthetic_data(db: Session):
     db.query(AuditLog).delete()
     db.query(AuditSeal).delete()
     db.query(IdempotencyKey).delete()
+    db.query(WebhookEvent).delete()
     db.query(RecoveryCase).delete()
     db.query(Payment).delete()
     db.query(Customer).delete()

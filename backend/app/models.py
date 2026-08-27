@@ -107,3 +107,11 @@ class IdempotencyKey(Base):
     endpoint = Column(String)
     response = Column(JSON)
     created_at = Column(DateTime, default=utcnow)
+
+
+class WebhookEvent(Base):
+    """Unique webhook receipts make provider retries harmless."""
+
+    __tablename__ = "webhook_events"
+    event_id = Column(String, primary_key=True)
+    received_at = Column(DateTime, default=utcnow)

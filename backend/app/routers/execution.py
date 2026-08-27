@@ -16,6 +16,8 @@ router = APIRouter()
 def _execute_case(db: Session, case_id: str, idempotency_key: Optional[str]) -> dict:
     if not idempotency_key or not idempotency_key.strip():
         raise HTTPException(status_code=400, detail="Idempotency-Key header is required")
+    if len(idempotency_key.strip()) > 200:
+        raise HTTPException(status_code=400, detail="Idempotency-Key is too long")
     case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")

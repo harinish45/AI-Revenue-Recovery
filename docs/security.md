@@ -19,7 +19,12 @@ Implemented controls:
 9. Missing payment records, invalid instruments, provider failures, and
    simulated gateway failures stop safely and escalate.
 10. The frontend is never treated as an authorization boundary.
+11. Webhooks verify the exact raw request body when a secret is configured and
+    deduplicate provider event IDs.
+12. Idempotency responses are bound to their original case, and audit seal
+    verification recomputes the event hash before reporting success.
 
-For a deployed environment, set a strict `CORS_ORIGINS`, disable `DEMO_MODE`,
+For a deployed environment, set a strict `CORS_ORIGINS`, disable demo routes
+(`DEMO_MODE=false` in the deployment wrapper),
 configure a real authentication layer/API gateway, use PostgreSQL with TLS,
 store secrets in a secret manager, and add distributed rate limiting.

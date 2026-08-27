@@ -16,6 +16,6 @@ services:
       - key: RAZORPAY_SIMULATE
         value: "true"
       - key: CORS_ORIGINS
-        value: '["*"]'
+        value: '[]'
       - key: PYTHON_VERSION
         value: 3.11.9

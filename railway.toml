@@ -14,6 +14,8 @@ startCommand = "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
 [services.env]
   DATABASE_URL = "sqlite:///./recoverai.db"
   APP_ENV = "production"
-  CORS_ORIGINS = '["*"]'
+  # Same-origin standalone UI needs no cross-origin access. Configure an
+  # explicit allowlist only when a separate frontend is deployed.
+  CORS_ORIGINS = '[]'
 
 # This single service serves both the API and the app UI (RecoverAI-standalone.html, at "/").

@@ -50,6 +50,7 @@ input,select{font-family:inherit;color:var(--tx)}
 .btn-g{background:var(--p2);border-color:var(--ln2);color:var(--tx)}.btn-g:hover:not(:disabled){background:var(--p3)}
 .btn-r{background:rgba(239,68,68,.12);border-color:rgba(239,68,68,.5);color:var(--red2)}
 .btn-v{background:rgba(139,92,246,.12);border-color:rgba(139,92,246,.4);color:var(--vio2)}
+.btn-pitch{background:linear-gradient(135deg,rgba(236,72,153,.18),rgba(139,92,246,.2));border-color:rgba(236,92,246,.48);color:#f5b4fc;box-shadow:0 0 20px rgba(236,92,246,.08)}
 .btn-sm{padding:5px 10px;font-size:11px;min-height:28px;border-radius:6px}
 main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .page{display:flex;flex-direction:column;gap:14px;animation:fin .2s ease}
@@ -146,6 +147,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .vquick button{padding:4px 9px;border-radius:99px;font-size:10px;font-weight:600;background:var(--p2);border:1px solid var(--ln2);color:var(--mut);cursor:pointer;transition:.12s}
 .vquick button:hover{color:var(--tx)}
 .vtimer{font-family:var(--fm);font-size:11px;color:var(--vio2);font-weight:600}
+.pitch-ovl{position:fixed;inset:0;z-index:80;display:none;place-items:center;background:rgba(0,0,0,.78);backdrop-filter:blur(14px);padding:20px}.pitch-ovl.show{display:grid}.pitch-card{width:min(920px,100%);background:linear-gradient(145deg,#111018,#08080b);border:1px solid rgba(236,92,153,.35);border-radius:18px;box-shadow:0 30px 100px rgba(0,0,0,.65);overflow:hidden}.pitch-head{display:flex;align-items:flex-start;gap:14px;padding:24px 26px 18px;border-bottom:1px solid var(--ln)}.pitch-kicker{font:800 10px var(--fm);color:#f472b6;letter-spacing:.16em;text-transform:uppercase}.pitch-head h2{font:700 27px var(--fd);letter-spacing:-.04em;margin-top:5px}.pitch-head p{color:var(--mut);font-size:12px;margin-top:5px}.pitch-close{margin-left:auto;font-size:18px;color:var(--mut);padding:3px 8px}.pitch-body{padding:20px 26px}.pitch-progress{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:22px}.pitch-dot{height:4px;border-radius:99px;background:var(--ln2)}.pitch-dot.on{background:linear-gradient(90deg,#ec4899,#8b5cf6)}.pitch-step{display:grid;grid-template-columns:1.2fr .8fr;gap:24px;align-items:center}.pitch-step h3{font:700 24px var(--fd);letter-spacing:-.04em}.pitch-step p{color:var(--mut);line-height:1.7;margin-top:8px}.pitch-quote{font:600 19px var(--fd);line-height:1.35;padding:22px;border:1px solid rgba(139,92,246,.3);border-radius:14px;background:radial-gradient(circle at 20% 0,rgba(236,72,153,.18),transparent 60%),rgba(139,92,246,.08)}.pitch-proof{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.pitch-proof span{font:700 10px var(--fm);padding:6px 9px;border-radius:7px;color:var(--grn2);background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2)}.pitch-foot{display:flex;align-items:center;justify-content:space-between;padding:15px 26px;border-top:1px solid var(--ln)}.pitch-foot small{font:10px var(--fm);color:var(--dim)}
 .tl{position:relative;padding-left:18px}
 .tl::before{content:"";position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:var(--ln)}
 .tlev{position:relative;margin-bottom:10px;background:var(--p1);border:1px solid var(--ln);border-radius:8px;padding:10px 12px;transition:.12s;cursor:pointer}
@@ -259,7 +261,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
     <header class="top">
       <div class="crumb"><b id="ptitle">Overview</b><br><span id="psub">Revenue at a glance</span></div>
       <div class="top-r">
-        <button class="btn btn-g btn-sm" id="searchBtn" title="Command palette (Ctrl/⌘+K)">⌘K Search</button>
+        <button class="btn btn-pitch btn-sm" id="pitchBtn" title="Open guided pitch mode">✦ Pitch Mode</button><button class="btn btn-g btn-sm" id="searchBtn" title="Command palette (Ctrl/⌘+K)">⌘K Search</button>
         <button class="btn btn-g btn-sm" id="seedBtn">Seed Data</button>
       </div>
     </header>
@@ -271,6 +273,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 
 <div class="ovl top" id="palOvl"><div class="pal"><input id="palInput" autocomplete="off" placeholder="Search or command…" aria-label="Command palette"><div class="pal-list" id="palList"></div></div></div>
 <div class="ovl" id="execOvl"><div class="exec" id="execContent" role="dialog" aria-modal="true"></div></div>
+<div class="pitch-ovl" id="pitchOvl"><section class="pitch-card" role="dialog" aria-modal="true" aria-labelledby="pitchTitle"><div class="pitch-head"><div><div class="pitch-kicker">RecoverAI / 90-second story</div><h2 id="pitchTitle">Turn failed payments into recovered revenue.</h2><p>Presenter mode · use the arrows or controls to move through the product story.</p></div><button class="pitch-close" id="pitchClose" aria-label="Close pitch mode">×</button></div><div class="pitch-body"><div class="pitch-progress" id="pitchProgress"></div><div class="pitch-step" id="pitchStep"></div></div><div class="pitch-foot"><small id="pitchCounter">01 / 05</small><div><button class="btn btn-g btn-sm" id="pitchPrev">← Back</button> <button class="btn btn-pitch btn-sm" id="pitchNext">Next →</button></div></div></section></div>
 <div class="twrap2" id="toastWrap" aria-live="polite"></div>
 
 <script>
@@ -1121,6 +1124,18 @@ function endCall(outcome,lastUtterance){
 }
 function cleanupVoice(){if(window.speechSynthesis){try{speechSynthesis.cancel();}catch(e){}}if(recog){try{recog.stop();}catch(e){}}if(S.voiceTimer){clearInterval(S.voiceTimer);S.voiceTimer=null;}}
 /* ═══ PALETTE ═══ */
+var PITCH_STEPS=[
+ {k:'01 · THE LEAK',h:'Revenue disappears silently.',p:'A payment fails, the customer moves on, and finance sees a lagging number instead of a recoverable moment.',q:'“Every failed payment is a decision window.”',proof:['20 failed payments','₹1.2L at risk']},
+ {k:'02 · THE SIGNAL',h:'RecoverAI diagnoses the reason.',p:'Gateway timeout, invalid instrument, liquidity issue, or abandonment — each case gets evidence, risk, and a bounded next move.',q:'“Context before contact. Policy before action.”',proof:['5 failure categories','Explainable diagnosis']},
+ {k:'03 · THE ACTION',h:'The right intervention runs once.',p:'Retry, payment link, reminder, or human review. Amount limits, retry caps, rate limits, and idempotency keep the agent safe.',q:'“Autonomy with a hard stop.”',proof:['2 max retries','Idempotent execution']},
+ {k:'04 · THE HUMAN MOMENT',h:'Voice meets customers with empathy.',p:'A multilingual voice flow discloses its purpose, listens for intent, confirms a promise, and stops on refusal or uncertainty.',q:'“Recover revenue without adding pressure.”',proof:['8 Indian language packs','Consent gate']},
+ {k:'05 · THE PROOF',h:'The outcome is measurable and auditable.',p:'Recovered amount, intervention cost, net recovery, escalation, and a tamper-evident event chain make the ROI legible to every stakeholder.',q:'“From payment failure to boardroom proof.”',proof:['Net recovery','Chained audit seals']}
+];
+var pitchIdx=0;
+function renderPitch(){var s=PITCH_STEPS[pitchIdx];document.getElementById('pitchProgress').innerHTML=PITCH_STEPS.map(function(_,i){return '<i class="pitch-dot '+(i<=pitchIdx?'on':'')+'"></i>';}).join('');document.getElementById('pitchStep').innerHTML='<div><div class="pitch-kicker">'+s.k+'</div><h3>'+s.h+'</h3><p>'+s.p+'</p><div class="pitch-proof">'+s.proof.map(function(x){return '<span>✓ '+x+'</span>';}).join('')+'</div></div><div class="pitch-quote">'+s.q+'</div>';document.getElementById('pitchCounter').textContent=String(pitchIdx+1).padStart(2,'0')+' / '+String(PITCH_STEPS.length).padStart(2,'0');document.getElementById('pitchPrev').disabled=pitchIdx===0;document.getElementById('pitchNext').textContent=pitchIdx===PITCH_STEPS.length-1?'Finish ✦':'Next →';}
+function openPitch(){pitchIdx=0;renderPitch();document.getElementById('pitchOvl').classList.add('show');document.getElementById('pitchNext').focus();}
+function closePitch(){document.getElementById('pitchOvl').classList.remove('show');}
+function pitchMove(delta){pitchIdx=Math.max(0,Math.min(PITCH_STEPS.length-1,pitchIdx+delta));renderPitch();}
 var palIdx=0;
 function buildCmds(){
  var c=[
@@ -1155,6 +1170,10 @@ function renderPal(q){
 }
 /* ═══ EVENTS ═══ */
 document.addEventListener('click',function(e){
+ if(e.target.id==='pitchOvl'){closePitch();return;}
+ if(e.target.id==='pitchClose'){closePitch();return;}
+ if(e.target.id==='pitchPrev'){pitchMove(-1);return;}
+ if(e.target.id==='pitchNext'){if(pitchIdx===PITCH_STEPS.length-1){closePitch();toast('s','Pitch ready','The RecoverAI story is ready to present.');}else pitchMove(1);return;}
  if(e.target.id==='palOvl'){closePal();return;}
  if(e.target.id==='execOvl'){closeExec();return;}
  if(e.target.closest('button:disabled'))return;
@@ -1197,6 +1216,7 @@ document.addEventListener('click',function(e){
   return;
  }
  if(e.target.closest('#searchBtn')){openPal();return;}
+ if(e.target.closest('#pitchBtn')){openPitch();return;}
  if(e.target.closest('#seedBtn')){doSeed();return;}
  var palItem=e.target.closest('[data-pal-idx]');
  if(palItem){var f=window.__PALF||[];var it=f[parseInt(palItem.dataset.palIdx,10)];if(it)it.fn();closePal();return;}
@@ -1211,7 +1231,8 @@ document.addEventListener('keydown',function(e){
   return;
  }
  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();if(document.getElementById('palOvl').classList.contains('show'))closePal();else openPal();return;}
- if(e.key==='Escape'){if(document.getElementById('palOvl').classList.contains('show'))closePal();else closeExec();return;}
+ if(e.key==='Escape'){if(document.getElementById('pitchOvl').classList.contains('show'))closePitch();else if(document.getElementById('palOvl').classList.contains('show'))closePal();else closeExec();return;}
+ if(document.getElementById('pitchOvl').classList.contains('show')){if(e.key==='ArrowRight'||e.key==='Enter'){e.preventDefault();if(pitchIdx===PITCH_STEPS.length-1)closePitch();else pitchMove(1);return;}if(e.key==='ArrowLeft'){e.preventDefault();pitchMove(-1);return;}}
  if(e.key==='?'&&!e.metaKey&&!e.ctrlKey){openPal();return;}
  if(document.getElementById('palOvl').classList.contains('show')){
   var q=document.getElementById('palInput').value;var f=window.__PALF||palFiltered(q);

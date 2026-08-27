@@ -1,10 +1,13 @@
 from typing import Optional
+import hashlib
+import json
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import AuditLog, AuditSeal
+from fastapi import HTTPException
 from ..schemas import AuditListResponse, AuditSealVerifyResponse
 
 router = APIRouter()
@@ -45,12 +48,22 @@ def verify_audit_seal(audit_id: str, db: Session = Depends(get_db)):
     if not seal:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Audit seal not found")
+    log = db.query(AuditLog).filter(AuditLog.id == audit_id).first()
+    if not log:
+        raise HTTPException(status_code=404, detail="Audit event not found")
+    payload = {
+        "id": log.id, "case_id": log.case_id, "event_type": log.event_type,
+        "actor": log.actor, "decision": log.decision, "reason": log.reason,
+        "action": log.action, "result": log.result,
+        "timestamp": log.timestamp.isoformat(), "previous_hash": seal.previous_hash,
+    }
+    computed_hash = hashlib.sha256(json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
     previous = None
     if seal.previous_hash:
         previous = db.query(AuditSeal).filter(AuditSeal.event_hash == seal.previous_hash).first()
     return AuditSealVerifyResponse(
         audit_id=audit_id,
-        chain_verified=seal.previous_hash is None or previous is not None,
+        chain_verified=computed_hash == seal.event_hash and (seal.previous_hash is None or previous is not None),
         event_hash=seal.event_hash,
         previous_hash=seal.previous_hash,
         case_id=seal.case_id,

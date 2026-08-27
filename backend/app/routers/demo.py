@@ -1,10 +1,10 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.orm import Session
 
 from ..config import settings
 from ..database import get_db
 from ..middleware.rate_limit import limiter
-from ..models import AuditLog, AuditSeal, Customer, DemoFlag, Execution, IdempotencyKey, Payment, RecoveryCase
+from ..models import AuditLog, AuditSeal, Customer, DemoFlag, Execution, IdempotencyKey, Payment, RecoveryCase, WebhookEvent
 from ..schemas import BatchResponse, SeedResponse, SimulateFailureResponse
 from ..services.audit_service import log_event
 from ..services.metrics_service import invalidate_metrics_cache
@@ -14,9 +14,15 @@ from ..services.synthetic_data import generate_synthetic_data
 router = APIRouter()
 
 
+def _require_demo_mode():
+    if not settings.DEMO_MODE:
+        raise HTTPException(status_code=404, detail="Demo controls are disabled")
+
+
 @router.post("/seed", response_model=SeedResponse)
 @limiter.limit(settings.RATE_LIMIT_DEMO)
 def seed_database(request: Request, db: Session = Depends(get_db)):
+    _require_demo_mode()
     records, cases = generate_synthetic_data(db)
     return SeedResponse(
         created_records=records,
@@ -27,6 +33,7 @@ def seed_database(request: Request, db: Session = Depends(get_db)):
 @router.post("/reset")
 @limiter.limit(settings.RATE_LIMIT_DEMO)
 def reset_database(request: Request, db: Session = Depends(get_db)):
+    _require_demo_mode()
     db.query(AuditLog).delete()
     db.query(AuditSeal).delete()
     db.query(Execution).delete()
@@ -35,6 +42,7 @@ def reset_database(request: Request, db: Session = Depends(get_db)):
     db.query(Customer).delete()
     db.query(DemoFlag).delete()
     db.query(IdempotencyKey).delete()
+    db.query(WebhookEvent).delete()
     log_event(
         db,
         case_id=None,
@@ -50,12 +58,14 @@ def reset_database(request: Request, db: Session = Depends(get_db)):
 @router.post("/recovery-batch", response_model=BatchResponse)
 @limiter.limit(settings.RATE_LIMIT_DEMO)
 def run_recovery_batch(request: Request, db: Session = Depends(get_db)):
+    _require_demo_mode()
     return run_batch_recovery(db)
 
 
 @router.post("/simulate-failure", response_model=SimulateFailureResponse)
 @limiter.limit(settings.RATE_LIMIT_DEMO)
 def simulate_failure(request: Request, db: Session = Depends(get_db)):
+    _require_demo_mode()
     flag = db.query(DemoFlag).filter(DemoFlag.id == 1).first()
     if not flag:
         flag = DemoFlag(id=1, simulate_failure_active=True)

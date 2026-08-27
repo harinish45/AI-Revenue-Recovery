@@ -14,9 +14,11 @@ class Settings(BaseSettings):
     RECOVERY_COST_PER_ATTEMPT: float = 18.0
     SMART_SKIP_MIN_AMOUNT: float = 50.0
     AI_DIAGNOSIS_ENABLED: bool = False
+    DEMO_MODE: bool = True
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o-mini"
     WEBHOOK_SECRET: str = ""
+    WEBHOOK_MAX_AGE_SECONDS: int = 300
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

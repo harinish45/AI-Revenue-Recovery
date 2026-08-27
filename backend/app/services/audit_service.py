@@ -17,7 +17,9 @@ def log_event(
     action: str = None,
     result: str = None,
 ) -> AuditLog:
-    timestamp = utcnow()
+    # SQLite and PostgreSQL serialize timezone-aware datetimes differently. Store
+    # a normalized UTC value so the sealed payload can be reproduced exactly.
+    timestamp = utcnow().replace(tzinfo=None)
     event_id = f"AUD-{uuid.uuid4().hex[:6].upper()}"
     previous = (
         db.query(AuditSeal)
