@@ -4,6 +4,18 @@
 
 AI-powered revenue recovery for Razorpay Test Mode. Deterministic policy gating, multi-language voice agent, cryptographically chained audit seals, and real-time revenue analytics.
 
+> **Recruiter one-liner:** RecoverAI turns a revenue-risk signal into a bounded, policy-approved intervention, measures the money recovered, and proves every decision in an audit trail.
+
+## Why this is a strong buildathon demo
+
+RecoverAI demonstrates the complete agent loop instead of stopping at classification:
+
+- **Detect:** failed payments, checkout drop-off, subscription failures, and overdue receivables become actionable cases.
+- **Diagnose:** gateway and customer signals explain the likely root cause; an optional structured LLM adapter is wrapped by a deterministic fallback.
+- **Decide:** policy gates enforce amount ceilings, retry limits, smart-skip economics, consent, idempotency, and human escalation.
+- **Act and measure:** a batch run executes bounded recovery, reports recovered value, cost, net recovery, skips, and escalations.
+- **Prove:** chained SHA-256 audit seals, webhook deduplication, and verification make the workflow inspectable rather than magical.
+
 ## Hackathon Track
 
 **Track 03 — AI Revenue Recovery**
@@ -101,17 +113,22 @@ cd backend
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-## 5-Minute Pitch Flow
+## 4.5-Minute Recruiter Pitch Flow
 
-1. Show **Razorpay Hackathon Sandbox | Test Mode Active | Simulated Gateway**.
-2. Click **Seed Data** and show the recovery queue.
-3. Point out live **At Risk**, **Recovered**, **Recovery Rate**, **Open Cases**, and **Escalated Cases**.
-4. Click **Run Batch Recovery** and show the returned metrics and recovery toast.
-5. Click **Arm Failure Simulation**. The control becomes red and explicitly says the next execution will escalate.
-6. Execute an open case.
-7. Show the escalation badge and the human-review toast.
-8. Open the **Voice Agent** panel and run a Hinglish recovery call — the captured promise/dispute is written to the real audit trail.
-9. Click **View Compliance Audit** and show the backend events proving diagnosis, policy gating, execution, escalation, and voice interactions.
+Use the built-in **Pitch Mode** for a guided run. Keep the browser at 16:9 and narrate the story below; the total is exactly **4 minutes 30 seconds**.
+
+| Time | Screen action | Recruiter takeaway |
+|---|---|---|
+| 0:00–0:20 | Open the dashboard and point to the Test Mode disclosure | Safe scope: no production money movement |
+| 0:20–0:55 | Seed data; highlight At Risk, Recovered, Recovery Rate, Open, and Escalated | The agent starts with measurable revenue exposure |
+| 0:55–1:35 | Open Cases; use the risk and status dropdowns; inspect one case | Detection is explainable and operationally usable |
+| 1:35–2:20 | Run Batch Recovery; show progress, smart skips, net recovery, cost, and escalations | The agent chooses bounded actions and proves economics |
+| 2:20–3:00 | Arm Failure Simulation; execute once; show the human-review result and terminal guard | Failure is contained, escalated, and never retried blindly |
+| 3:00–3:55 | Open Voice Agent; confirm consent; demonstrate English/Hinglish; capture a promise or dispute | Multilingual recovery is consent-gated and auditable |
+| 3:55–4:25 | Open Compliance Audit; verify the seal; show export | Every detection, decision, action, and escalation is traceable |
+| 4:25–4:30 | Return to metrics and deliver the one-line close | Revenue recovered, policy bounded, evidence attached |
+
+The voice browser experience is intentionally a **Test Mode simulation**: the orchestration, consent gate, transcript intent handling, promise capture, and audit persistence are real; live calling requires a configured provider adapter.
 
 ## Verified API Contract
 
@@ -160,6 +177,8 @@ Backend variables are read from `.env` when using Docker Compose and from `backe
 | `MAX_AMOUNT` | Policy gate ceiling (in INR) above which automated recovery is blocked | `50000.0` | No — defaults to `50000.0` |
 | `RATE_LIMIT_EXECUTE` | Rate limit applied to `POST /api/execution/execute` | `20/minute` | No — defaults to `20/minute` |
 | `RATE_LIMIT_DEMO` | Rate limit applied to the `/api/demo/*` and voice-event endpoints | `10/minute` | No — defaults to `10/minute` |
+| `DEMO_MODE` | Explicitly enables the demo-only synthetic workflow and safety disclosure | `true` | No — defaults to `true` |
+| `WEBHOOK_MAX_AGE_SECONDS` | Reject stale signed webhook payloads outside this replay window | `300` | No — defaults to `300` |
 
 ## Development Boundary
 
@@ -186,6 +205,9 @@ without crossing a policy boundary.
   Marathi, Bengali, and Malayalam with consent and promise confirmation.
 - Razorpay webhook ingestion and a worker seam are present as production-readiness
   boundaries; the demo intentionally does not mutate money from a webhook.
+- CI checks the backend test suite and frontend build on every push.
+- The optional React/Vite client lives under `frontend/`; the canonical screen-recording
+  surface remains `RecoverAI-standalone.html` so a clone can run it without npm.
 
 ![RecoverAI architecture](docs/architecture.svg)
 
@@ -214,5 +236,14 @@ and enable the optional model adapter only after privacy, cost, and prompt revie
 - Architecture: docs/architecture.svg
 - Issue tracker: https://github.com/harinish45/AI-Revenue-Recovery/issues
 
-package.json contains only optional Node helper scripts; the application itself
-is a Python/FastAPI service with no frontend build step.
+`package.json` contains only optional root helper scripts. The optional React/Vite
+build and its `package.json` live under `frontend/`; the application itself is a
+Python/FastAPI service and the canonical demo has no frontend build step.
+
+## Railway deployment note
+
+`railway.toml` is included so the service can be deployed with the documented
+backend build and `$PORT` start command. This workspace currently has no linked
+Railway project, so the repository is **not being claimed as Railway-live**. To
+deploy it, connect the repository in Railway (or run `railway link`), configure
+the safe environment variables above, and redeploy from the linked project.
