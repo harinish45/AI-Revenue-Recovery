@@ -13,9 +13,15 @@ services:
         value: sqlite:///./recoverai.db
       - key: APP_ENV
         value: production
+      # DEMO_MODE defaults to false: /api/demo/* routes are hard-disabled
+      # in production regardless of any environment setting.
       - key: RAZORPAY_SIMULATE
         value: "true"
       - key: CORS_ORIGINS
         value: '[]'
+      # Optional: set a secret value in the Render dashboard to require
+      # X-Demo-Token wherever demo controls are enabled.
+      - key: DEMO_API_TOKEN
+        sync: false
       - key: PYTHON_VERSION
         value: 3.11.9

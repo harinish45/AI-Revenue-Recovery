@@ -25,7 +25,8 @@ async def validation_exception_handler(
     request: Request, exc: RequestValidationError
 ) -> JSONResponse:
     message = "; ".join(f"{'.'.join(str(p) for p in e['loc'])}: {e['msg']}" for e in exc.errors())
-    return JSONResponse(status_code=400, content=_error_body("VALIDATION_ERROR", message))
+    # 422 matches the FastAPI/HTTP convention for semantic validation failures.
+    return JSONResponse(status_code=422, content=_error_body("VALIDATION_ERROR", message))
 
 
 async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:

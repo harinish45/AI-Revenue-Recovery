@@ -47,16 +47,39 @@ const normalizeAudit = (payload) => {
   })) };
 };
 
+const FINAL_EXECUTION_STATES = ['recovered', 'failed', 'needs_human_review', 'blocked', 'skipped', 'awaiting_payment'];
+
 export const api = {
   getDashboard: () => request('/api/dashboard/summary'),
   getCases: () => request('/api/cases?limit=100').then(normalizeCases),
   getCase: (id) => request(`/api/cases/${id}`).then(normalizeCase),
   // Backend contract explicitly accepts JSON: { "case_id": "<OPEN_CASE_ID>" }.
-  executeRecovery: (id) => request('/api/execution/execute', {
-    method: 'POST',
-    body: JSON.stringify({ case_id: String(id) }),
-    headers: { 'Idempotency-Key': `recoverai-react-${id}-${Date.now()}` },
-  }),
+  //
+  // Idempotency contract: ONE key is generated per user action and reused for
+  // every retry of that action until a FINAL response arrives. A timeout after
+  // the backend completed therefore can never trigger a second recovery.
+  executeRecovery: (id) => {
+    if (!executeRecovery.keys) executeRecovery.keys = {};
+    if (!executeRecovery.keys[id]) {
+      executeRecovery.keys[id] = `recoverai-react-${id}-${crypto.randomUUID()}`;
+    }
+    return request('/api/execution/execute', {
+      method: 'POST',
+      body: JSON.stringify({ case_id: String(id) }),
+      headers: { 'Idempotency-Key': executeRecovery.keys[id] },
+    }).then(
+      (payload) => {
+        const status = String(payload?.status || '').toLowerCase();
+        if (FINAL_EXECUTION_STATES.includes(status)) delete executeRecovery.keys[id];
+        return payload;
+      },
+      (error) => error
+    ).then((result) => {
+      if (result instanceof Error) throw result;
+      return result;
+    });
+  },
+  confirmProviderPayment: (id) => request(`/api/execution/cases/${encodeURIComponent(id)}/confirm-payment`, { method: 'POST' }),
   getAudit: () => request('/api/audit?limit=200').then(normalizeAudit),
   verifyAudit: id => request(`/api/audit/${encodeURIComponent(id)}/verify`),
   seedDemo: () => request('/api/demo/seed', { method: 'POST' }),

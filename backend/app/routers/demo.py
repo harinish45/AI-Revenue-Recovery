@@ -1,4 +1,14 @@
-from fastapi import APIRouter, Depends, Request, HTTPException
+"""Demo control-plane routes.
+
+These routes can seed, reset and perturb the database, so they are triple
+guarded: they only exist when DEMO_MODE is explicitly enabled, they are hard
+disabled whenever APP_ENV=production, and they optionally require a shared
+``X-Demo-Token`` header.
+"""
+
+import secrets
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -14,15 +24,19 @@ from ..services.synthetic_data import generate_synthetic_data
 router = APIRouter()
 
 
-def _require_demo_mode():
-    if not settings.DEMO_MODE:
+def require_demo_access(request: Request):
+    """Single dependency enforcing the demo control-plane guard."""
+    if not settings.demo_controls_enabled:
         raise HTTPException(status_code=404, detail="Demo controls are disabled")
+    if settings.DEMO_API_TOKEN and not secrets.compare_digest(
+        request.headers.get("X-Demo-Token", ""), settings.DEMO_API_TOKEN
+    ):
+        raise HTTPException(status_code=403, detail="Valid X-Demo-Token header required")
 
 
-@router.post("/seed", response_model=SeedResponse)
+@router.post("/seed", response_model=SeedResponse, dependencies=[Depends(require_demo_access)])
 @limiter.limit(settings.RATE_LIMIT_DEMO)
 def seed_database(request: Request, db: Session = Depends(get_db)):
-    _require_demo_mode()
     records, cases = generate_synthetic_data(db)
     return SeedResponse(
         created_records=records,
@@ -30,10 +44,9 @@ def seed_database(request: Request, db: Session = Depends(get_db)):
     )
 
 
-@router.post("/reset")
+@router.post("/reset", dependencies=[Depends(require_demo_access)])
 @limiter.limit(settings.RATE_LIMIT_DEMO)
 def reset_database(request: Request, db: Session = Depends(get_db)):
-    _require_demo_mode()
     db.query(AuditLog).delete()
     db.query(AuditSeal).delete()
     db.query(Execution).delete()
@@ -55,17 +68,15 @@ def reset_database(request: Request, db: Session = Depends(get_db)):
     return {"message": "Database reset complete."}
 
 
-@router.post("/recovery-batch", response_model=BatchResponse)
+@router.post("/recovery-batch", response_model=BatchResponse, dependencies=[Depends(require_demo_access)])
 @limiter.limit(settings.RATE_LIMIT_DEMO)
 def run_recovery_batch(request: Request, db: Session = Depends(get_db)):
-    _require_demo_mode()
     return run_batch_recovery(db)
 
 
-@router.post("/simulate-failure", response_model=SimulateFailureResponse)
+@router.post("/simulate-failure", response_model=SimulateFailureResponse, dependencies=[Depends(require_demo_access)])
 @limiter.limit(settings.RATE_LIMIT_DEMO)
 def simulate_failure(request: Request, db: Session = Depends(get_db)):
-    _require_demo_mode()
     flag = db.query(DemoFlag).filter(DemoFlag.id == 1).first()
     if not flag:
         flag = DemoFlag(id=1, simulate_failure_active=True)

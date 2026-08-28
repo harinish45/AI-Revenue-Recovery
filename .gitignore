@@ -18,3 +18,5 @@ frontend/dist/
 .vscode/
 .idea/
 *.swp
+
+*.log

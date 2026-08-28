@@ -8,7 +8,7 @@ from ..database import get_db
 from ..middleware.rate_limit import limiter
 from ..models import RecoveryCase
 from ..schemas import ExecuteRequest, ExecuteResponse
-from ..services.recovery_executor import execute_recovery
+from ..services.recovery_executor import confirm_provider_payment, execute_recovery
 
 router = APIRouter()
 
@@ -16,7 +16,8 @@ router = APIRouter()
 def _execute_case(db: Session, case_id: str, idempotency_key: Optional[str]) -> dict:
     if not idempotency_key or not idempotency_key.strip():
         raise HTTPException(status_code=400, detail="Idempotency-Key header is required")
-    if len(idempotency_key.strip()) > 200:
+    idempotency_key = idempotency_key.strip()
+    if len(idempotency_key) > 200:
         raise HTTPException(status_code=400, detail="Idempotency-Key is too long")
     case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).first()
     if not case:
@@ -44,3 +45,28 @@ def execute_case_body(
     idempotency_key: Optional[str] = Header(default=None, alias="Idempotency-Key"),
 ):
     return _execute_case(db, req.case_id, idempotency_key)
+
+
+@router.post("/cases/{case_id}/confirm-payment", response_model=ExecuteResponse)
+@limiter.limit(settings.RATE_LIMIT_EXECUTE)
+def confirm_payment(
+    request: Request,
+    case_id: str,
+    db: Session = Depends(get_db),
+):
+    """Operator/provider-confirmed payment: the ONLY way an awaiting_payment
+    case becomes counted revenue."""
+    case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+    result = confirm_provider_payment(db, case, actor="operator")
+    if result is None:
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"Case is {case.recovery_status}; only an 'awaiting_payment' case can "
+                "be confirmed by a provider payment event"
+            ),
+        )
+    db.commit()
+    return result

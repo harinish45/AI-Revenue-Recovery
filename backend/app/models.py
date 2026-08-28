@@ -90,6 +90,7 @@ class AuditSeal(Base):
     __tablename__ = "audit_seals"
     audit_id = Column(String, primary_key=True)
     case_id = Column(String, nullable=True)
+    sequence = Column(Integer, nullable=True)  # monotonic per-case chain order
     previous_hash = Column(String, nullable=True)
     event_hash = Column(String, nullable=False)
     created_at = Column(DateTime, default=utcnow)

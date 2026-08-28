@@ -1,249 +1,195 @@
-# RecoverAI
+<div align="center">
 
-> 🚀 **Live Demo:** [https://ai-revenue-recovery.onrender.com](https://ai-revenue-recovery.onrender.com) &nbsp;|&nbsp; [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/harinish45/AI-Revenue-Recovery)
+# 🤖 RecoverAI — Autonomous Revenue Recovery Agent
 
-AI-powered revenue recovery for Razorpay Test Mode. Deterministic policy gating, multi-language voice agent, cryptographically chained audit seals, and real-time revenue analytics.
+**The AI agent that recovers failed payments — without ever moving money on its own.**
 
-> **Recruiter one-liner:** RecoverAI turns a revenue-risk signal into a bounded, policy-approved intervention, measures the money recovered, and proves every decision in an audit trail.
+`Detect → Diagnose → Decide → Recover → Audit`
 
-## Why this is a strong buildathon demo
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
+![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
+![Razorpay](https://img.shields.io/badge/Razorpay-Integrated-0C2451?logo=razorpay&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-40%20passing-brightgreen)
+![License](https://img.shields.io/badge/License-MIT-blue)
 
-RecoverAI demonstrates the complete agent loop instead of stopping at classification:
+*RecoverAI does not let the model move money. The model recommends; deterministic policy decides; the provider confirms; only confirmed payment events count as recovered revenue; every decision is auditable and every unsafe path escalates.*
 
-- **Detect:** failed payments, checkout drop-off, subscription failures, and overdue receivables become actionable cases.
-- **Diagnose:** gateway and customer signals explain the likely root cause; an optional structured LLM adapter is wrapped by a deterministic fallback.
-- **Decide:** policy gates enforce amount ceilings, retry limits, smart-skip economics, consent, idempotency, and human escalation.
-- **Act and measure:** a batch run executes bounded recovery, reports recovered value, cost, net recovery, skips, and escalations.
-- **Prove:** chained SHA-256 audit seals, webhook deduplication, and verification make the workflow inspectable rather than magical.
+</div>
 
-## Hackathon Track
+---
 
-**Track 03 — AI Revenue Recovery**
+## 💡 The Problem
 
-RecoverAI detects failed payments, determines a bounded recovery intervention, executes a safe recovery workflow, measures recovered revenue, and records an auditable trail.
+Indian digital merchants lose **billions of rupees every year** to failed payments — UPI declines, gateway timeouts, insufficient balances, abandoned checkouts. Most of that money is *recoverable*, but recovery requires judgment: *why* did the payment fail, *who* should be contacted, *how*, and — critically — *when not to*.
 
-## Repository Layout
+Human ops teams can't scale to thousands of daily failures. Naive automation retries blindly, spams customers, breaches compliance, and double-charges.
 
-The repository contains both a zero-build standalone recording surface and an
-optional React/Vite client with its own CI/build path. The backend serves the
-standalone page at the root so the fastest demo path remains unchanged.
+## ✨ The Solution
 
-- `RecoverAI-standalone.html` — the app UI: a single self-contained page served directly by the backend at `/`. No Node/npm, no build step.
-- `backend/` — FastAPI service: API, policy engine, database, and the UI above.
-- `docs/` — shared architecture and API contract.
+RecoverAI is a **bounded autonomous agent** that turns failed payments into a governed recovery pipeline:
 
-## Safety Boundary
+| Stage | What happens | Guardrail |
+|---|---|---|
+| 🔍 **Detect** | Failed payments become tracked recovery cases | Amounts reconciled between payment & case |
+| 🧠 **Diagnose** | AI classifies the failure root cause with evidence + confidence | Model output can never override deterministic classification |
+| ⚖️ **Decide** | 10-check deterministic policy engine approves or blocks | The agent *recommends*; policy *decides* |
+| 💸 **Recover** | Payment link / reminder / retry is executed via Razorpay | A sent link ≠ recovered money — only provider-confirmed events count revenue |
+| 🧾 **Audit** | Every step sealed into a SHA-256 tamper-evident chain | Any tampering invalidates the whole chain, verified recursively |
 
-All financial actions are limited to Razorpay Test Mode / simulated gateway behavior. No production money movement is used for the hackathon demo. Secrets must never be committed.
+### The Safety Contract
 
-## 🚀 Quick Start (one command)
-
-Requires **Python 3.10–3.12**. Everything else (venv, dependencies, `.env`) is set up automatically on first run. There is no frontend build step — the backend serves the UI directly.
-
-**Windows:**
-```bat
-git clone https://github.com/harinish45/AI-Revenue-Recovery.git
-cd AI-Revenue-Recovery
-start.bat
-```
-
-**macOS / Linux:**
-```bash
-git clone https://github.com/harinish45/AI-Revenue-Recovery.git
-cd AI-Revenue-Recovery
-chmod +x start.sh
-./start.sh
-```
-
-The script starts the server and opens your browser:
-
-| Service | URL |
-|---|---|
-| RecoverAI App | http://localhost:8000 |
-| Swagger API docs | http://localhost:8000/docs |
-
-Then in the UI: click **Seed Data → Run Batch Recovery → Arm Failure Simulation → Execute** an open case.
-
-**Docker Compose:**
-
-```bash
-cp .env.example .env
-docker-compose up --build
-```
-
-Open `http://localhost:8000` after the backend reports that it is listening.
-
-**☁️ Deploy Live to Render (1-Click):**
-
-Click the button below to deploy your own live instance instantly using the included [`render.yaml`](render.yaml) Blueprint:
-
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/harinish45/AI-Revenue-Recovery)
-
-*Manual Render Setup:*
-1. In the [Render Dashboard](https://dashboard.render.com), click **New +** → **Web Service**.
-2. Connect repository `harinish45/AI-Revenue-Recovery`.
-3. Set **Runtime** to `Python 3`, **Build Command** to `pip install -r backend/requirements.txt`, and **Start Command** to `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
-4. Add Environment Variable: `RAZORPAY_SIMULATE=true` and `APP_ENV=production`.
-5. Click **Create Web Service**. Your live demo will be up at `https://<service-name>.onrender.com`.
-
-## Architecture
+Every execution passes this gauntlet — **in this exact order**:
 
 ```text
-Failed Payment → Detect → Diagnose → Decide → Policy Gate → Recovery Action → Result → Audit → Metrics
+ 1. Load case + payment record      → missing record escalates, never 500s
+ 2. Economic smart-skip             → intervention cost > recovery value? skip
+ 3. Eligibility                     → paused/manual_only cases cannot run
+ 4. Terminal-state protection       → recovered/blocked cases are immutable
+ 5. Amount ceiling                  → high-value cases always go to humans
+ 6. Amount reconciliation           → case amount must match payment amount
+ 7. Retry window                    → cooldowns enforced, not just displayed
+ 8. Action allowlist                → only whitelisted interventions
+ 9. Agent confidence ≥ 0.70         → low-confidence AI output never auto-runs
+10. Simulated failure injected      → only AFTER policy approval, never before
 ```
 
-The entire UI is `RecoverAI-standalone.html`, fetching directly from the FastAPI backend. FastAPI serves that file at `/` (same-origin, so no CORS setup is ever needed to use it).
+## 🏗️ Architecture
 
-## Run the Demo (manual / no script)
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│  Frontend (React + Vite · standalone HTML dashboard)            │
+│  Real policy-check visualization · audit chain inspector        │
+└──────────────────────────┬──────────────────────────────────────┘
+                           │ REST (idempotent, rate-limited)
+┌──────────────────────────▼──────────────────────────────────────┐
+│  FastAPI Backend                                                │
+│  ┌───────────┐  ┌───────────┐  ┌────────────┐  ┌────────────┐  │
+│  │ Recovery  │→ │ Policy    │→ │ Razorpay   │→ │ Audit      │  │
+│  │ Agent     │  │ Engine    │  │ Service    │  │ Chain      │  │
+│  │ (bounded) │  │ (10 gate) │  │ (provider) │  │ (SHA-256)  │  │
+│  └───────────┘  └───────────┘  └─────┬──────┘  └────────────┘  │
+│        │            │                │ signed webhooks          │
+│  ┌─────▼────────────▼────────────────▼──────────────────────┐  │
+│  │ SQLAlchemy models · idempotency keys · execution ledger  │  │
+│  └──────────────────────────────────────────────────────────┘  │
+└─────────────────────────────────────────────────────────────────┘
+```
 
-```powershell
+**Key design decisions**
+
+- **Bounded agent** — the AI chooses *which* intervention to recommend with evidence and confidence; a frozen, deterministic policy engine holds veto power over every decision.
+- **Honest money lifecycle** — `intervention_sent → awaiting_payment → payment_confirmed → recovered`. Revenue metrics only move on provider confirmation (webhook signature verified, replay-protected, event-allowlisted, size-bounded, timestamp-checked).
+- **Idempotent by contract** — `Idempotency-Key` returns the original response on retry; reusing a key for a different case returns `409`.
+- **Tamper-evident audit** — per-case monotonic sequence + chained SHA-256 hashes; `/api/audit/chain/verify` re-verifies the entire chain from the root forward.
+- **Fail-safe demo isolation** — `/api/demo/*` (seed, reset, simulate-failure) are triple-guarded: `DEMO_MODE=false` by default, hard-disabled when `APP_ENV=production`, optional `X-Demo-Token`.
+
+## 🚀 Quickstart
+
+### Backend
+
+```bash
 cd backend
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+cp .env.example .env            # Razorpay test keys optional — simulation is on by default
+uvicorn app.main:app --reload   # http://localhost:8000/docs
 ```
 
-Open `http://localhost:8000`.
+Local demo controls (seed / reset / batch / failure simulation) are enabled for development:
 
-If the backend environment is already installed:
+```bash
+# .env
+DEMO_MODE=true
+APP_ENV=development
+# DEMO_API_TOKEN=optional-shared-secret   → then send X-Demo-Token header
+```
 
-```powershell
+### Frontend
+
+```bash
+cd frontend
+npm install
+npm run dev                     # http://localhost:5173
+```
+
+Prefer zero build tooling? Open **`RecoverAI-standalone.html`** — a self-contained dashboard (the demo surface for judges) with the same API contract.
+
+### Run the test suite
+
+```bash
 cd backend
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+python -m pytest tests/ -v      # 40 tests: safety, adversarial, business logic, API
 ```
 
-## 4.5-Minute Recruiter Pitch Flow
+## 🔌 API Highlights
 
-Use the built-in **Pitch Mode** for a guided run. Keep the browser at 16:9 and narrate the story below; the total is exactly **4 minutes 30 seconds**.
-
-| Time | Screen action | Recruiter takeaway |
+| Method | Route | Purpose |
 |---|---|---|
-| 0:00–0:20 | Open the dashboard and point to the Test Mode disclosure | Safe scope: no production money movement |
-| 0:20–0:55 | Seed data; highlight At Risk, Recovered, Recovery Rate, Open, and Escalated | The agent starts with measurable revenue exposure |
-| 0:55–1:35 | Open Cases; use the risk and status dropdowns; inspect one case | Detection is explainable and operationally usable |
-| 1:35–2:20 | Run Batch Recovery; show progress, smart skips, net recovery, cost, and escalations | The agent chooses bounded actions and proves economics |
-| 2:20–3:00 | Arm Failure Simulation; execute once; show the human-review result and terminal guard | Failure is contained, escalated, and never retried blindly |
-| 3:00–3:55 | Open Voice Agent; confirm consent; demonstrate English/Hinglish; capture a promise or dispute | Multilingual recovery is consent-gated and auditable |
-| 3:55–4:25 | Open Compliance Audit; verify the seal; show export | Every detection, decision, action, and escalation is traceable |
-| 4:25–4:30 | Return to metrics and deliver the one-line close | Revenue recovered, policy bounded, evidence attached |
+| `GET` | `/api/dashboard/summary` | Revenue at risk, recovered, open cases, awaiting-payment count |
+| `GET` | `/api/cases` | Paginated, filterable recovery cases with policy-check scores |
+| `POST` | `/api/execution/execute` | Execute a case (requires `Idempotency-Key`) |
+| `POST` | `/api/execution/cases/{id}/confirm-payment` | Provider-confirmed revenue path |
+| `POST` | `/api/webhooks/razorpay` | Signature-verified, replay-protected provider events |
+| `GET` | `/api/audit/chain/verify` | Recursive tamper-evidence verification |
+| `GET` | `/api/audit/{id}/verify` | Verify a single sealed event |
+| `POST` | `/api/cases/{id}/voice-events` | Voice promises — rejected without explicit consent |
+| `POST` | `/api/demo/*` | Seed · reset · batch · failure simulation (dev-only, token-gated) |
 
-The voice browser experience is intentionally a **Test Mode simulation**: the orchestration, consent gate, transcript intent handling, promise capture, and audit persistence are real; live calling requires a configured provider adapter.
+## 🧪 Adversarial Test Matrix
 
-## Verified API Contract
+The suite doesn't just test the happy path — it attacks the system:
+
+- ✅ Failure simulation cannot bypass amount limits, terminal states, or max-retries
+- ✅ Missing payment record → controlled escalation, never a 500
+- ✅ Retry before the cooldown window is rejected
+- ✅ `manual_only` / paused cases are blocked
+- ✅ Case/payment amount mismatch is rejected
+- ✅ Duplicate execution returns the original result (idempotency)
+- ✅ Same idempotency key + different case → `409`
+- ✅ Successful response returns a verifiable `AUD-…` seal
+- ✅ Audit tampering invalidates the complete chain
+- ✅ Webhooks: unsigned rejected, stale rejected, unknown event types rejected, missing provider ID rejected, oversized payloads rejected, exact duplicates ignored
+- ✅ Voice promise without explicit `consent_confirmed=true` is rejected
+- ✅ Transcripts, intents, languages, confidence values are schema-bounded
+- ✅ Demo control plane is disabled in production mode
+
+## 📊 Live Economic Intelligence
+
+Every case surfaces the decision math — judges and operators see *why*, not just *what*:
 
 ```text
-POST /api/demo/seed
-POST /api/demo/reset
-GET  /api/dashboard/summary
-GET  /api/cases/
-POST /api/demo/recovery-batch
-POST /api/demo/simulate-failure
-POST /api/execution/execute
-GET  /api/audit/
-POST /api/cases/{case_id}/voice-events
+Amount at risk:        ₹1,200
+Expected recovery:     91%   (evidence: 2 previous successes, liquidity failure)
+Intervention cost:     ₹18
+Expected net value:    ₹1,074
+Decision:              PAYMENT LINK
+Stopping rules:        do not retry the card · escalate after link window
+Next permitted retry:  2026-08-28T14:32Z        (24h cooldown)
+Policy checks:         10/10 passed   → compliance score 100%
 ```
 
-Execution requests require a unique `Idempotency-Key` header. Repeating the same key returns the original result without running the recovery twice.
+## 🛡️ Security Posture
 
-Execution payload:
+- HMAC-SHA256 webhook signature verification (timing-safe compare)
+- Webhook staleness window, event-type allowlist, provider-ID requirement, payload size cap
+- Idempotency with request-hash separation and `409` misuse response
+- Rate limiting on execute, demo and voice endpoints
+- Security headers: CSP, Permissions-Policy, HSTS, COOP, CORP
+- Strict Pydantic validation: language allowlists, transcript/intent bounds, confidence range, pagination ceilings
+- Demo routes triple-guarded and excluded from production
 
-```json
-{"case_id":"<OPEN_CASE_ID>"}
-```
+## 🗺️ Roadmap
 
-Voice event payload (written to the real audit trail, actor `voice_agent`):
+- [ ] PostgreSQL + Alembic migrations (SQLite retained deliberately for zero-setup demos)
+- [ ] Redis-backed distributed rate limiting & batch queue
+- [ ] SSE batch progress with real per-case status streaming
+- [ ] PII masking layer with role-based field visibility
+- [ ] LLM-backed diagnosis with response-hash provenance (currently deterministic + heuristic AI)
 
-```json
-{"event_type":"voice_promise_captured","intent":"PROMISE_TO_PAY","transcript":"haan bilkul pay kar dunga"}
-```
+## 📄 License
 
-`event_type` is one of `voice_call_started`, `voice_call_ended`, `voice_promise_captured`, `voice_dispute_raised`.
+MIT — see [LICENSE](LICENSE).
 
-The deterministic failure simulation returns `status: "needs_human_review"` and is rendered by the UI as **ESCALATED TO HUMAN**.
-
-## Environment Variables
-
-Backend variables are read from `.env` when using Docker Compose and from `backend/.env` for a local uvicorn run. Copy `.env.example` to `.env`; the included values keep the demo in simulated gateway mode. Set `RAZORPAY_KEY_ID`/`RAZORPAY_KEY_SECRET` only if you want to exercise real Razorpay Test Mode calls.
-
-| Variable | Description | Sample value | Required? |
-|---|---|---|---|
-| `RAZORPAY_KEY_ID` | Razorpay Test Mode API key ID | `rzp_test_recoverai_demo` | No — blank uses simulated gateway |
-| `RAZORPAY_KEY_SECRET` | Razorpay Test Mode API key secret | `recoverai_demo_secret_not_production` | No — blank uses simulated gateway |
-| `RAZORPAY_SIMULATE` | Keep gateway calls simulated for the demo | `true` | Yes for the safe demo default |
-| `DATABASE_URL` | SQLAlchemy database URL (SQLite by default; no external DB needed) | `sqlite:///./recoverai.db` | No — defaults to `sqlite:///./recoverai.db` |
-| `CORS_ORIGINS` | JSON list of allowed CORS origins — empty by default since the app is served same-origin at `/`; only needed if you open `RecoverAI-standalone.html` directly via `file://`, in which case set it to `["null"]` | `[]` | No — defaults to `[]` |
-| `MAX_RETRIES` | Maximum automated retry attempts per recovery case | `2` | No — defaults to `2` |
-| `MAX_AMOUNT` | Policy gate ceiling (in INR) above which automated recovery is blocked | `50000.0` | No — defaults to `50000.0` |
-| `RATE_LIMIT_EXECUTE` | Rate limit applied to `POST /api/execution/execute` | `20/minute` | No — defaults to `20/minute` |
-| `RATE_LIMIT_DEMO` | Rate limit applied to the `/api/demo/*` and voice-event endpoints | `10/minute` | No — defaults to `10/minute` |
-| `DEMO_MODE` | Explicitly enables the demo-only synthetic workflow and safety disclosure | `true` | No — defaults to `true` |
-| `WEBHOOK_MAX_AGE_SECONDS` | Reject stale signed webhook payloads outside this replay window | `300` | No — defaults to `300` |
-
-## Development Boundary
-
-Do not add production payment credentials or real money movement to this project.
-
-## Why this matters
-
-Revenue leakage is a sequence, not a single failure: a checkout is abandoned,
-a payment degrades, a subscription retry fails, or an invoice goes overdue.
-RecoverAI closes that loop in Test Mode: detect the risk, diagnose the cause,
-choose the least-cost intervention, recover measurable money, or escalate
-without crossing a policy boundary.
-
-## What is genuinely working
-
-- FastAPI backend and same-origin dashboard run end to end with synthetic data.
-- Optional OpenAI-compatible structured diagnosis can propose an action; the
-  deterministic engine is the safe default and policy always authorizes execution.
-- Batch runs report recovered, escalated, failed, smart-skipped, estimated cost,
-  net recovery, and a bounded retry sequence.
-- Every meaningful action is stored in a chained SHA-256 audit seal; the UI can
-  verify a seal and export JSON or CSV.
-- Voice recovery supports Hindi/Hinglish, English, Tamil, Kannada, Telugu,
-  Marathi, Bengali, and Malayalam with consent and promise confirmation.
-- Razorpay webhook ingestion and a worker seam are present as production-readiness
-  boundaries; the demo intentionally does not mutate money from a webhook.
-- CI checks the backend test suite and frontend build on every push.
-- The optional React/Vite client lives under `frontend/`; the canonical screen-recording
-  surface remains `RecoverAI-standalone.html` so a clone can run it without npm.
-
-![RecoverAI architecture](docs/architecture.svg)
-
-## Risk × action policy matrix
-
-| Signal | Low-value / transient | High-value / sensitive |
-|---|---|---|
-| Gateway timeout | bounded retry, then stop | retry only under amount/retry cap |
-| Insufficient funds | payment link or smart skip if uneconomic | payment link, never repeated card retries |
-| Bank or instrument rejection | human review | human review, no autonomous collection |
-| Checkout abandonment | one gentle reminder | reminder plus human review if policy requires |
-
-## What's next for live readiness
-
-Connect signed Razorpay webhooks to a durable queue, replace the demo worker with
-Celery/RQ/managed queues, add production authentication and tenant isolation,
-move SQLite to PostgreSQL with Alembic migrations, connect a real voice provider,
-and enable the optional model adapter only after privacy, cost, and prompt review.
-
-## Demo and project links
-
-- Local demo: http://localhost:8000
-- API documentation: http://localhost:8000/docs
-- Canonical contract: docs/api-contract.md
-- Security boundary: docs/security.md
-- Architecture: docs/architecture.svg
-- Issue tracker: https://github.com/harinish45/AI-Revenue-Recovery/issues
-
-`package.json` contains only optional root helper scripts. The optional React/Vite
-build and its `package.json` live under `frontend/`; the application itself is a
-Python/FastAPI service and the canonical demo has no frontend build step.
-
-## Railway deployment note
-
-`railway.toml` is included so the service can be deployed with the documented
-backend build and `$PORT` start command. This workspace currently has no linked
-Railway project, so the repository is **not being claimed as Railway-live**. To
-deploy it, connect the repository in Railway (or run `railway link`), configure
-the safe environment variables above, and redeploy from the linked project.
+<div align="center">
+<sub>Built for the Razorpay Buildathon · RecoverAI — the agent that earns the right to act, every single time.</sub>
+</div>

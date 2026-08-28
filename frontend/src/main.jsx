@@ -22,11 +22,12 @@ const TERMINAL_STATES = new Set(['recovered', 'blocked', 'needs_human_review', '
 
 /* ---------- small components ---------- */
 function Badge({ status }) {
-  const human = String(status || '').toLowerCase() === 'needs_human_review' ||
-    String(status || '').toLowerCase().replaceAll('_', ' ') === 'needs human review';
+  const normalized = String(status || '').toLowerCase().replaceAll('_', ' ');
+  const human = normalized === 'needs human review' || normalized === 'blocked';
+  const awaiting = normalized === 'awaiting payment';
   return (
     <span className={`status-badge ${human ? 'needs-human-review' : String(status || '').toLowerCase()}`}>
-      {human ? 'ESCALATED TO HUMAN' : pretty(status)}
+      {human ? 'ESCALATED TO HUMAN' : awaiting ? 'AWAITING PAYMENT' : pretty(status)}
     </span>
   );
 }
@@ -88,7 +89,7 @@ function App() {
     total_at_risk: s.total_at_risk ?? s.revenue_at_risk ?? 0,
     total_recovered: s.total_recovered ?? s.recovered_amount ?? 0,
     recovery_rate_percent: s.recovery_rate_percent ?? s.recovery_rate ?? 0,
-    open_cases: s.open_cases ?? s.failed_payments ?? s.total_transactions ?? 0,
+    open_cases: s.open_cases ?? 0,
     escalated_cases: s.escalated_cases ?? 0,
   });
 
@@ -193,11 +194,17 @@ function App() {
       const r = await api.executeRecovery(item.id);
       setSelected(null);
       const status = String(r.status || '').toLowerCase();
-      if (status === 'needs_human_review' || status.includes('human') || status.includes('escalat')) {
+      if (status === 'awaiting_payment') {
+        pushNotice({ type: 'info', text: 'Intervention sent. Revenue will be counted only after the provider confirms the payment.' });
+      } else if (status === 'recovered') {
+        pushNotice({ type: 'success', text: 'Provider confirmed the payment — ' + money(r.recovered_amount) + ' recovered.' });
+      } else if (status === 'needs_human_review' || status.includes('human') || status.includes('escalat')) {
         setFailureArmed(false);
-        pushNotice({ type: 'error', text: 'Escalated to Human Review due to gateway failure.' });
+        pushNotice({ type: 'error', text: r.message || 'Escalated to Human Review.' });
+      } else if (status === 'skipped') {
+        pushNotice({ type: 'info', text: r.message || 'Smart-skipped: intervention cost exceeds recovery value.' });
       } else {
-        pushNotice({ type: 'success', text: pretty(r.action || 'Recovery') + ' completed — ' + money(r.amount_recovered) + ' recovered.' });
+        pushNotice({ type: status === 'recovered' ? 'success' : 'warning', text: r.message || pretty(r.action || 'Recovery') + ' completed.' });
       }
       await refresh();
     } catch (e) {
@@ -241,7 +248,7 @@ function App() {
       const r = await api.runRecoveryBatch();
       setBatchResult(r);
       clearInterval(progressTimer); setProgress(100);
-      pushNotice({ type: 'success', text: 'Recovered ' + money(r.amount_recovered) + ' across ' + r.successful + ' successful cases.' });
+      pushNotice({ type: 'success', text: 'Recovered ' + money(r.recovered_amount) + ' across ' + r.successful + ' successful cases.' });
       await refresh();
       return r;
     } catch (e) {

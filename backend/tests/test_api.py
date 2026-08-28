@@ -92,6 +92,9 @@ def test_voice_event_is_persisted_to_real_audit_trail(client: TestClient):
             "event_type": "voice_promise_captured",
             "intent": "PROMISE_TO_PAY",
             "transcript": "haan bilkul pay kar dunga",
+            "consent_confirmed": True,
+            "language": "hi",
+            "confidence": 0.92,
         },
     )
     assert response.status_code == 200

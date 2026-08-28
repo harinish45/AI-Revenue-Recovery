@@ -49,6 +49,10 @@ def _ensure_sqlite_compatibility():
         if "created_at" not in columns:
             with engine.begin() as connection:
                 connection.execute(text("ALTER TABLE audit_seals ADD COLUMN created_at DATETIME"))
+        if "sequence" not in columns:
+            with engine.begin() as connection:
+                connection.execute(text("ALTER TABLE audit_seals ADD COLUMN sequence INTEGER"))
+
 
 
 _ensure_sqlite_compatibility()

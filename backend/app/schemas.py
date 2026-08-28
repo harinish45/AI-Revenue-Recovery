@@ -1,7 +1,10 @@
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_validator
+
+# Languages the voice agent is allowed to record (BCP-47 primary subtags).
+VOICE_LANGUAGE_ALLOWLIST = {"en", "hi", "ta", "te", "kn", "mr", "bn", "gu", "ml", "pa"}
 
 
 class DashboardSummary(BaseModel):
@@ -11,6 +14,8 @@ class DashboardSummary(BaseModel):
     recovery_rate: float
     total_transactions: int
     failed_payments: int
+    open_cases: int = 0
+    awaiting_payment_cases: int = 0
     recovery_attempts: int
     successful_recoveries: int
     failed_recoveries: int
@@ -96,6 +101,7 @@ class AuditLogOut(BaseModel):
     timestamp: datetime
     event_hash: Optional[str] = None
     previous_hash: Optional[str] = None
+    sequence: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -113,9 +119,11 @@ class SeedResponse(BaseModel):
 
 
 class BatchResponse(BaseModel):
+    batch_id: str = ""
     total_cases: int
     attempted: int
     successful: int
+    awaiting: int = 0
     failed: int
     escalated: int
     amount_at_risk: float
@@ -132,6 +140,12 @@ class AuditSealVerifyResponse(BaseModel):
     event_hash: str
     previous_hash: Optional[str] = None
     case_id: Optional[str] = None
+
+
+class AuditChainVerifyResponse(BaseModel):
+    valid: bool
+    events_checked: int
+    events: list
 
 
 class WebhookResponse(BaseModel):
@@ -162,6 +176,34 @@ class VoiceEventRequest(BaseModel):
     language: Optional[str] = None
     confidence: Optional[float] = None
     consent_confirmed: Optional[bool] = None
+
+    @field_validator("transcript")
+    @classmethod
+    def _bound_transcript(cls, value: Optional[str]) -> Optional[str]:
+        if value is not None and len(value) > 2000:
+            raise ValueError("Transcript exceeds the 2000 character limit")
+        return value
+
+    @field_validator("intent")
+    @classmethod
+    def _bound_intent(cls, value: Optional[str]) -> Optional[str]:
+        if value is not None and len(value) > 200:
+            raise ValueError("Intent exceeds the 200 character limit")
+        return value
+
+    @field_validator("language")
+    @classmethod
+    def _allowlist_language(cls, value: Optional[str]) -> Optional[str]:
+        if value is not None and value.lower() not in VOICE_LANGUAGE_ALLOWLIST:
+            raise ValueError("Unsupported language code")
+        return value.lower() if value else value
+
+    @field_validator("confidence")
+    @classmethod
+    def _bound_confidence(cls, value: Optional[float]) -> Optional[float]:
+        if value is not None and not 0.0 <= value <= 1.0:
+            raise ValueError("Confidence must be between 0.0 and 1.0")
+        return value
 
 
 class VoiceEventResponse(BaseModel):

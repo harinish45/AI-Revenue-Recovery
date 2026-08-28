@@ -41,5 +41,5 @@ def test_execution_is_idempotent_and_response_has_security_headers(client: TestC
 
 
 def test_pagination_is_bounded(client: TestClient):
-    response = client.get("/api/cases/?limit=1001")
-    assert response.status_code == 400
+    response = client.get("/api/cases", params={"limit": 1001})
+    assert response.status_code == 422

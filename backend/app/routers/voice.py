@@ -1,3 +1,10 @@
+"""Voice agent events.
+
+A recorded payment promise is only accepted with EXPLICIT consent
+(``consent_confirmed`` must be ``true``). Transcript and intent sizes are
+bounded by the request schema.
+"""
+
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
@@ -21,21 +28,28 @@ def record_voice_event(
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
 
-    TERMINAL_STATES = {"recovered", "blocked", "needs_human_review", "skipped"}
     if str(case.recovery_status or "").lower() in TERMINAL_STATES:
         raise HTTPException(
             status_code=409,
             detail=f"Case is already {case.recovery_status}",
         )
 
-    if body.event_type == "voice_promise_captured" and body.consent_confirmed is False:
-        raise HTTPException(status_code=400, detail="A payment promise requires explicit confirmation")
+    # A payment promise may ONLY be recorded with explicit, affirmative consent.
+    if body.event_type == "voice_promise_captured" and body.consent_confirmed is not True:
+        raise HTTPException(
+            status_code=400,
+            detail="A payment promise requires explicit consent (consent_confirmed=true)",
+        )
 
     decision = body.intent or "VOICE_INTERACTION"
+    metadata = []
     if body.language:
-        decision += f" | language={body.language}"
+        metadata.append(f"language={body.language}")
     if body.confidence is not None:
-        decision += f" | confidence={body.confidence:.2f}"
+        metadata.append(f"confidence={body.confidence:.2f}")
+    reason = body.transcript
+    if metadata:
+        reason = "; ".join(filter(None, [reason, "(" + ", ".join(metadata) + ")"]))
     audit = log_event(
         db,
         case_id,
@@ -43,7 +57,7 @@ def record_voice_event(
         actor="voice_agent",
         decision=decision,
         action="promise_capture" if body.event_type == "voice_promise_captured" else "voice_interaction",
-        reason=body.transcript,
+        reason=reason,
     )
     db.commit()
 

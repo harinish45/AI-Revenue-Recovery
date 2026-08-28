@@ -20,6 +20,10 @@ def invalidate_metrics_cache() -> None:
 def _compute_metrics(db: Session) -> dict:
     total_transactions = db.query(Payment).count()
     failed_payments = db.query(Payment).filter(Payment.status == "failed").count()
+    open_cases = db.query(RecoveryCase).filter(RecoveryCase.recovery_status == "pending").count()
+    awaiting_payment_cases = (
+        db.query(RecoveryCase).filter(RecoveryCase.recovery_status == "awaiting_payment").count()
+    )
 
     total_revenue = (
         db.query(func.sum(Payment.amount)).filter(Payment.status == "success").scalar() or 0.0
@@ -62,6 +66,8 @@ def _compute_metrics(db: Session) -> dict:
         "recovery_rate": round(recovery_rate, 1),
         "total_transactions": total_transactions,
         "failed_payments": failed_payments,
+        "open_cases": open_cases,
+        "awaiting_payment_cases": awaiting_payment_cases,
         "recovery_attempts": recovery_attempts,
         "successful_recoveries": successful_recoveries,
         "failed_recoveries": failed_recoveries,

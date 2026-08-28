@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RecoverAI — Autonomous Revenue Recovery</title>
+<title>RecoverAI â€” Autonomous Revenue Recovery</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -226,7 +226,6 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .toast.e{border-left-color:var(--red)}.toast.e .tic{background:rgba(239,68,68,.14);color:var(--red2)}
 .toast.w{border-left-color:var(--amb)}.toast.w .tic{background:rgba(245,158,16,.12);color:var(--amb2)}
 .toast.i .tic{background:rgba(59,130,246,.12);color:var(--blu2)}
-.focus-ring{position:fixed;z-index:1000;display:none;pointer-events:none;border:2px solid #a78bfa;border-radius:10px;box-shadow:0 0 0 5px rgba(167,139,250,.16),0 0 32px rgba(167,139,250,.34);transition:all .18s ease}.focus-ring.show{display:block}.focus-ring span{position:absolute;left:-2px;top:-31px;padding:5px 9px;border-radius:6px;background:#211b3d;color:#ddd1ff;border:1px solid #725ec1;font-size:10px;font-weight:800;white-space:nowrap;letter-spacing:.04em}.focus-active{border-color:#a78bfa!important;color:#ddd1ff!important;background:rgba(124,92,201,.14)!important}
 @media(max-width:1150px){.kpis{grid-template-columns:repeat(3,1fr)}.ovgrid{grid-template-columns:1fr}.pbgrid{grid-template-columns:1fr 1fr}.vgrid{grid-template-columns:1fr}.grid2{grid-template-columns:1fr}}
 @media(max-width:900px){.shell{grid-template-columns:56px 1fr}.brand div,.nav .nl,.nav .nbadge,.ncap,.side-foot small,.conn span{display:none}.brand{justify-content:center}.nav button{justify-content:center}.kpis{grid-template-columns:1fr 1fr}}
 @media(max-width:620px){.shell{grid-template-columns:1fr}.side{position:fixed;bottom:0;left:0;right:0;top:auto;height:56px;flex-direction:row;align-items:center;z-index:80;background:#000;border-top:1px solid var(--ln);overflow-y:hidden}.brand,.side-foot{display:none}.nav{flex-direction:row;flex:1;gap:2px;overflow-x:auto;padding:0 6px}.nav button{flex:none;min-width:48px;justify-content:center;padding:6px}main{padding-bottom:76px}.kpis{grid-template-columns:1fr}.pbgrid{grid-template-columns:1fr}.bmrow{grid-template-columns:repeat(2,1fr)}}
@@ -235,7 +234,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 </head>
 <body>
 
-<div class="tstrip"><i></i> Test Mode · Razorpay Sandbox · No real money moves</div>
+<div class="tstrip"><i></i> Test Mode Â· Razorpay Sandbox Â· No real money moves</div>
 
 <div class="shell">
   <aside class="side">
@@ -254,39 +253,38 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
       <button data-pg="settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span class="nl">Settings</span></button>
     </nav>
     <div class="side-foot">
-      <span class="conn demo" id="connWrap"><i></i><span id="connTxt">Probing…</span></span>
-      <small class="mono">v5.2 · live backend</small>
+      <span class="conn demo" id="connWrap"><i></i><span id="connTxt">Probingâ€¦</span></span>
+      <small class="mono">v5.2 Â· live backend</small>
     </div>
   </aside>
   <div class="mainwrap">
     <header class="top">
       <div class="crumb"><b id="ptitle">Overview</b><br><span id="psub">Revenue at a glance</span></div>
       <div class="top-r">
-        <button class="btn btn-pitch btn-sm" id="pitchBtn" title="Open guided pitch mode">✦ Pitch Mode</button><button class="btn btn-g btn-sm" id="focusBtn" title="Highlight clicked controls while presenting">◎ Focus</button><button class="btn btn-g btn-sm" id="searchBtn" title="Command palette (Ctrl/⌘+K)">⌘K Search</button>
+        <button class="btn btn-pitch btn-sm" id="pitchBtn" title="Open guided pitch mode">âœ¦ Pitch Mode</button><button class="btn btn-g btn-sm" id="searchBtn" title="Command palette (Ctrl/âŒ˜+K)">âŒ˜K Search</button>
         <button class="btn btn-g btn-sm" id="seedBtn">Seed Data</button>
       </div>
     </header>
     <main>
-      <div class="page" id="content"><div class="empty" style="padding:60px"><h4>Loading…</h4></div></div>
+      <div class="page" id="content"><div class="empty" style="padding:60px"><h4>Loadingâ€¦</h4></div></div>
     </main>
   </div>
 </div>
 
-<div class="ovl top" id="palOvl"><div class="pal"><input id="palInput" autocomplete="off" placeholder="Search or command…" aria-label="Command palette"><div class="pal-list" id="palList"></div></div></div>
+<div class="ovl top" id="palOvl"><div class="pal"><input id="palInput" autocomplete="off" placeholder="Search or commandâ€¦" aria-label="Command palette"><div class="pal-list" id="palList"></div></div></div>
 <div class="ovl" id="execOvl"><div class="exec" id="execContent" role="dialog" aria-modal="true"></div></div>
-<div class="pitch-ovl" id="pitchOvl"><section class="pitch-card" role="dialog" aria-modal="true" aria-labelledby="pitchTitle"><div class="pitch-head"><div><div class="pitch-kicker">RecoverAI / 90-second story</div><h2 id="pitchTitle">Turn failed payments into recovered revenue.</h2><p>Presenter mode · use the arrows or controls to move through the product story.</p></div><button class="pitch-close" id="pitchClose" aria-label="Close pitch mode">×</button></div><div class="pitch-body"><div class="pitch-progress" id="pitchProgress"></div><div class="pitch-step" id="pitchStep"></div></div><div class="pitch-foot"><small id="pitchCounter">01 / 05</small><div><button class="btn btn-g btn-sm" id="pitchPrev">← Back</button> <button class="btn btn-pitch btn-sm" id="pitchNext">Next →</button></div></div></section></div>
-<div class="focus-ring" id="focusRing" aria-hidden="true"><span id="focusLabel">Presenter focus</span></div>
+<div class="pitch-ovl" id="pitchOvl"><section class="pitch-card" role="dialog" aria-modal="true" aria-labelledby="pitchTitle"><div class="pitch-head"><div><div class="pitch-kicker">RecoverAI / 90-second story</div><h2 id="pitchTitle">Turn failed payments into recovered revenue.</h2><p>Presenter mode Â· use the arrows or controls to move through the product story.</p></div><button class="pitch-close" id="pitchClose" aria-label="Close pitch mode">Ã—</button></div><div class="pitch-body"><div class="pitch-progress" id="pitchProgress"></div><div class="pitch-step" id="pitchStep"></div></div><div class="pitch-foot"><small id="pitchCounter">01 / 05</small><div><button class="btn btn-g btn-sm" id="pitchPrev">â† Back</button> <button class="btn btn-pitch btn-sm" id="pitchNext">Next â†’</button></div></div></section></div>
 <div class="twrap2" id="toastWrap" aria-live="polite"></div>
 
 <script>
-/* ═══ STATE ═══
+/* â•â•â• STATE â•â•â•
    S.cases / S.audit are always the real backend rows (normalized onto the
    field names the render*() functions below expect). Nothing here is
-   client-generated — see Api + normalizeCase/normalizeAuditEntry. */
+   client-generated â€” see Api + normalizeCase/normalizeAuditEntry. */
 var S={page:'overview',cases:[],audit:[],dashboard:null,live:false,loading:true,loadError:null,armed:false,running:false,filter:'all',statusFilter:'all',search:'',caseView:'table',
 voiceCase:null,voiceLang:'hi-IN',voiceActive:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceTimer:null,voiceStartTime:0,voiceConsent:false,voiceConfidence:0,voiceIntent:'DISCOVERY',voiceVoiceName:'Browser voice',voiceTurn:0,
-auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,agentPaused:false,focusMode:false,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
-/* Mirrors backend/app/config.py Settings exactly — not editable here, this
+auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,agentPaused:false,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
+/* Mirrors backend/app/config.py Settings exactly â€” not editable here, this
    panel just displays what the server actually enforces. */
 var POLICY={maxAmount:50000,maxRetries:2,rateExecute:'20/minute',rateDemo:'10/minute'};
 var TERMINAL_STATES=['recovered','blocked','needs_human_review','skipped'];
@@ -297,8 +295,8 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function norm(s){return String(s).toLowerCase().replace(/[^\w\s']/g,' ').replace(/\s+/g,' ').trim();}
 function pretty(s){return String(s||'').replace(/_/g,' ');}
 function nowTs(){return new Date().toTimeString().slice(0,8);}
-function relTime(iso){if(!iso)return '—';var ms=Date.now()-new Date(iso).getTime();var h=Math.floor(ms/3600000);if(h<1)return 'just now';if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
-/* ═══ API CLIENT — every call below hits the real FastAPI backend ═══ */
+function relTime(iso){if(!iso)return 'â€”';var ms=Date.now()-new Date(iso).getTime();var h=Math.floor(ms/3600000);if(h<1)return 'just now';if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
+/* â•â•â• API CLIENT â€” every call below hits the real FastAPI backend â•â•â• */
 var API_BASE=window.RECOVERAI_API_BASE||'';
 function apiRequest(method,path,body,headers){
  var requestHeaders={'Content-Type':'application/json'};Object.keys(headers||{}).forEach(function(k){requestHeaders[k]=headers[k];});
@@ -323,7 +321,7 @@ var Api={
  recordVoiceEvent:function(caseId,body){return apiRequest('POST','/api/cases/'+encodeURIComponent(caseId)+'/voice-events',body);},
  verifyAudit:function(id){return apiRequest('GET','/api/audit/'+encodeURIComponent(id)+'/verify');}
 };
-/* ═══ NORMALIZATION — real API shapes → the field names render*() expects ═══ */
+/* â•â•â• NORMALIZATION â€” real API shapes â†’ the field names render*() expects â•â•â• */
 var CATEGORY_META={
  temporary_gateway_failure:{code:'GW_TIMEOUT',name:'Gateway Timeout'},
  invalid_instrument:{code:'INVALID_CARD',name:'Invalid Card Details'},
@@ -331,7 +329,7 @@ var CATEGORY_META={
  bank_rejection:{code:'BANK_DECLINE',name:'Bank Rejection'},
  user_abandonment:{code:'ABANDON',name:'Checkout Abandoned'}
 };
-var STATUS_MAP={pending:'open',failed:'open',recovered:'recovered',needs_human_review:'escalated',blocked:'escalated',skipped:'skipped'};
+var STATUS_MAP={pending:'open',failed:'open',recovered:'recovered',awaiting_payment:'awaiting',needs_human_review:'escalated',blocked:'escalated',skipped:'skipped'};
 function normalizeCase(item){
  var cm=CATEGORY_META[item.failure_category]||{code:'UNKNOWN',name:pretty(item.failure_category||'unknown')};
  var risk=(item.risk_level||'medium').toLowerCase();
@@ -343,7 +341,7 @@ function normalizeCase(item){
   attempts:item.retry_count||0,maxAttempts:item.max_retries!=null?item.max_retries:POLICY.maxRetries,
   recovered_amount:item.recovered_amount||0,compliance_score:item.compliance_score||0,next_retry_at:item.next_retry_at||null};
 }
-/* Every backend event_type maps onto one of the 6 audit lanes below — VOICE
+/* Every backend event_type maps onto one of the 6 audit lanes below â€” VOICE
    is the one lane with no analogue in the original design (added since the
    voice agent's real actions are persisted as real audit rows too). */
 var EVENT_MAP={
@@ -366,14 +364,14 @@ var EVENT_MAP={
 };
 function normalizeAuditEntry(item){
  var m=EVENT_MAP[item.event_type]||{type:'DECISION',color:'#9d9da6'};
- var desc=(item.case_id||'system')+' — '+pretty(item.event_type||'event');
+ var desc=(item.case_id||'system')+' â€” '+pretty(item.event_type||'event');
  if(item.reason)desc+=': '+item.reason;
  var result=item.result?String(item.result).toUpperCase():(m.type==='ESCALATION'?'ESCALATED':(item.event_type==='policy_check_failed'?'BLOCKED':'SUCCESS'));
- return {id:item.id,type:m.type,color:m.color,desc:desc,actor:item.actor||'system',decision:item.decision||'—',eventHash:item.event_hash||'',previousHash:item.previous_hash||'',
+ return {id:item.id,type:m.type,color:m.color,desc:desc,actor:item.actor||'system',decision:item.decision||'â€”',eventHash:item.event_hash||'',previousHash:item.previous_hash||'',
   reason:item.reason||'',result:result,ts:item.timestamp?new Date(item.timestamp).toTimeString().slice(0,8):nowTs(),caseId:item.case_id||null,raw:item};
 }
 function trackMetric(key,val){var h=S.history[key];if(!h)return;h.push(val);if(h.length>20)h.shift();}
-/* ═══ DATA LOADING ═══ */
+/* â•â•â• DATA LOADING â•â•â• */
 function pendingCases(){return S.cases.filter(function(c){return c.recovery_status==='pending';});}
 function openCount(){return S.cases.filter(function(c){return c.status==='open';}).length;}
 function updateConnBadge(){
@@ -414,10 +412,10 @@ function loadInitialData(){
 }
 function renderShell(){
  var el=document.getElementById('content');if(!el)return;
- if(S.loading){el.innerHTML='<div class="card"><div class="empty" style="padding:60px"><h4>Loading RecoverAI…</h4><p>Connecting to the backend and seeding demo data if needed.</p></div></div>';return;}
+ if(S.loading){el.innerHTML='<div class="card"><div class="empty" style="padding:60px"><h4>Loading RecoverAIâ€¦</h4><p>Connecting to the backend and seeding demo data if needed.</p></div></div>';return;}
  if(!S.live){el.innerHTML='<div class="card"><div class="empty" style="padding:60px"><h4 style="color:var(--red2)">Backend unavailable</h4><p>'+esc(S.loadError||'Could not reach the RecoverAI API.')+'</p><p style="margin-top:6px">Start it with <span class="mono">uvicorn app.main:app --port 8000</span> from <span class="mono">backend/</span>, then retry.</p><button class="btn btn-p" style="margin-top:14px" data-act="retry-load">Retry</button></div></div>';}
 }
-/* ═══ CONSTANTS (structural — playbook copy/labels only, not data) ═══ */
+/* â•â•â• CONSTANTS (structural â€” playbook copy/labels only, not data) â•â•â• */
 var PLAYBOOKS=[
  {id:'degradation',name:'Payment Degradation Scan',desc:'Detects gateway timeouts and invalid-instrument declines, retries via the recommended action',color:'#22c55e',
   filterFn:function(c){return c.status==='open'&&(c.failure_category==='temporary_gateway_failure'||c.failure_category==='invalid_instrument');}},
@@ -432,10 +430,10 @@ var PLAYBOOKS=[
  {id:'voice',name:'Hinglish Voice Recovery',desc:'AI voice agent calls customers in their language and negotiates a promise-to-pay',color:'#ec4899',
   filterFn:function(c){return c.status==='open';}}
 ];
-/* ═══ VOICE BRAINS (code-switch tolerant) — real browser SpeechRecognition
+/* â•â•â• VOICE BRAINS (code-switch tolerant) â€” real browser SpeechRecognition
    + SpeechSynthesis; the dialogue itself is a deterministic keyword-matched
    script, same in kind as any rule-based IVR/chatbot. Real outcomes
-   (promise captured, call ended) are persisted via Api.recordVoiceEvent. ═══ */
+   (promise captured, call ended) are persisted via Api.recordVoiceEvent. â•â•â• */
 var VOICE_BRAIN={
  'hi-IN':{label:'Hindi',name:'Hindi / Hinglish',
   greeting:function(c){return 'Namaste '+c.customer.split(' ')[0]+' ji, main RecoverAI team se bol rahi hoon. Aapke payment ke regarding baat karni thi. Kya abhi 2 minute hain?';},
@@ -456,8 +454,8 @@ var VOICE_BRAIN={
   context:function(c){return 'Your payment of '+fmtINR(c.amount)+' failed due to '+c.category.name+'.';},
   patterns:[
    {m:['yes','yeah','ok','okay','sure','tell me','go ahead','fine','definitely','absolutely','do it','send it','i will pay','i can pay now'],r:function(){return{say:'Great! I will send a secure payment link to your WhatsApp right now.',stage:'link_sent',outcome:'PROMISE_TO_PAY'};}},
-   {m:['half payment','partial','split it','installment','pay in parts','half now'],r:function(){return{say:'That works — I can send a partial payment link for half the amount, and schedule the rest.',stage:'closed',outcome:'PARTIAL_PAYMENT'};}},
-   {m:['talk to a human','real person','speak to manager','speak to an agent','this is a bot','file a complaint'],r:function(){return{say:'Of course — connecting you to our senior support team right away.',stage:'closed',outcome:'REQUEST_HUMAN'};}},
+   {m:['half payment','partial','split it','installment','pay in parts','half now'],r:function(){return{say:'That works â€” I can send a partial payment link for half the amount, and schedule the rest.',stage:'closed',outcome:'PARTIAL_PAYMENT'};}},
+   {m:['talk to a human','real person','speak to manager','speak to an agent','this is a bot','file a complaint'],r:function(){return{say:'Of course â€” connecting you to our senior support team right away.',stage:'closed',outcome:'REQUEST_HUMAN'};}},
    {m:['no money','no balance','not enough funds','salary not credited','broke right now','tight on cash'],r:function(){return{say:'No problem at all. I will schedule an automatic retry for 2 days from now.',stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},
    {m:['not now','later','call me tomorrow','busy right now','in a meeting','call back'],r:function(){return{say:'Understood, no rush. I will send details via WhatsApp for whenever works.',stage:'closed',outcome:'CALLBACK_LATER'};}},
    {m:['no thanks','dont want','stop calling','wrong number','not interested','remove my number'],r:function(){return{say:'No problem, sorry for the inconvenience. I will send details via WhatsApp.',stage:'closed',outcome:'SOFT_REFUSAL'};}},
@@ -511,10 +509,10 @@ var VOICE_BRAIN={
 /* Extended language packs: same recovery guardrails, localized speech and
    code-switched intent phrases for Marathi, Bengali and Malayalam. */
 function addVoicePack(code,label,name,greet,context,yesWords,yesSay,laterWords,laterSay,noWords,noSay,linkSay,fallback,quick){VOICE_BRAIN[code]={label:label,name:name,greeting:greet,context:context,patterns:[{m:yesWords,r:function(){return{say:yesSay,stage:'closed',outcome:'PROMISE_TO_PAY'};}},{m:laterWords,r:function(){return{say:laterSay,stage:'closed',outcome:'CALLBACK_SCHEDULED'};}},{m:noWords,r:function(){return{say:noSay,stage:'closed',outcome:'SOFT_REFUSAL'};}},{m:['link','send link','payment link'],r:function(){return{say:linkSay,stage:'closed',outcome:'LINK_SENT'};}}],fallback:function(){return{say:fallback,stage:'objection'};},quickReplies:quick};}
-addVoicePack('mr-IN','Marathi','Marathi / English',function(c){return 'Namaskar '+c.customer.split(' ')[0]+' ji, RecoverAI team madhun bolat aahe. Tumchya payment baddal don minute bolu shakto ka?';},function(c){return 'Tumcha '+fmtINR(c.amount)+' payment fail zala aahe. Karan '+c.category.name+' aahe.';},['ho','haan','yes','karen','karतो','link pathva'],'Nakkich. Mi secure payment link pathavte. Tumhi confirm kelyavarach promise record hoil.',['paise nahi','paisa nahi','nantar','later','busy'],'Thik aahe. Mi ekach callback schedule karte; repeated calls honar nahi.',['nako','no','wrong number','thamba'],'Samajle. Mi call thambavate ani pudhe contact karanar nahi.','Payment link pathavu ka?','Mala nit samajle nahi. Link pathavu ka, ki callback schedule karu?',['Ho, link pathva','Ata paise nahi','Nantar call kara','Nako']);
+addVoicePack('mr-IN','Marathi','Marathi / English',function(c){return 'Namaskar '+c.customer.split(' ')[0]+' ji, RecoverAI team madhun bolat aahe. Tumchya payment baddal don minute bolu shakto ka?';},function(c){return 'Tumcha '+fmtINR(c.amount)+' payment fail zala aahe. Karan '+c.category.name+' aahe.';},['ho','haan','yes','karen','karà¤¤à¥‹','link pathva'],'Nakkich. Mi secure payment link pathavte. Tumhi confirm kelyavarach promise record hoil.',['paise nahi','paisa nahi','nantar','later','busy'],'Thik aahe. Mi ekach callback schedule karte; repeated calls honar nahi.',['nako','no','wrong number','thamba'],'Samajle. Mi call thambavate ani pudhe contact karanar nahi.','Payment link pathavu ka?','Mala nit samajle nahi. Link pathavu ka, ki callback schedule karu?',['Ho, link pathva','Ata paise nahi','Nantar call kara','Nako']);
 addVoicePack('bn-IN','Bengali','Bengali / English',function(c){return 'Nomoskar '+c.customer.split(' ')[0]+', ami RecoverAI team theke bolchi. Apnar payment niye du minute kotha bola jabe?';},function(c){return 'Apnar '+fmtINR(c.amount)+' payment fail hoyeche. Karon '+c.category.name+'.';},['hya','haan','yes','korbo','link pathan'],'Nishchoy. Ami secure payment link pathachhi. Confirm korlei promise record hobe.',['taka nei','pore','later','busy','ekhon na'],'Thik ache. Ami ekbar callback schedule korchi; repeated calls noy.',['na','nahi','wrong number','bondho'],'Bujhte perechi. Ami call ta bondho korchi.','Payment link pathabo?','Ami thik bujhte parini. Link pathabo, na pore callback korbo?',['Hya, link pathan','Ekhon taka nei','Pore call korun','Na']);
 addVoicePack('ml-IN','Malayalam','Malayalam / English',function(c){return 'Namaskaram '+c.customer.split(' ')[0]+', RecoverAI team-il ninnanu vilikkunnathu. Payment-ne kurichu randu minute samsarikkamo?';},function(c){return 'Ningalude '+fmtINR(c.amount)+' payment fail aayi. Karanam '+c.category.name+'.';},['athe','haan','yes','ayakk','cheyyam','link'],'Sheri. Njan secure payment link ayakkam. Confirm cheythal mathram promise record cheyyum.',['panam illa','pinnidu','later','busy','ippo venda'],'Saramilla. Oru callback mathram schedule cheyyam; repeated calls undavilla.',['illa','vendam','wrong number','stop'],'Manassilayi. Ee call ivide nirthunnu.','Payment link ayakkatte?','Enikku vyakthamayi manassilayilla. Link ayakkatte, atho callback venamo?',['Athe, link ayakku','Panam illa','Pinne call cheyyu','Venda']);
-/* ═══ HELPERS ═══ */
+/* â•â•â• HELPERS â•â•â• */
 var TICONS={s:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M20 6 9 17l-5-5"/></svg>',e:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h16.9a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>',w:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>',i:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 3l1.9 5.8L20 10l-6.1 1.2L12 17l-1.9-5.8L4 10l6.1-1.2z"/></svg>'};
 function toast(type,title,msg,dur){dur=dur||4000;var cls={s:'s',e:'e',w:'w',i:'i'}[type]||'i';var el=document.createElement('div');el.className='toast '+cls;
  el.innerHTML='<div class="tic">'+(TICONS[cls]||TICONS.i)+'</div><div><b>'+esc(title)+'</b>'+(msg?'<p>'+esc(msg)+'</p>':'')+'</div>';
@@ -529,7 +527,7 @@ function spark(data,color){
 }
 function safeCopy(text){if(navigator.clipboard&&window.isSecureContext&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){toast('s','Copied',text);},function(){fbCopy(text);});}else fbCopy(text);}
 function fbCopy(text){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.top='0';ta.style.left='0';ta.style.opacity='0';ta.setAttribute('readonly','');document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,99999);try{var ok=document.execCommand('copy');if(ok)toast('s','Copied',text);else toast('w','Copy failed','');}catch(e){toast('w','Copy failed','');}document.body.removeChild(ta);}
-/* ═══ ROUTING ═══ */
+/* â•â•â• ROUTING â•â•â• */
 var META={overview:['Overview','Revenue at a glance'],cases:['Cases','Search, filter, execute'],batch:['Batch Run','Pipeline execution'],playbooks:['Playbooks','Autonomous strategies'],voice:['Voice Agent','Multi-language recovery'],promises:['Promises','Commitment tracking'],audit:['Audit Trail','Decision log'],settings:['Settings','Configuration']};
 function go(page){
  if(S.page==='voice'&&page!=='voice'&&S.voiceActive){endCall('NAV_AWAY');}
@@ -558,7 +556,7 @@ function go(page){
  if(page==='voice'&&S.voiceActive){setTimeout(function(){renderVoiceChat();updateVoiceUI();},50);}
 }
 function softGo(){if(S.page==='voice'&&S.voiceActive){renderVoiceChat();updateVoiceUI();return;}go(S.page);}
-/* ═══ RENDERERS ═══ */
+/* â•â•â• RENDERERS â•â•â• */
 function renderOverview(){
  var open=S.cases.filter(function(c){return c.status==='open';});
  var atRisk=S.dashboard?S.dashboard.revenue_at_risk:open.reduce(function(s,c){return s+c.amount;},0);
@@ -590,13 +588,13 @@ function renderOverview(){
  var escalated=S.cases.filter(function(c){return c.status==='escalated';}).slice(0,4);
  h+='<div class="card"><div class="chead"><h3>Human Review</h3><span class="hint">'+escN+' cases need attention</span><button class="btn btn-g btn-sm" style="margin-left:8px" data-act="status-filter" data-status="escalated">View cases</button></div>';
  if(!escalated.length)h+='<div class="empty" style="padding:22px"><h4>Queue clear</h4><p>High-risk or policy-blocked cases appear here for review.</p></div>';
- else escalated.forEach(function(c){h+='<div class="actrow"><span class="tag r">REVIEW</span><span class="mono" style="color:#f87171;font-size:10px">'+c.id+'</span><span class="ax"><b>'+esc(c.customer)+'</b> · '+esc(c.category.name)+' · '+fmt(c.amount)+'</span><button class="btn btn-g btn-sm" data-act="case-detail" data-id="'+c.id+'">Inspect</button></div>';});
+ else escalated.forEach(function(c){h+='<div class="actrow"><span class="tag r">REVIEW</span><span class="mono" style="color:#f87171;font-size:10px">'+c.id+'</span><span class="ax"><b>'+esc(c.customer)+'</b> Â· '+esc(c.category.name)+' Â· '+fmt(c.amount)+'</span><button class="btn btn-g btn-sm" data-act="case-detail" data-id="'+c.id+'">Inspect</button></div>';});
  h+='</div>';
  return h;
 }
 function renderGovernance(){
  var paused=S.agentPaused;
- return '<div class="card" style="border-color:'+(paused?'rgba(245,158,11,.35)':'rgba(34,197,94,.22)')+'"><div class="chead"><h3>Agent Control Plane</h3><span class="hint">operator safety boundary</span></div><div class="cbody" style="display:grid;grid-template-columns:1.3fr 1fr;gap:12px;align-items:center"><div><b style="color:'+(paused?'#fbbf24':'#4ade80')+'">'+(paused?'PAUSED · no new autonomous actions':'ARMED · bounded autonomous mode')+'</b><p style="font-size:11px;color:var(--mut);margin-top:3px">'+(paused?'Resume only after an operator reviews the queue.':'Every action remains policy-gated, idempotent, rate-limited and auditable.')+'</p></div><div style="display:flex;justify-content:flex-end;gap:7px;flex-wrap:wrap"><button class="btn '+(paused?'btn-p':'btn-r')+' btn-sm" data-act="toggle-pause">'+(paused?'Resume Agent':'Pause Agent')+'</button><button class="btn btn-g btn-sm" data-act="go" data-pg="settings">Readiness</button></div></div></div>';
+ return '<div class="card" style="border-color:'+(paused?'rgba(245,158,11,.35)':'rgba(34,197,94,.22)')+'"><div class="chead"><h3>Agent Control Plane</h3><span class="hint">operator safety boundary</span></div><div class="cbody" style="display:grid;grid-template-columns:1.3fr 1fr;gap:12px;align-items:center"><div><b style="color:'+(paused?'#fbbf24':'#4ade80')+'">'+(paused?'PAUSED Â· no new autonomous actions':'ARMED Â· bounded autonomous mode')+'</b><p style="font-size:11px;color:var(--mut);margin-top:3px">'+(paused?'Resume only after an operator reviews the queue.':'Every action remains policy-gated, idempotent, rate-limited and auditable.')+'</p></div><div style="display:flex;justify-content:flex-end;gap:7px;flex-wrap:wrap"><button class="btn '+(paused?'btn-p':'btn-r')+' btn-sm" data-act="toggle-pause">'+(paused?'Resume Agent':'Pause Agent')+'</button><button class="btn btn-g btn-sm" data-act="go" data-pg="settings">Readiness</button></div></div></div>';
 }
 function renderCases(){
  var h='<div class="card"><div class="toolbar"><div class="srch"><input id="caseSearch" placeholder="Search cases..." value="'+esc(S.search)+'" aria-label="Search cases"></div><label class="filter-select"><span class="filter-label">Risk</span><select id="caseRiskFilter" aria-label="Filter by risk">';
@@ -622,7 +620,7 @@ function renderCaseBody(){
   else{list.forEach(function(c){
    var isTerm=['recovered','blocked','needs_human_review','skipped'].indexOf(c.status)>-1||['recovered','blocked','needs_human_review','skipped'].indexOf(c.recovery_status)>-1;
    h+='<tr data-act="case-detail" data-id="'+c.id+'"><td class="mono" style="color:#4ade80">'+c.id+'</td>';
-   h+='<td><div class="cust"><div class="ava">'+esc(c.customer.split(' ').map(function(w){return w[0];}).join(''))+'</div><div><b>'+esc(c.customer)+'</b><span>'+c.created+' · '+c.category.code+'</span></div></div></td>';
+   h+='<td><div class="cust"><div class="ava">'+esc(c.customer.split(' ').map(function(w){return w[0];}).join(''))+'</div><div><b>'+esc(c.customer)+'</b><span>'+c.created+' Â· '+c.category.code+'</span></div></div></td>';
    h+='<td class="amt">'+fmt(c.amount)+'</td><td style="color:#9d9da6;font-size:11px">'+esc(c.category.name)+'</td>';
    h+='<td><span class="rb '+c.risk+'"><i></i>'+c.risk+'</span></td><td><span class="rb '+(c.compliance_score>=80?'low':c.compliance_score>=60?'medium':'high')+'">'+Math.round(c.compliance_score)+'% safe</span></td>';
    h+='<td><span class="sb '+c.status+'"><i></i>'+c.status+'</span></td>';
@@ -632,7 +630,7 @@ function renderCaseBody(){
   h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px">';
   [{n:'open',c:'#60a5fa'},{n:'recovered',c:'#4ade80'},{n:'escalated',c:'#f87171'},{n:'closed',c:'#9d9da6'}].forEach(function(col){
    var items=list.filter(function(c){return c.status===col.n;});
-   h+='<div style="background:var(--p1);border:1px solid var(--ln);border-radius:12px;padding:10px;min-height:200px"><div style="font-size:10px;font-weight:800;text-transform:uppercase;color:'+col.c+';padding:4px 6px 10px">'+col.n+' · '+items.length+'</div>';
+   h+='<div style="background:var(--p1);border:1px solid var(--ln);border-radius:12px;padding:10px;min-height:200px"><div style="font-size:10px;font-weight:800;text-transform:uppercase;color:'+col.c+';padding:4px 6px 10px">'+col.n+' Â· '+items.length+'</div>';
    items.forEach(function(c){
     var isTerm=['recovered','blocked','needs_human_review','skipped'].indexOf(c.status)>-1||['recovered','blocked','needs_human_review','skipped'].indexOf(c.recovery_status)>-1;
     h+='<div data-act="case-detail" data-id="'+c.id+'" style="background:var(--p2);border:1px solid var(--ln2);border-radius:8px;padding:11px;margin-bottom:9px;cursor:pointer"><div style="display:flex;justify-content:space-between"><span class="mono" style="font-size:10px;color:#4ade80">'+c.id+'</span><span class="rb '+c.risk+'">'+c.risk+'</span></div><p style="font-size:11px;color:var(--mut);margin:3px 0 8px">'+esc(c.customer)+'</p><div style="display:flex;justify-content:space-between;align-items:center"><span class="amt">'+fmt(c.amount)+'</span>'+(isTerm?'<button class="btn btn-g btn-sm" disabled style="opacity:.35;cursor:not-allowed;">Done</button>':c.status==='open'?'<button class="btn btn-p btn-sm" data-act="exec-case" data-id="'+c.id+'">Exec</button>':'')+'</div></div>';});
@@ -654,13 +652,13 @@ function renderBatch(){
  if(S.armed)h+='<div style="padding:8px 12px;border-radius:6px;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.25);margin-bottom:10px;font-size:11px;color:#f87171;font-weight:600">Warning: Failure sim armed</div>';
  if(S.running)h+='<div class="pbar"><i id="batchBar" style="width:'+pct+'%"></i></div>';
  h+='<div class="blog" id="batchLog">'+(S.batchLog.length?S.batchLog.map(function(l){return '<div class="ln '+l.cls+'">'+l.txt+'</div>';}).join(''):'<div class="lt">Awaiting batch start...</div>')+'</div></div></div>';
- h+='<div class="card"><div class="chead"><h3>Metrics</h3><span class="hint">'+(st?'last run':'no run yet')+'</span></div><div class="cbody"><div class="bmrow"><div class="bm"><b style="color:#60a5fa">'+(st?st.proc:0)+'</b><span>Processed</span></div><div class="bm"><b style="color:#4ade80">'+(st?st.rec:0)+'</b><span>Recovered</span></div><div class="bm"><b style="color:#4ade80">'+(st?fmt(st.amt):'—')+'</b><span>Reclaimed</span></div><div class="bm"><b style="color:#f87171">'+(st?st.esc:0)+'</b><span>Escalated</span></div><div class="bm"><b style="color:#fbbf24">'+(st?st.skp:0)+'</b><span>Skipped</span></div></div>';
+ h+='<div class="card"><div class="chead"><h3>Metrics</h3><span class="hint">'+(st?'last run':'no run yet')+'</span></div><div class="cbody"><div class="bmrow"><div class="bm"><b style="color:#60a5fa">'+(st?st.proc:0)+'</b><span>Processed</span></div><div class="bm"><b style="color:#4ade80">'+(st?st.rec:0)+'</b><span>Recovered</span></div><div class="bm"><b style="color:#4ade80">'+(st?fmt(st.amt):'â€”')+'</b><span>Reclaimed</span></div><div class="bm"><b style="color:#f87171">'+(st?st.esc:0)+'</b><span>Escalated</span></div><div class="bm"><b style="color:#fbbf24">'+(st?st.skp:0)+'</b><span>Skipped</span></div></div>';
  if(st&&st.proc>0){var rp=Math.round(st.rec/st.proc*100),sp=Math.round(st.skp/st.proc*100),ep=Math.max(0,100-rp-sp);
   h+='<div class="split"><i class="a" style="width:'+rp+'%"></i><i class="c" style="width:'+sp+'%"></i><i class="d" style="width:'+ep+'%"></i></div>';
   h+='<div class="dlegend"><i style="background:#22c55e"></i> Recovered - <i style="background:#fbbf24"></i> Skipped - <i style="background:#ef4444"></i> Escalated</div>';}
  h+='</div></div>';
- if(st&&st.proc>0){var gross=st.amt||0,cost=st.cost||0;h+='<div class="card"><div class="chead"><h3>Recovery Economics</h3><span class="hint">demo estimate · transparent assumptions</span></div><div class="cbody"><div class="bmrow" style="grid-template-columns:repeat(4,1fr)"><div class="bm"><b style="color:#4ade80">'+fmt(gross)+'</b><span>Gross recovered</span></div><div class="bm"><b style="color:#fbbf24">'+fmt(cost)+'</b><span>Est. contact cost</span></div><div class="bm"><b style="color:#4ade80">'+fmt(Math.max(0,gross-cost))+'</b><span>Net recovered</span></div><div class="bm"><b style="color:#60a5fa">'+Math.round(gross/Math.max(1,st.proc))+'%</b><span>Value / case</span></div></div><p style="font-size:10px;color:var(--dim);margin-top:9px">Smart skip protects margin when expected recovery is below intervention cost; escalations preserve a human decision path.</p></div></div>';
-  h+='<div class="card"><div class="chead"><h3>Retry Sequencer</h3><span class="hint">bounded schedule · stops at '+POLICY.maxRetries+' retries</span></div><div class="cbody" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'+[['T+0','Diagnose','gateway + customer signals'],['T+4h','Retry 1','preferred channel'],['T+24h','Retry 2','only if policy allows'],['Terminal','Escalate','human review / stop']].map(function(x,i){return '<div style="padding:10px;border:1px solid var(--ln2);border-radius:8px;background:var(--p2)"><span class="mono" style="font-size:10px;color:'+(i===3?'#f87171':'#60a5fa')+'">'+x[0]+'</span><b style="display:block;font-size:11px;margin-top:5px">'+x[1]+'</b><small style="display:block;color:var(--dim);font-size:10px;margin-top:3px">'+x[2]+'</small></div>';}).join('')+'</div></div>';
+ if(st&&st.proc>0){var gross=st.amt||0,cost=st.cost||0;h+='<div class="card"><div class="chead"><h3>Recovery Economics</h3><span class="hint">demo estimate Â· transparent assumptions</span></div><div class="cbody"><div class="bmrow" style="grid-template-columns:repeat(4,1fr)"><div class="bm"><b style="color:#4ade80">'+fmt(gross)+'</b><span>Gross recovered</span></div><div class="bm"><b style="color:#fbbf24">'+fmt(cost)+'</b><span>Est. contact cost</span></div><div class="bm"><b style="color:#4ade80">'+fmt(Math.max(0,gross-cost))+'</b><span>Net recovered</span></div><div class="bm"><b style="color:#60a5fa">'+Math.round(gross/Math.max(1,st.proc))+'%</b><span>Value / case</span></div></div><p style="font-size:10px;color:var(--dim);margin-top:9px">Smart skip protects margin when expected recovery is below intervention cost; escalations preserve a human decision path.</p></div></div>';
+  h+='<div class="card"><div class="chead"><h3>Retry Sequencer</h3><span class="hint">bounded schedule Â· stops at '+POLICY.maxRetries+' retries</span></div><div class="cbody" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">'+[['T+0','Diagnose','gateway + customer signals'],['T+4h','Retry 1','preferred channel'],['T+24h','Retry 2','only if policy allows'],['Terminal','Escalate','human review / stop']].map(function(x,i){return '<div style="padding:10px;border:1px solid var(--ln2);border-radius:8px;background:var(--p2)"><span class="mono" style="font-size:10px;color:'+(i===3?'#f87171':'#60a5fa')+'">'+x[0]+'</span><b style="display:block;font-size:11px;margin-top:5px">'+x[1]+'</b><small style="display:block;color:var(--dim);font-size:10px;margin-top:3px">'+x[2]+'</small></div>';}).join('')+'</div></div>';
  }
  if(S.batchHistory.length){h+='<div class="card"><div class="chead"><h3>Run History</h3><span class="hint">'+S.batchHistory.length+'</span></div>';
   S.batchHistory.forEach(function(r){h+='<div class="actrow"><span class="lt">'+r.ts+'</span><span class="tag g">'+r.rec+' rec</span><span class="tag r">'+r.esc+' esc</span><span class="ax">'+fmt(r.amt)+' reclaimed</span></div>';});
@@ -673,14 +671,14 @@ function renderPlaybooks(){
  PLAYBOOKS.forEach(function(p){
   var eligible=S.cases.filter(p.filterFn).length;
   var ps=S.pbStats[p.id];
-  h+='<button class="pbcard" data-act="run-pb" data-id="'+p.id+'"><div class="top"><div class="pbic" style="background:'+p.color+'15;color:'+p.color+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><h3>'+p.name+'</h3><span class="st '+(eligible?'done':'')+'">'+(eligible?'Ready':'Idle')+'</span></div><p>'+p.desc+'</p><div class="eligible">'+eligible+' cases eligible</div><div class="go">'+(p.id==='voice'?'Open Voice Agent →':'Run Playbook')+'</div><div class="lr">'+(ps?fmt(ps.amt)+' recovered this session · '+ps.runs+' runs':'0 runs this session')+'</div></button>';});
+  h+='<button class="pbcard" data-act="run-pb" data-id="'+p.id+'"><div class="top"><div class="pbic" style="background:'+p.color+'15;color:'+p.color+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><h3>'+p.name+'</h3><span class="st '+(eligible?'done':'')+'">'+(eligible?'Ready':'Idle')+'</span></div><p>'+p.desc+'</p><div class="eligible">'+eligible+' cases eligible</div><div class="go">'+(p.id==='voice'?'Open Voice Agent â†’':'Run Playbook')+'</div><div class="lr">'+(ps?fmt(ps.amt)+' recovered this session Â· '+ps.runs+' runs':'0 runs this session')+'</div></button>';});
  h+='</div>';
  return h;
 }
 function renderVoice(){
  var open=S.cases.filter(function(c){return c.status==='open'||c.status==='escalated';});
  var activeCase=S.cases.find(function(c){return c.id===S.voiceCase;});
- var h='<div class="voice-hero"><div class="voice-hero-main"><div class="voice-eyebrow">Multilingual recovery cockpit</div><h2>Recover revenue with context, not pressure.</h2><p>Localized conversations, explicit promise confirmation and compliant escalation. Every meaningful outcome is written to the audit trail.</p><div class="voice-signal"><i></i><span>'+(S.voiceActive?'LIVE SESSION':'READY FOR SESSION')+'</span><span>·</span><span>Test Mode / bounded workflow</span></div></div><div class="voice-health"><div class="voice-metric"><span>Languages</span><b>'+Object.keys(VOICE_BRAIN).length+'</b><small>Indian + English packs</small></div><div class="voice-metric"><span>Speech input</span><b>'+(window.SpeechRecognition||window.webkitSpeechRecognition?'Ready':'Type fallback')+'</b><small>Browser capability</small></div><div class="voice-metric"><span>Voice output</span><b>'+(window.speechSynthesis?'Ready':'Text fallback')+'</b><small>'+esc(voiceDiagnostics().label)+'</small></div><div class="voice-metric"><span>Guardrail</span><b>Bounded</b><small>Confirm before promise</small></div></div></div><div class="vgrid"><div class="card"><div class="chead"><h3>Select Case</h3><span class="hint">'+open.length+' eligible</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px">';
+ var h='<div class="voice-hero"><div class="voice-hero-main"><div class="voice-eyebrow">Multilingual recovery cockpit</div><h2>Recover revenue with context, not pressure.</h2><p>Localized conversations, explicit promise confirmation and compliant escalation. Every meaningful outcome is written to the audit trail.</p><div class="voice-signal"><i></i><span>'+(S.voiceActive?'LIVE SESSION':'READY FOR SESSION')+'</span><span>Â·</span><span>Test Mode / bounded workflow</span></div></div><div class="voice-health"><div class="voice-metric"><span>Languages</span><b>'+Object.keys(VOICE_BRAIN).length+'</b><small>Indian + English packs</small></div><div class="voice-metric"><span>Speech input</span><b>'+(window.SpeechRecognition||window.webkitSpeechRecognition?'Ready':'Type fallback')+'</b><small>Browser capability</small></div><div class="voice-metric"><span>Voice output</span><b>'+(window.speechSynthesis?'Ready':'Text fallback')+'</b><small>'+esc(voiceDiagnostics().label)+'</small></div><div class="voice-metric"><span>Guardrail</span><b>Bounded</b><small>Confirm before promise</small></div></div></div><div class="vgrid"><div class="card"><div class="chead"><h3>Select Case</h3><span class="hint">'+open.length+' eligible</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px">';
  if(open.length===0)h+='<div class="empty"><h4>No eligible cases</h4><p>Seed data first.</p></div>';
  open.forEach(function(c){h+='<button class="swrow" data-act="sel-voice" data-id="'+c.id+'" style="'+(S.voiceCase===c.id?'border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.06)':'')+'"><div><b>'+esc(c.customer)+'</b><small>'+c.id+' - '+fmt(c.amount)+'</small></div><span class="rb '+c.risk+'">'+c.risk+'</span></button>';});
  h+='</div></div><div class="card" style="overflow:hidden"><div class="chead"><h3>Voice Agent</h3>'+(S.voiceActive?'<span class="vtimer" id="vtimer">00:00</span>':'<span class="hint">'+esc(VOICE_BRAIN[S.voiceLang].name)+'</span>')+'</div>';
@@ -688,7 +686,7 @@ function renderVoice(){
  Object.keys(VOICE_BRAIN).forEach(function(code){h+='<button class="'+(S.voiceLang===code?'on':'')+'" data-act="set-vlang" data-lang="'+code+'" '+(S.voiceActive?'disabled':'')+'>'+VOICE_BRAIN[code].label+'</button>';});
  h+='</div>';
  if(S.voiceActive){
-  h+='<div class="voice-active-top"><div class="voice-avatar">'+(activeCase?esc(activeCase.customer.charAt(0)):'R')+'</div><div class="voice-active-id"><span>LIVE VOICE SESSION · '+esc(S.voiceLang)+'</span><strong>'+(activeCase?esc(activeCase.customer):'Customer')+'</strong><small>'+(activeCase?activeCase.id+' · '+fmt(activeCase.amount)+' at risk':'Recovery case')+'</small></div><div class="voice-eq"><i></i><i></i><i></i><i></i><i></i><small>secure channel</small></div></div><div class="voice-stage"><i class="live"></i><span>Stage</span><b>'+esc(pretty(S.voiceStage))+'</b><span>· intent</span><b>'+esc(pretty(S.voiceIntent))+'</b><span style="margin-left:auto">confidence '+Math.round(S.voiceConfidence*100)+'%</span></div><div class="voice-transcript-title"><span>Live transcript</span><small>Messages are simulated and audit-ready</small></div><div id="voiceChat" class="vchat"></div>';
+  h+='<div class="voice-active-top"><div class="voice-avatar">'+(activeCase?esc(activeCase.customer.charAt(0)):'R')+'</div><div class="voice-active-id"><span>LIVE VOICE SESSION Â· '+esc(S.voiceLang)+'</span><strong>'+(activeCase?esc(activeCase.customer):'Customer')+'</strong><small>'+(activeCase?activeCase.id+' Â· '+fmt(activeCase.amount)+' at risk':'Recovery case')+'</small></div><div class="voice-eq"><i></i><i></i><i></i><i></i><i></i><small>secure channel</small></div></div><div class="voice-stage"><i class="live"></i><span>Stage</span><b>'+esc(pretty(S.voiceStage))+'</b><span>Â· intent</span><b>'+esc(pretty(S.voiceIntent))+'</b><span style="margin-left:auto">confidence '+Math.round(S.voiceConfidence*100)+'%</span></div><div class="voice-transcript-title"><span>Live transcript</span><small>Messages are simulated and audit-ready</small></div><div id="voiceChat" class="vchat"></div>';
   h+='<div class="vcontrols"><button class="micbtn idle" data-act="toggle-mic" id="micBtn" aria-label="Microphone"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v4"/><path d="M8 23h8"/></svg></button><div style="flex:1"><div class="vstatus" id="vstatus">Ready</div><div class="vinterim" id="vinterim"></div></div><button class="btn btn-r btn-sm" data-act="end-call">End</button></div>';
   h+='<div class="vquick" id="vquick"></div>';
   h+='<div style="display:flex;gap:8px;padding:0 14px 12px"><input class="srch" style="flex:1;max-width:none" placeholder="Or type your reply..." id="vinput" aria-label="Type reply"><button class="btn btn-g btn-sm" data-act="send-text">Send</button></div>';
@@ -721,7 +719,7 @@ function renderPromises(){
  rows.forEach(function(p){
   var daysLeft=Math.ceil((p.dueAt-Date.now())/86400000);var dueCol=daysLeft<=0?'#f87171':daysLeft<=1?'#fbbf24':'#9d9da6';
   h+='<tr data-act="case-detail" data-id="'+p.caseId+'"><td class="mono" style="color:#4ade80">'+p.id+'</td>';
-  h+='<td><div style="min-width:0"><b style="display:block">'+esc(p.customer)+'</b>'+(p.transcript?'<span title="'+esc(p.transcript)+'" style="display:block;font-size:10px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px">"'+esc(p.transcript.length>34?p.transcript.slice(0,34)+'…':p.transcript)+'"</span>':'')+'</div></td>';
+  h+='<td><div style="min-width:0"><b style="display:block">'+esc(p.customer)+'</b>'+(p.transcript?'<span title="'+esc(p.transcript)+'" style="display:block;font-size:10px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px">"'+esc(p.transcript.length>34?p.transcript.slice(0,34)+'â€¦':p.transcript)+'"</span>':'')+'</div></td>';
   h+='<td class="amt">'+fmt(p.amount)+'</td><td style="color:#9d9da6">'+relTime(new Date(p.capturedAt).toISOString())+'</td><td style="color:'+dueCol+'">'+(daysLeft<=0?'due':'in '+daysLeft+'d')+'</td><td><span class="rb low" style="background:rgba(255,255,255,.05);color:#9d9da6">'+p.source+'</span></td><td><span class="sb '+p.status+'"><i></i>'+p.status+'</span></td></tr>';});
  h+='</tbody></table></div></div>';
  return h;
@@ -741,7 +739,7 @@ function renderAuditBody(){
   return true;});
  var cnt=document.getElementById('auditCount');if(cnt)cnt.textContent=list.length+' events';
  if(list.length===0){el.innerHTML='<div class="empty"><h4>No events</h4></div>';return;}
- el.innerHTML=list.map(function(e){return '<div class="tlev" data-act="toggle-json" data-id="'+e.id+'" style="--evc:'+e.color+'" title="Click for raw JSON"><div class="tlt"><span class="tltype">'+e.type+'</span><span class="tltime">'+e.ts+'</span></div><div class="tlreason">'+esc(e.desc)+'</div><div class="tlmeta"><span>Actor: '+esc(e.actor)+'</span> - <span>Result: <b style="color:'+(e.result==='SUCCESS'?'#4ade80':'#f87171')+'">'+e.result+'</b></span>'+(e.eventHash?'<button class="btn btn-g btn-sm" data-act="verify-audit" data-id="'+e.id+'" title="Verify chained seal">🔒 Seal</button>':'')+'</div><pre class="tljson">'+esc(JSON.stringify(e.raw,null,1))+'</pre></div>';}).join('');
+ el.innerHTML=list.map(function(e){return '<div class="tlev" data-act="toggle-json" data-id="'+e.id+'" style="--evc:'+e.color+'" title="Click for raw JSON"><div class="tlt"><span class="tltype">'+e.type+'</span><span class="tltime">'+e.ts+'</span></div><div class="tlreason">'+esc(e.desc)+'</div><div class="tlmeta"><span>Actor: '+esc(e.actor)+'</span> - <span>Result: <b style="color:'+(e.result==='SUCCESS'?'#4ade80':'#f87171')+'">'+e.result+'</b></span>'+(e.eventHash?'<button class="btn btn-g btn-sm" data-act="verify-audit" data-id="'+e.id+'" title="Verify chained seal">ðŸ”’ Seal</button>':'')+'</div><pre class="tljson">'+esc(JSON.stringify(e.raw,null,1))+'</pre></div>';}).join('');
 }
 function hookAudit(){
  Api.audit('limit=200').then(function(r){
@@ -755,7 +753,7 @@ function renderSettings(){
  var h='<div class="card"><div class="chead"><h3>Configuration</h3></div><div class="cbody" style="display:flex;flex-direction:column;gap:8px">';
  h+='<div class="swrow"><b>Voice Language</b><div style="display:flex;gap:6px;align-items:center"><select id="setLang" style="background:var(--p1);border:1px solid var(--ln2);border-radius:8px;padding:6px 8px;color:var(--tx)">';
  Object.keys(VOICE_BRAIN).forEach(function(code){h+='<option value="'+code+'" '+(S.voiceLang===code?'selected':'')+'>'+VOICE_BRAIN[code].name+'</option>';});
- h+='</select><button class="btn btn-g btn-sm" data-act="test-voice">▶ Test</button></div></div>';
+ h+='</select><button class="btn btn-g btn-sm" data-act="test-voice">â–¶ Test</button></div></div>';
  var vinfo=voiceDiagnostics();
  h+='<div class="swrow"><b>Resolved System Voice</b><span class="mono" style="color:'+(vinfo.exact?'#4ade80':'#fbbf24')+';font-size:11px;text-align:right;max-width:220px">'+esc(vinfo.label)+'</span></div>';
  h+='<div class="swrow" data-act="toggle-arm" role="switch" aria-checked="'+S.armed+'"><b>Failure Simulation</b><div class="sw '+(S.armed?'on armed-pulse':'')+'"></div></div>';
@@ -764,12 +762,12 @@ function renderSettings(){
  h+='<div class="swrow"><b>Rate Limit (Execute)</b><span class="mono" style="color:#fbbf24">'+POLICY.rateExecute+'</span></div>';
  h+='<div class="swrow"><b>Rate Limit (Demo/Voice)</b><span class="mono" style="color:#fbbf24">'+POLICY.rateDemo+'</span></div></div></div>';
  h+='<div class="card"><div class="chead"><h3>Data</h3></div><div class="cbody" style="display:flex;gap:8px"><button class="btn btn-g" data-act="seed">Seed</button><button class="btn btn-r" data-act="reset">Reset All</button></div></div>';
- h+='<div class="card"><div class="chead"><h3>Live Readiness</h3><span class="hint">demo → production handoff</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px">'+[['✓','Backend connected','FastAPI health + live case reads'],['✓','Bounded policy','amount, retry and terminal stops'],['✓','Idempotent execution','duplicate-safe execution key'],['✓','Audit trail','raw event inspection + export'],['✓','Human escalation','policy blocks never auto-bypass'],['✓','Multilingual voice',Object.keys(VOICE_BRAIN).length+' language packs retained'],['!','Provider adapters','connect real PSP/CRM credentials before production']].map(function(x){return '<div class="swrow"><div><b style="color:'+(x[0]==='!'?'#fbbf24':'#4ade80')+'">'+x[0]+' '+x[1]+'</b><small>'+x[2]+'</small></div><span class="mono" style="font-size:10px;color:'+(x[0]==='!'?'#fbbf24':'#4ade80')+'">'+(x[0]==='!'?'NEXT':'READY')+'</span></div>';}).join('')+'</div></div>';
+ h+='<div class="card"><div class="chead"><h3>Live Readiness</h3><span class="hint">demo â†’ production handoff</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px">'+[['âœ“','Backend connected','FastAPI health + live case reads'],['âœ“','Bounded policy','amount, retry and terminal stops'],['âœ“','Idempotent execution','duplicate-safe execution key'],['âœ“','Audit trail','raw event inspection + export'],['âœ“','Human escalation','policy blocks never auto-bypass'],['âœ“','Multilingual voice',Object.keys(VOICE_BRAIN).length+' language packs retained'],['!','Provider adapters','connect real PSP/CRM credentials before production']].map(function(x){return '<div class="swrow"><div><b style="color:'+(x[0]==='!'?'#fbbf24':'#4ade80')+'">'+x[0]+' '+x[1]+'</b><small>'+x[2]+'</small></div><span class="mono" style="font-size:10px;color:'+(x[0]==='!'?'#fbbf24':'#4ade80')+'">'+(x[0]==='!'?'NEXT':'READY')+'</span></div>';}).join('')+'</div></div>';
  h+='<div class="card"><div class="chead"><h3>System</h3></div><div class="cbody" style="display:flex;flex-direction:column;gap:6px"><div class="swrow"><b>Version</b><span class="mono">v5.2</span></div><div class="swrow"><b>Track</b><span class="mono">03 - AI Revenue Recovery</span></div><div class="swrow"><b>Backend</b><span class="mono">'+(S.live?'Connected':'Unavailable')+'</span></div></div></div>';
  h+='<div class="card"><div class="chead"><h3>Live Mode Readiness</h3><span class="hint">explicit upgrade path</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px">'+[['NEXT','Signed Razorpay webhooks','Validate, deduplicate, and enqueue events'],['NEXT','Durable event queue','Move worker seam to Celery, RQ, or managed queues'],['OPTIONAL','LLM diagnosis adapter','Enable only with privacy, cost, and eval review'],['NEXT','Live payment data','Replace synthetic seed data with tenant-scoped reads'],['READY','Consent management','Voice gate, promise confirmation, and opt-out stop'],['NEXT','Real provider adapters','Razorpay Test Mode, Exotel/Twilio, CRM'],['NEXT','Persistent scheduler','Store retry windows and execute through a worker']].map(function(x){return '<div class="swrow"><div><b style="color:'+(x[0]==='READY'?'#4ade80':'#fbbf24')+'">'+x[1]+'</b><small>'+x[2]+'</small></div><span class="mono" style="font-size:10px;color:'+(x[0]==='READY'?'#4ade80':'#fbbf24')+'">'+x[0]+'</span></div>';}).join('')+'</div></div>';
  return h;
 }
-/* ═══ ACTIONS — every one below hits the real backend ═══ */
+/* â•â•â• ACTIONS â€” every one below hits the real backend â•â•â• */
 function toggleArm(){
  Api.simulateFailure().then(function(r){
   S.armed=true;
@@ -827,7 +825,7 @@ function execCase(id){
    return;
  }
   var ok=res.status==='recovered';
-  document.getElementById('eRes').innerHTML='<div class="res '+(ok?'ok':'bad')+'"><div class="escb '+(ok?'ok':'')+'">'+esc(pretty(res.status).toUpperCase())+'</div><div>'+esc(res.message)+(ok?' — '+fmtINR(res.recovered_amount)+' reclaimed':'')+'</div></div>';
+  document.getElementById('eRes').innerHTML='<div class="res '+(ok?'ok':'bad')+'"><div class="escb '+(ok?'ok':'')+'">'+esc(pretty(res.status).toUpperCase())+'</div><div>'+esc(res.message)+(res.status==='awaiting_payment'?' — awaiting provider payment confirmation':(ok?' — '+fmtINR(res.recovered_amount)+' reclaimed':''))+'</div></div>';
   var titleEl=document.querySelector('#execContent .etitle');
   if(titleEl)titleEl.textContent='Result: '+c.id;
   document.getElementById('eCont').hidden=false;
@@ -857,7 +855,7 @@ function runBatch(){
     S.batchStats={proc:result.attempted,rec:result.successful,esc:result.escalated,skp:skippedN,amt:result.amount_recovered,cost:result.estimated_cost||0};
     S.batchHistory.unshift({ts:nowTs(),rec:result.successful,esc:result.escalated,amt:result.amount_recovered});
     if(S.batchHistory.length>6)S.batchHistory.pop();
-    toast('s','Batch Complete',result.successful+' recovered · '+fmt(result.amount_recovered));
+    toast('s','Batch Complete',result.successful+' recovered Â· '+fmt(result.amount_recovered));
     refreshDashboard().then(softGo);
     return;
    }
@@ -886,9 +884,10 @@ function runPlaybook(id){
   return runOne(0).then(function(){return refreshCasesAndAudit().then(function(){return results;});});
  },function(err,results){
   if(err){document.getElementById('eRes').innerHTML='<div class="res bad"><div class="escb">FAILED</div><div>'+esc(err.message)+'</div></div>';toast('e','Playbook failed',err.message);document.getElementById('eCont').hidden=false;return;}
-  var rec=0,escN=0,skp=0,amt=0;
-  results.forEach(function(r){if(r.result.status==='recovered'){rec++;amt+=r.result.recovered_amount||0;}else if(r.result.status==='needs_human_review'||r.result.status==='blocked'){escN++;}else{skp++;}});
+  var rec=0,escN=0,skp=0,amt=0,awt=0;
+  results.forEach(function(r){if(r.result.status==='recovered'){rec++;amt+=r.result.recovered_amount||0;}else if(r.result.status==='awaiting_payment'){awt++;}else if(r.result.status==='needs_human_review'||r.result.status==='blocked'){escN++;}else{skp++;}});
   pbStat(id,rec,amt);
+  if(awt>0){toast('i','Awaiting confirmation',awt+' intervention(s) sent — revenue counts only after provider confirmation.');}
   var rh='<div style="margin-top:8px;font-family:var(--fm);font-size:10px;color:var(--dim);max-height:120px;overflow-y:auto">';
   results.forEach(function(r){var col=r.result.status==='recovered'?'#4ade80':(r.result.status==='needs_human_review'||r.result.status==='blocked')?'#f87171':'#fbbf24';rh+='<div style="padding:3px 0;color:'+col+'">'+r.case.id+' '+esc(r.case.customer)+' -> '+esc(pretty(r.result.status))+'</div>';});
   rh+='</div>';
@@ -917,7 +916,7 @@ function runAll(){
 function scanPromises(){refreshCasesAndAudit().then(function(){toast('s','Refreshed','Promises reflect the latest audit trail');go('promises');});}
 function openCaseDetail(id){
  var c=S.cases.find(function(x){return x.id===id;});if(!c)return;
- document.getElementById('execContent').innerHTML='<div class="empty" style="padding:30px"><h4>Loading case '+esc(id)+'…</h4></div>';
+ document.getElementById('execContent').innerHTML='<div class="empty" style="padding:30px"><h4>Loading case '+esc(id)+'â€¦</h4></div>';
  document.getElementById('execOvl').classList.add('show');
  Api.case(id).then(function(detail){
   var evs=S.audit.filter(function(e){return e.caseId===c.id;}).slice(0,4);
@@ -926,14 +925,14 @@ function openCaseDetail(id){
   h+='<div style="display:flex;justify-content:space-between;margin-bottom:12px"><div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:700">At Risk</div><div class="mono" style="font-size:24px;font-weight:700">'+fmtINR(c.amount)+'</div></div><div style="text-align:right;font-size:11px;color:#9d9da6;font-family:var(--fm)"><div>'+esc(c.customer)+'</div><div>'+c.category.code+' - '+c.created+'</div></div></div>';
   h+='<div class="grid2"><div class="dcell"><span>Diagnosis</span><b>'+esc(c.category.name)+'</b></div><div class="dcell"><span>Action</span><b style="color:#4ade80">'+esc(c.action)+'</b></div></div>';
   h+='<div class="grid2" style="margin-top:10px"><div class="dcell"><span>Retries</span><b>'+c.attempts+' / '+c.maxAttempts+'</b><small style="display:block;color:var(--dim);font-size:10px">'+(detail.next_retry_at?'Next retry '+relTime(detail.next_retry_at):'No retry scheduled')+'</small></div><div class="dcell"><span>Compliance</span><b style="color:'+(detail.compliance_score>=80?'#4ade80':detail.compliance_score>=60?'#fbbf24':'#f87171')+'">'+Math.round(detail.compliance_score)+'% policy-safe</b><small style="display:block;color:var(--dim);font-size:10px">Stopping rules and action allowlist</small></div></div>';
-  h+='<div class="grid2" style="margin-top:10px"><div class="dcell"><span>Transaction</span><b class="mono" style="font-size:10px;cursor:pointer" data-act="copy-txn" data-text="'+c.txn+'" title="Copy txn">'+c.txn+' ⧉</b></div><div class="dcell"><span>Diagnosis mode</span><b>'+esc(evidence.diagnosis_mode||'deterministic_fallback')+'</b></div></div>';
+  h+='<div class="grid2" style="margin-top:10px"><div class="dcell"><span>Transaction</span><b class="mono" style="font-size:10px;cursor:pointer" data-act="copy-txn" data-text="'+c.txn+'" title="Copy txn">'+c.txn+' â§‰</b></div><div class="dcell"><span>Diagnosis mode</span><b>'+esc(evidence.diagnosis_mode||'deterministic_fallback')+'</b></div></div>';
   h+='<div class="diag"><h4>Why this case is here</h4><p style="font-size:12px;color:#9d9da6">'+esc(detail.reason||c.category.name)+'</p>';
   if(evidence.success_rate_percent!=null){h+='<div class="conf"><span>Customer success rate</span><div class="meter"><i style="width:'+evidence.success_rate_percent+'%;background:'+(evidence.success_rate_percent>70?'#22c55e':'#f59e0b')+'"></i></div><span class="mono">'+evidence.success_rate_percent+'%</span></div>';}
   h+='</div>';
   var checks=detail.policy_checks&&Object.keys(detail.policy_checks).length?detail.policy_checks:null;
   if(checks){var passed=Object.values(checks).every(Boolean);h+='<div class="polnote">Policy checks ('+(passed?'passed':'blocked')+'): '+Object.keys(checks).map(function(k){return pretty(k)+'='+(checks[k]?'OK':'FAIL');}).join(', ')+'</div>';}
   else{h+='<div class="polnote">Max Rs.'+POLICY.maxAmount.toLocaleString('en-IN')+' - '+POLICY.maxRetries+' retries - policy is evaluated live when executed</div>';}
-  if(evs.length){h+='<div style="margin-top:12px"><div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:800;letter-spacing:.1em;margin-bottom:5px">Recent activity</div>'+evs.map(function(e){return '<div class="actrow" style="padding:7px 4px"><span class="lt">'+e.ts+'</span><span class="tag b">'+e.type+'</span><span class="ax">'+esc(e.desc)+'</span>'+(e.eventHash?'<button class="btn btn-g btn-sm" data-act="verify-audit" data-id="'+e.id+'" title="Verify tamper-evident seal">🔒</button>':'')+'</div>';}).join('')+'</div>';}
+  if(evs.length){h+='<div style="margin-top:12px"><div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:800;letter-spacing:.1em;margin-bottom:5px">Recent activity</div>'+evs.map(function(e){return '<div class="actrow" style="padding:7px 4px"><span class="lt">'+e.ts+'</span><span class="tag b">'+e.type+'</span><span class="ax">'+esc(e.desc)+'</span>'+(e.eventHash?'<button class="btn btn-g btn-sm" data-act="verify-audit" data-id="'+e.id+'" title="Verify tamper-evident seal">ðŸ”’</button>':'')+'</div>';}).join('')+'</div>';}
   h+='<div class="efoot">';
   var isDetailTerm=['recovered','blocked','needs_human_review','skipped'].indexOf(c.status)>-1||['recovered','blocked','needs_human_review','skipped'].indexOf(c.recovery_status)>-1;
   if(c.status==='open'&&!isDetailTerm){h+='<button class="btn btn-p" data-act="exec-case" data-id="'+c.id+'">Execute</button>';h+='<button class="btn btn-v" data-act="start-voice-from" data-id="'+c.id+'">Voice Call</button>';}
@@ -968,8 +967,8 @@ function doReset(){
   S.loading=false;updateConnBadge();toast('s','Reset & Reseeded','Database reset and freshly seeded with demo data');go(S.page);
  }).catch(function(err){S.loading=false;toast('e','Reset failed',err.message);renderShell();});
 }
-/* ═══ VOICE AGENT ═══
-   Web Speech API voice quality/selection is entirely device-dependent — the
+/* â•â•â• VOICE AGENT â•â•â•
+   Web Speech API voice quality/selection is entirely device-dependent â€” the
    browser only exposes whatever TTS voices the OS has installed, this page
    can't bundle or download better ones. What IS in our control: picking the
    best of what's available (prefer an exact-language match, then prefer a
@@ -1003,7 +1002,7 @@ function getVoice(){
  voiceCache[S.voiceLang]=best;
  if(best&&best.lang!==S.voiceLang&&!warnedNoVoice[S.voiceLang]){
   warnedNoVoice[S.voiceLang]=true;
-  toast('i','No '+VOICE_BRAIN[S.voiceLang].name+' voice on this device','Falling back to '+(best.name||best.lang)+' — install a matching system voice for full accuracy.');
+  toast('i','No '+VOICE_BRAIN[S.voiceLang].name+' voice on this device','Falling back to '+(best.name||best.lang)+' â€” install a matching system voice for full accuracy.');
  }
  return best;
 }
@@ -1011,7 +1010,7 @@ function voiceDiagnostics(){
  if(!window.speechSynthesis)return{label:'Speech synthesis not supported in this browser',exact:false};
  var v=getVoice();
  if(!v)return{label:'No system voices installed',exact:false};
- return {label:v.name+' ('+v.lang+')'+(v.lang===S.voiceLang?'':' — not an exact match'),exact:v.lang===S.voiceLang};
+ return {label:v.name+' ('+v.lang+')'+(v.lang===S.voiceLang?'':' â€” not an exact match'),exact:v.lang===S.voiceLang};
 }
 function speakText(text,cb){
  if(!window.speechSynthesis){if(cb)cb();return;}
@@ -1075,7 +1074,7 @@ function voiceUserSaid(text){
  if(S.voiceStage==='permission'){
   if(yes){resp={say:brain.context(c),stage:'objection'};S.voiceIntent='DISCOVERY';S.voiceConfidence=.92;}
   else if(no){resp={say:({'hi-IN':'Theek hai, main aapko disturb nahi karungi. Dhanyavaad.','en-IN':'Understood. I will not continue the call. Thank you for your time.','ta-IN':'Sari, naan call-ai thodara maatten. Nandri.','kn-IN':'Sari, naanu call munduvarisalla. Dhanyavadagalu.','te-IN':'Sare, nenu call continue cheyyanu. Dhanyavadalu.'}[S.voiceLang]||'Understood. I will not continue the call. Thank you.'),stage:'closed',outcome:'CONSENT_DECLINED'};S.voiceIntent='CONSENT_DECLINED';S.voiceConfidence=.96;}
-  else{resp={say:({'hi-IN':'Koi baat nahi. Jab aap ready hon tab bataiye—kya abhi do minute hain?','en-IN':'No problem. Before we continue, do you have two minutes right now?','ta-IN':'Parava illai. Ippodhu rendu nimidam irukka?','kn-IN':'Paravagilla. Iga eradu nimisha samaya ideya?','te-IN':'Parvaledu. Ippudu rendu nimishalu unnaya?'}[S.voiceLang]||'No problem. Do you have two minutes right now?'),stage:'permission'};}
+  else{resp={say:({'hi-IN':'Koi baat nahi. Jab aap ready hon tab bataiyeâ€”kya abhi do minute hain?','en-IN':'No problem. Before we continue, do you have two minutes right now?','ta-IN':'Parava illai. Ippodhu rendu nimidam irukka?','kn-IN':'Paravagilla. Iga eradu nimisha samaya ideya?','te-IN':'Parvaledu. Ippudu rendu nimishalu unnaya?'}[S.voiceLang]||'No problem. Do you have two minutes right now?'),stage:'permission'};}
  }else if(S.voiceStage==='confirm'){
   if(yes){resp={say:({'hi-IN':'Dhanyavaad. Aapka payment promise securely record kar diya gaya hai.','en-IN':'Thank you. Your payment commitment has been securely recorded.','ta-IN':'Nandri. Ungal payment promise secure-a record seiyappattadhu.','kn-IN':'Dhanyavadagalu. Nimma payment promise secure agi record agide.','te-IN':'Dhanyavadalu. Mee payment promise secure ga record ayyindi.'}[S.voiceLang]||'Thank you. Your payment commitment has been securely recorded.'),stage:'closed',outcome:'PROMISE_TO_PAY'};S.voiceIntent='PROMISE_TO_PAY';S.voiceConfidence=.97;}
   else if(no){resp={say:({'hi-IN':'Theek hai. Main promise record nahi karungi. Kya aap payment link chahenge?','en-IN':'Understood. I will not record a promise. Would you like a payment link instead?'}[S.voiceLang]||'Understood. I will not record a promise. Would you like a payment link instead?'),stage:'objection'};S.voiceIntent='DECLINED';S.voiceConfidence=.9;}
@@ -1125,21 +1124,19 @@ function endCall(outcome,lastUtterance){
  }
 }
 function cleanupVoice(){if(window.speechSynthesis){try{speechSynthesis.cancel();}catch(e){}}if(recog){try{recog.stop();}catch(e){}}if(S.voiceTimer){clearInterval(S.voiceTimer);S.voiceTimer=null;}}
-/* ═══ PALETTE ═══ */
+/* â•â•â• PALETTE â•â•â• */
 var PITCH_STEPS=[
- {k:'01 · THE LEAK',h:'Revenue disappears silently.',p:'A payment fails, the customer moves on, and finance sees a lagging number instead of a recoverable moment.',q:'“Every failed payment is a decision window.”',proof:['20 failed payments','₹1.2L at risk']},
- {k:'02 · THE SIGNAL',h:'RecoverAI diagnoses the reason.',p:'Gateway timeout, invalid instrument, liquidity issue, or abandonment — each case gets evidence, risk, and a bounded next move.',q:'“Context before contact. Policy before action.”',proof:['5 failure categories','Explainable diagnosis']},
- {k:'03 · THE ACTION',h:'The right intervention runs once.',p:'Retry, payment link, reminder, or human review. Amount limits, retry caps, rate limits, and idempotency keep the agent safe.',q:'“Autonomy with a hard stop.”',proof:['2 max retries','Idempotent execution']},
- {k:'04 · THE HUMAN MOMENT',h:'Voice meets customers with empathy.',p:'A multilingual voice flow discloses its purpose, listens for intent, confirms a promise, and stops on refusal or uncertainty.',q:'“Recover revenue without adding pressure.”',proof:['8 Indian language packs','Consent gate']},
- {k:'05 · THE PROOF',h:'The outcome is measurable and auditable.',p:'Recovered amount, intervention cost, net recovery, escalation, and a tamper-evident event chain make the ROI legible to every stakeholder.',q:'“From payment failure to boardroom proof.”',proof:['Net recovery','Chained audit seals']}
+ {k:'01 Â· THE LEAK',h:'Revenue disappears silently.',p:'A payment fails, the customer moves on, and finance sees a lagging number instead of a recoverable moment.',q:'â€œEvery failed payment is a decision window.â€',proof:['20 failed payments','â‚¹1.2L at risk']},
+ {k:'02 Â· THE SIGNAL',h:'RecoverAI diagnoses the reason.',p:'Gateway timeout, invalid instrument, liquidity issue, or abandonment â€” each case gets evidence, risk, and a bounded next move.',q:'â€œContext before contact. Policy before action.â€',proof:['5 failure categories','Explainable diagnosis']},
+ {k:'03 Â· THE ACTION',h:'The right intervention runs once.',p:'Retry, payment link, reminder, or human review. Amount limits, retry caps, rate limits, and idempotency keep the agent safe.',q:'â€œAutonomy with a hard stop.â€',proof:['2 max retries','Idempotent execution']},
+ {k:'04 Â· THE HUMAN MOMENT',h:'Voice meets customers with empathy.',p:'A multilingual voice flow discloses its purpose, listens for intent, confirms a promise, and stops on refusal or uncertainty.',q:'â€œRecover revenue without adding pressure.â€',proof:['8 Indian language packs','Consent gate']},
+ {k:'05 Â· THE PROOF',h:'The outcome is measurable and auditable.',p:'Recovered amount, intervention cost, net recovery, escalation, and a tamper-evident event chain make the ROI legible to every stakeholder.',q:'â€œFrom payment failure to boardroom proof.â€',proof:['Net recovery','Chained audit seals']}
 ];
 var pitchIdx=0;
-function renderPitch(){var s=PITCH_STEPS[pitchIdx];document.getElementById('pitchProgress').innerHTML=PITCH_STEPS.map(function(_,i){return '<i class="pitch-dot '+(i<=pitchIdx?'on':'')+'"></i>';}).join('');document.getElementById('pitchStep').innerHTML='<div><div class="pitch-kicker">'+s.k+'</div><h3>'+s.h+'</h3><p>'+s.p+'</p><div class="pitch-proof">'+s.proof.map(function(x){return '<span>✓ '+x+'</span>';}).join('')+'</div></div><div class="pitch-quote">'+s.q+'</div>';document.getElementById('pitchCounter').textContent=String(pitchIdx+1).padStart(2,'0')+' / '+String(PITCH_STEPS.length).padStart(2,'0');document.getElementById('pitchPrev').disabled=pitchIdx===0;document.getElementById('pitchNext').textContent=pitchIdx===PITCH_STEPS.length-1?'Finish ✦':'Next →';}
+function renderPitch(){var s=PITCH_STEPS[pitchIdx];document.getElementById('pitchProgress').innerHTML=PITCH_STEPS.map(function(_,i){return '<i class="pitch-dot '+(i<=pitchIdx?'on':'')+'"></i>';}).join('');document.getElementById('pitchStep').innerHTML='<div><div class="pitch-kicker">'+s.k+'</div><h3>'+s.h+'</h3><p>'+s.p+'</p><div class="pitch-proof">'+s.proof.map(function(x){return '<span>âœ“ '+x+'</span>';}).join('')+'</div></div><div class="pitch-quote">'+s.q+'</div>';document.getElementById('pitchCounter').textContent=String(pitchIdx+1).padStart(2,'0')+' / '+String(PITCH_STEPS.length).padStart(2,'0');document.getElementById('pitchPrev').disabled=pitchIdx===0;document.getElementById('pitchNext').textContent=pitchIdx===PITCH_STEPS.length-1?'Finish âœ¦':'Next â†’';}
 function openPitch(){pitchIdx=0;renderPitch();document.getElementById('pitchOvl').classList.add('show');document.getElementById('pitchNext').focus();}
 function closePitch(){document.getElementById('pitchOvl').classList.remove('show');}
 function pitchMove(delta){pitchIdx=Math.max(0,Math.min(PITCH_STEPS.length-1,pitchIdx+delta));renderPitch();}
-function focusTarget(el){if(!S.focusMode||!el||el.closest('.focus-ring,.pitch-ovl,.ovl'))return;var r=el.getBoundingClientRect(),ring=document.getElementById('focusRing'),label=document.getElementById('focusLabel');if(!r.width||!r.height)return;ring.style.left=Math.max(4,r.left-7)+'px';ring.style.top=Math.max(34,r.top-7)+'px';ring.style.width=r.width+14+'px';ring.style.height=r.height+14+'px';label.textContent=(el.dataset.focus||el.getAttribute('title')||el.textContent||'Presenter focus').replace(/\s+/g,' ').trim().slice(0,54);ring.classList.add('show');clearTimeout(window.__focusTimer);window.__focusTimer=setTimeout(function(){ring.classList.remove('show');},1800);}
-function toggleFocus(){S.focusMode=!S.focusMode;var b=document.getElementById('focusBtn');b.classList.toggle('focus-active',S.focusMode);b.setAttribute('aria-pressed',String(S.focusMode));if(!S.focusMode)document.getElementById('focusRing').classList.remove('show');toast('i',S.focusMode?'Presenter Focus on':'Presenter Focus off',S.focusMode?'Click any metric, filter, action, or case to spotlight it.':'Normal interaction restored.');}
 var palIdx=0;
 function buildCmds(){
  var c=[
@@ -1158,7 +1155,7 @@ function buildCmds(){
   {l:'Reset All Data',g:'Actions',fn:doReset},
   {l:'Export Audit JSON',g:'Actions',fn:exportAudit}];
  PLAYBOOKS.forEach(function(p){c.push({l:'Run: '+p.name,g:'Playbooks',fn:function(){runPlaybook(p.id);}});});
- S.cases.filter(function(x){return x.status==='open';}).slice(0,8).forEach(function(cs){c.push({l:'Case '+cs.id+' · '+cs.customer,g:'Cases',fn:function(){openCaseDetail(cs.id);}});});
+ S.cases.filter(function(x){return x.status==='open';}).slice(0,8).forEach(function(cs){c.push({l:'Case '+cs.id+' Â· '+cs.customer,g:'Cases',fn:function(){openCaseDetail(cs.id);}});});
  return c;
 }
 function openPal(){document.getElementById('palOvl').classList.add('show');document.getElementById('palInput').value='';palIdx=0;renderPal('');setTimeout(function(){document.getElementById('palInput').focus();},50);}
@@ -1172,14 +1169,12 @@ function renderPal(q){
  document.getElementById('palList').innerHTML=html||'<div class="pal-item">No results</div>';
  window.__PALF=f;
 }
-/* ═══ EVENTS ═══ */
-document.addEventListener('click',function(e){focusTarget(e.target.closest('button,.card,.kpi,.metric,.bm,.voice-compliance,.tl,.tbl tbody tr,[data-act],.tlev,.pbcard,.swrow'));},true);
+/* â•â•â• EVENTS â•â•â• */
 document.addEventListener('click',function(e){
  if(e.target.id==='pitchOvl'){closePitch();return;}
  if(e.target.id==='pitchClose'){closePitch();return;}
  if(e.target.id==='pitchPrev'){pitchMove(-1);return;}
  if(e.target.id==='pitchNext'){if(pitchIdx===PITCH_STEPS.length-1){closePitch();toast('s','Pitch ready','The RecoverAI story is ready to present.');}else pitchMove(1);return;}
- if(e.target.id==='focusBtn'){toggleFocus();return;}
  if(e.target.id==='palOvl'){closePal();return;}
  if(e.target.id==='execOvl'){closeExec();return;}
  if(e.target.closest('button:disabled'))return;
@@ -1211,7 +1206,7 @@ document.addEventListener('click',function(e){
   else if(a==='test-voice'){var sampleC={customer:'Priya Sharma',amount:2499,category:{name:'Gateway Timeout'}};speakText(VOICE_BRAIN[S.voiceLang].greeting(sampleC));}
   else if(a==='audit-filter'){S.auditFilter=type;go('audit');}
   else if(a==='toggle-json'){var nodes=document.querySelectorAll('.tlev');nodes.forEach(function(n){if(n.dataset.id===id)n.classList.toggle('raw');});}
-  else if(a==='verify-audit'){Api.verifyAudit(id).then(function(v){toast(v.chain_verified?'s':'e','Audit Seal '+(v.chain_verified?'Verified':'Invalid'),'Event '+v.audit_id+' · '+v.event_hash.slice(0,16)+'…'+(v.previous_hash?' · previous '+v.previous_hash.slice(0,10)+'…':' · chain root'));}).catch(function(err){toast('e','Seal Verification Failed',err.message);});}
+  else if(a==='verify-audit'){Api.verifyAudit(id).then(function(v){toast(v.chain_verified?'s':'e','Audit Seal '+(v.chain_verified?'Verified':'Invalid'),'Event '+v.audit_id+' Â· '+v.event_hash.slice(0,16)+'â€¦'+(v.previous_hash?' Â· previous '+v.previous_hash.slice(0,10)+'â€¦':' Â· chain root'));}).catch(function(err){toast('e','Seal Verification Failed',err.message);});}
   else if(a==='export-audit')exportAudit();
   else if(a==='export-report')exportReport();
   else if(a==='copy-txn')safeCopy(act.dataset.text);
@@ -1248,8 +1243,8 @@ document.addEventListener('keydown',function(e){
  }
 });
 document.getElementById('palInput').addEventListener('input',function(e){palIdx=0;renderPal(e.target.value);});
-document.addEventListener('change',function(e){if(e.target.id==='setLang'){S.voiceLang=e.target.value;toast('i','Language',VOICE_BRAIN[S.voiceLang].name);if(S.page==='settings')go('settings');}if(e.target.id==='voiceConsent'){S.voiceConsent=e.target.checked;toast(S.voiceConsent?'s':'w','Consent gate',S.voiceConsent?'Consent recorded for this test call.':'Consent cleared — call start is locked.');softGo();}if(e.target.id==='caseRiskFilter'){S.filter=e.target.value;renderCaseBody();}if(e.target.id==='caseStatusFilter'){S.statusFilter=e.target.value;renderCaseBody();}});
-/* ═══ INIT ══ */
+document.addEventListener('change',function(e){if(e.target.id==='setLang'){S.voiceLang=e.target.value;toast('i','Language',VOICE_BRAIN[S.voiceLang].name);if(S.page==='settings')go('settings');}if(e.target.id==='voiceConsent'){S.voiceConsent=e.target.checked;toast(S.voiceConsent?'s':'w','Consent gate',S.voiceConsent?'Consent recorded for this test call.':'Consent cleared â€” call start is locked.');softGo();}if(e.target.id==='caseRiskFilter'){S.filter=e.target.value;renderCaseBody();}if(e.target.id==='caseStatusFilter'){S.statusFilter=e.target.value;renderCaseBody();}});
+/* â•â•â• INIT â•â• */
 loadInitialData();
 </script>
 </body>
