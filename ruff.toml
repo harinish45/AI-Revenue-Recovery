@@ -1,0 +1,21 @@
+# Repo-wide Ruff configuration. Files under backend/ use the identical
+# settings from backend/pyproject.toml (nearest config wins).
+line-length = 100
+target-version = "py310"
+exclude = [
+    ".venv",
+    "venv",
+    "__pycache__",
+    "*.db",
+    ".ruff_cache",
+]
+
+[lint]
+select = ["E", "F", "I"]
+
+[lint.isort]
+known-first-party = ["app"]
+
+[lint.per-file-ignores]
+# Narration script content in video/ is long prose, not code.
+"video/*" = ["E501"]
