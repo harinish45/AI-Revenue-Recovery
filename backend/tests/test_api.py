@@ -140,7 +140,9 @@ def test_smart_skip_is_backend_measured(client: TestClient):
 
 
 def test_webhook_ingestion_is_audited(client: TestClient):
-    response = client.post("/api/webhooks/razorpay", json={"id": "wh_demo_1", "event": "payment.failed"})
+    response = client.post(
+        "/api/webhooks/razorpay", json={"id": "wh_demo_1", "event": "payment.failed"}
+    )
     assert response.status_code == 200
     assert response.json()["accepted"] is True
 
@@ -158,8 +160,17 @@ def test_idempotency_key_cannot_cross_cases(client: TestClient):
     client.post("/api/demo/seed")
     cases = client.get("/api/cases", params={"limit": 100}).json()["items"]
     key = "same-key-cross-case"
-    assert client.post("/api/execution/execute", json={"case_id": cases[0]["id"]}, headers={"Idempotency-Key": key}).status_code == 200
-    response = client.post("/api/execution/execute", json={"case_id": cases[1]["id"]}, headers={"Idempotency-Key": key})
+    assert (
+        client.post(
+            "/api/execution/execute",
+            json={"case_id": cases[0]["id"]},
+            headers={"Idempotency-Key": key},
+        ).status_code
+        == 200
+    )
+    response = client.post(
+        "/api/execution/execute", json={"case_id": cases[1]["id"]}, headers={"Idempotency-Key": key}
+    )
     assert response.status_code == 409
 
 
@@ -174,12 +185,13 @@ def test_voice_event_rejected_on_terminal_case(client: TestClient):
     )
     response = client.post(
         f"/api/cases/{open_case['id']}/voice-events",
-        json={"event_type": "voice_promise_captured", "consent_confirmed": True, "intent": "PROMISE_TO_PAY"},
+        json={
+            "event_type": "voice_promise_captured",
+            "consent_confirmed": True,
+            "intent": "PROMISE_TO_PAY",
+        },
     )
     assert response.status_code == 409
     body = response.json()
     msg = body.get("error", {}).get("message", "") or body.get("detail", "")
     assert "already" in msg.lower()
-
-
-

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..models import AuditLog, AuditSeal
-from ..schemas import AuditListResponse, AuditChainVerifyResponse, AuditSealVerifyResponse
+from ..schemas import AuditListResponse, AuditSealVerifyResponse
 from ..services.audit_service import _compute_event_hash, verify_chain
 
 router = APIRouter()
@@ -44,19 +44,30 @@ def get_audit_logs(
     )
     total = query.count()
     logs = query.offset((page - 1) * limit).limit(limit).all()
-    seals = {s.audit_id: s for s in db.query(AuditSeal).filter(AuditSeal.audit_id.in_([l.id for l in logs])).all()}
+    seals = {
+        s.audit_id: s
+        for s in db.query(AuditSeal).filter(AuditSeal.audit_id.in_([log.id for log in logs])).all()
+    }
 
     items = []
     for log in logs:
         seal = seals.get(log.id)
-        items.append({
-            "id": log.id, "case_id": log.case_id, "event_type": log.event_type,
-            "actor": log.actor, "decision": log.decision, "reason": log.reason,
-            "action": log.action, "result": log.result, "timestamp": log.timestamp,
-            "event_hash": seal.event_hash if seal else None,
-            "previous_hash": seal.previous_hash if seal else None,
-            "sequence": seal.sequence if seal else None,
-        })
+        items.append(
+            {
+                "id": log.id,
+                "case_id": log.case_id,
+                "event_type": log.event_type,
+                "actor": log.actor,
+                "decision": log.decision,
+                "reason": log.reason,
+                "action": log.action,
+                "result": log.result,
+                "timestamp": log.timestamp,
+                "event_hash": seal.event_hash if seal else None,
+                "previous_hash": seal.previous_hash if seal else None,
+                "sequence": seal.sequence if seal else None,
+            }
+        )
     return AuditListResponse(items=items, page=page, limit=limit, total=total)
 
 
@@ -80,7 +91,8 @@ def verify_audit_seal(audit_id: str, db: Session = Depends(get_db)):
         previous = db.query(AuditSeal).filter(AuditSeal.event_hash == seal.previous_hash).first()
     return AuditSealVerifyResponse(
         audit_id=audit_id,
-        chain_verified=computed_hash == seal.event_hash and (seal.previous_hash is None or previous is not None),
+        chain_verified=computed_hash == seal.event_hash
+        and (seal.previous_hash is None or previous is not None),
         event_hash=seal.event_hash,
         previous_hash=seal.previous_hash,
         case_id=seal.case_id,

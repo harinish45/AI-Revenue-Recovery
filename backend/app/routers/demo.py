@@ -14,7 +14,17 @@ from sqlalchemy.orm import Session
 from ..config import settings
 from ..database import get_db
 from ..middleware.rate_limit import limiter
-from ..models import AuditLog, AuditSeal, Customer, DemoFlag, Execution, IdempotencyKey, Payment, RecoveryCase, WebhookEvent
+from ..models import (
+    AuditLog,
+    AuditSeal,
+    Customer,
+    DemoFlag,
+    Execution,
+    IdempotencyKey,
+    Payment,
+    RecoveryCase,
+    WebhookEvent,
+)
 from ..schemas import BatchResponse, SeedResponse, SimulateFailureResponse
 from ..services.audit_service import log_event
 from ..services.metrics_service import invalidate_metrics_cache
@@ -68,13 +78,19 @@ def reset_database(request: Request, db: Session = Depends(get_db)):
     return {"message": "Database reset complete."}
 
 
-@router.post("/recovery-batch", response_model=BatchResponse, dependencies=[Depends(require_demo_access)])
+@router.post(
+    "/recovery-batch", response_model=BatchResponse, dependencies=[Depends(require_demo_access)]
+)
 @limiter.limit(settings.RATE_LIMIT_DEMO)
 def run_recovery_batch(request: Request, db: Session = Depends(get_db)):
     return run_batch_recovery(db)
 
 
-@router.post("/simulate-failure", response_model=SimulateFailureResponse, dependencies=[Depends(require_demo_access)])
+@router.post(
+    "/simulate-failure",
+    response_model=SimulateFailureResponse,
+    dependencies=[Depends(require_demo_access)],
+)
 @limiter.limit(settings.RATE_LIMIT_DEMO)
 def simulate_failure(request: Request, db: Session = Depends(get_db)):
     flag = db.query(DemoFlag).filter(DemoFlag.id == 1).first()

@@ -53,4 +53,3 @@ def client():
     app.dependency_overrides.clear()
     Base.metadata.drop_all(bind=engine)
     app.state.limiter.enabled = True
-

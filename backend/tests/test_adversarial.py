@@ -30,7 +30,12 @@ def _execute(client: TestClient, case_id: str, key: str = "adv-key"):
 
 def test_production_mode_disables_demo_endpoints(client: TestClient, monkeypatch):
     monkeypatch.setattr(app_settings, "APP_ENV", "production")
-    for route in ("/api/demo/reset", "/api/demo/seed", "/api/demo/recovery-batch", "/api/demo/simulate-failure"):
+    for route in (
+        "/api/demo/reset",
+        "/api/demo/seed",
+        "/api/demo/recovery-batch",
+        "/api/demo/simulate-failure",
+    ):
         response = client.post(route)
         assert response.status_code == 404, route
 
@@ -55,12 +60,27 @@ def test_failure_simulation_cannot_bypass_amount_limit(client: TestClient, db_se
     client.post("/api/demo/simulate-failure")
 
     customer = Customer(id="cus_adv", name="Adv", email="a@b.c", phone="+911234567890")
-    payment = Payment(id="pay_adv_big", customer_id=customer.id, amount=999999.0, status="failed", failure_reason="Gateway timeout")
+    payment = Payment(
+        id="pay_adv_big",
+        customer_id=customer.id,
+        amount=999999.0,
+        status="failed",
+        failure_reason="Gateway timeout",
+    )
     case = RecoveryCase(
-        id="RC-ADVBIG", payment_id=payment.id, customer_id=customer.id, customer_name="Adv",
-        amount_at_risk=999999.0, risk_level="low", failure_category="temporary_gateway_failure",
-        recommended_action="retry_payment", reason="adv", evidence={}, retry_count=0,
-        max_retries=2, recovery_status="pending",
+        id="RC-ADVBIG",
+        payment_id=payment.id,
+        customer_id=customer.id,
+        customer_name="Adv",
+        amount_at_risk=999999.0,
+        risk_level="low",
+        failure_category="temporary_gateway_failure",
+        recommended_action="retry_payment",
+        reason="adv",
+        evidence={},
+        retry_count=0,
+        max_retries=2,
+        recovery_status="pending",
     )
     db_session.add_all([customer, payment, case])
     db_session.commit()
@@ -71,7 +91,10 @@ def test_failure_simulation_cannot_bypass_amount_limit(client: TestClient, db_se
     # The armed failure must NOT be consumed: the amount policy blocks first.
     assert body["status"] == "needs_human_review"
     assert "Amount exceeds" in body["message"]
-    assert db_session.query(RecoveryCase).filter(RecoveryCase.id == "RC-ADVBIG").one().recovery_status == "needs_human_review"
+    assert (
+        db_session.query(RecoveryCase).filter(RecoveryCase.id == "RC-ADVBIG").one().recovery_status
+        == "needs_human_review"
+    )
 
 
 def test_failure_simulation_cannot_execute_terminal_case(client: TestClient, db_session):
@@ -79,12 +102,28 @@ def test_failure_simulation_cannot_execute_terminal_case(client: TestClient, db_
     client.post("/api/demo/simulate-failure")
 
     customer = Customer(id="cus_adv_done", name="Done", email="d@b.c", phone="+919876543210")
-    payment = Payment(id="pay_adv_done", customer_id=customer.id, amount=1200.0, status="success", failure_reason="Gateway timeout")
+    payment = Payment(
+        id="pay_adv_done",
+        customer_id=customer.id,
+        amount=1200.0,
+        status="success",
+        failure_reason="Gateway timeout",
+    )
     case = RecoveryCase(
-        id="RC-ADVDONE", payment_id=payment.id, customer_id=customer.id, customer_name="Done",
-        amount_at_risk=1200.0, risk_level="low", failure_category="temporary_gateway_failure",
-        recommended_action="retry_payment", reason="adv", evidence={}, retry_count=1,
-        max_retries=2, recovery_status="recovered", recovered_amount=1200.0,
+        id="RC-ADVDONE",
+        payment_id=payment.id,
+        customer_id=customer.id,
+        customer_name="Done",
+        amount_at_risk=1200.0,
+        risk_level="low",
+        failure_category="temporary_gateway_failure",
+        recommended_action="retry_payment",
+        reason="adv",
+        evidence={},
+        retry_count=1,
+        max_retries=2,
+        recovery_status="recovered",
+        recovered_amount=1200.0,
     )
     db_session.add_all([customer, payment, case])
     db_session.commit()
@@ -95,16 +134,28 @@ def test_failure_simulation_cannot_execute_terminal_case(client: TestClient, db_
     assert "terminal state" in body["message"].lower()
     # The armed failure must not be consumed by a terminal case, and a
     # recovered case must stay recovered.
-    assert db_session.query(RecoveryCase).filter(RecoveryCase.id == "RC-ADVDONE").one().recovery_status == "recovered"
+    assert (
+        db_session.query(RecoveryCase).filter(RecoveryCase.id == "RC-ADVDONE").one().recovery_status
+        == "recovered"
+    )
 
 
 def test_missing_payment_record_escalates_without_server_error(client: TestClient, db_session):
     _seed(client)
     case = RecoveryCase(
-        id="RC-ADVNOPAY", payment_id="pay_missing", customer_id="cus_demo_1",
-        customer_name="Ghost", amount_at_risk=1500.0, risk_level="low",
-        failure_category="temporary_gateway_failure", recommended_action="retry_payment",
-        reason="adv", evidence={}, retry_count=0, max_retries=2, recovery_status="pending",
+        id="RC-ADVNOPAY",
+        payment_id="pay_missing",
+        customer_id="cus_demo_1",
+        customer_name="Ghost",
+        amount_at_risk=1500.0,
+        risk_level="low",
+        failure_category="temporary_gateway_failure",
+        recommended_action="retry_payment",
+        reason="adv",
+        evidence={},
+        retry_count=0,
+        max_retries=2,
+        recovery_status="pending",
     )
     db_session.add(case)
     db_session.commit()
@@ -226,10 +277,30 @@ def test_voice_transcript_size_is_bounded(client: TestClient):
 
 
 def test_webhook_rejects_unknown_event_missing_id_and_oversize(client: TestClient):
-    assert client.post("/api/webhooks/razorpay", json={"id": "wh_x", "event": "payment.refund.made_up"}).status_code == 400
-    assert client.post("/api/webhooks/razorpay", json={"event": "payment.failed"}).status_code == 400
-    assert client.post("/api/webhooks/razorpay", json={"id": "wh_big", "event": "payment.failed", "blob": "y" * 300_000}).status_code == 413
-    assert client.post("/api/webhooks/razorpay", content=b"not json", headers={"Content-Type": "application/json"}).status_code == 400
+    assert (
+        client.post(
+            "/api/webhooks/razorpay", json={"id": "wh_x", "event": "payment.refund.made_up"}
+        ).status_code
+        == 400
+    )
+    assert (
+        client.post("/api/webhooks/razorpay", json={"event": "payment.failed"}).status_code == 400
+    )
+    assert (
+        client.post(
+            "/api/webhooks/razorpay",
+            json={"id": "wh_big", "event": "payment.failed", "blob": "y" * 300_000},
+        ).status_code
+        == 413
+    )
+    assert (
+        client.post(
+            "/api/webhooks/razorpay",
+            content=b"not json",
+            headers={"Content-Type": "application/json"},
+        ).status_code
+        == 400
+    )
 
 
 def test_webhook_stale_event_is_rejected(client: TestClient):
@@ -277,5 +348,3 @@ def test_batch_isolates_poisoned_cases(client: TestClient, db_session, monkeypat
     body = response.json()
     assert body["batch_id"].startswith("BATCH-")
     assert body["total_cases"] > 1
-
-

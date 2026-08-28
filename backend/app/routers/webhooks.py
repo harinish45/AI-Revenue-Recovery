@@ -44,7 +44,9 @@ async def ingest_razorpay_webhook(
 
     # Guard 1: bounded request size.
     if len(raw) > settings.WEBHOOK_MAX_BODY_BYTES:
-        raise HTTPException(status_code=413, detail="Webhook payload exceeds the maximum allowed size")
+        raise HTTPException(
+            status_code=413, detail="Webhook payload exceeds the maximum allowed size"
+        )
 
     try:
         payload = json.loads(raw)
@@ -66,12 +68,16 @@ async def ingest_razorpay_webhook(
     # Guard 4: allow-listed event types only.
     event_type = str(payload.get("event") or "")
     if event_type not in settings.WEBHOOK_ALLOWED_EVENTS:
-        raise HTTPException(status_code=400, detail=f"Unsupported webhook event type: {event_type or '<missing>'}")
+        raise HTTPException(
+            status_code=400, detail=f"Unsupported webhook event type: {event_type or '<missing>'}"
+        )
 
     # Guard 5: a provider event id is required so replays deduplicate.
     event_id = str(payload.get("id") or "")
     if not event_id:
-        raise HTTPException(status_code=400, detail="Webhook payload must include a provider event id")
+        raise HTTPException(
+            status_code=400, detail="Webhook payload must include a provider event id"
+        )
 
     # Guard 6: reject stale events (replay protection).
     event_ts = payload.get("timestamp") or request.headers.get("X-Razorpay-Event-Timestamp")
@@ -80,21 +86,34 @@ async def ingest_razorpay_webhook(
             event_time = datetime_from_epoch_or_iso(event_ts)
         except (ValueError, TypeError) as exc:
             raise HTTPException(status_code=400, detail="Invalid webhook timestamp") from exc
-        if event_time is not None and (
-            utcnow().replace(tzinfo=None) - event_time
-        ) > timedelta(seconds=settings.WEBHOOK_MAX_AGE_SECONDS):
+        if event_time is not None and (utcnow().replace(tzinfo=None) - event_time) > timedelta(
+            seconds=settings.WEBHOOK_MAX_AGE_SECONDS
+        ):
             raise HTTPException(status_code=400, detail="Webhook event is stale and was rejected")
 
     if db.query(WebhookEvent).filter(WebhookEvent.event_id == event_id).first():
-        return WebhookResponse(accepted=True, event_id=event_id, message="Webhook already accepted; duplicate ignored.")
+        return WebhookResponse(
+            accepted=True, event_id=event_id, message="Webhook already accepted; duplicate ignored."
+        )
 
     db.add(WebhookEvent(event_id=event_id))
-    log_event(db, None, "razorpay_webhook_received", actor="razorpay_webhook", action=event_type, reason=event_id)
+    log_event(
+        db,
+        None,
+        "razorpay_webhook_received",
+        actor="razorpay_webhook",
+        action=event_type,
+        reason=event_id,
+    )
 
     # Provider-confirmed recovery: the only path that counts revenue for an
     # intervention that merely *requested* money.
     if event_type in CONFIRMATION_EVENTS:
-        provider_payment_id = str((payload.get("payload") or {}).get("payment", {}).get("id") or payload.get("payment_id") or "")
+        provider_payment_id = str(
+            (payload.get("payload") or {}).get("payment", {}).get("id")
+            or payload.get("payment_id")
+            or ""
+        )
         if provider_payment_id:
             case = (
                 db.query(RecoveryCase)
@@ -106,7 +125,9 @@ async def ingest_razorpay_webhook(
                 confirm_provider_payment(db, case, actor="razorpay_webhook")
 
     db.commit()
-    return WebhookResponse(accepted=True, event_id=event_id, message="Webhook accepted for async processing.")
+    return WebhookResponse(
+        accepted=True, event_id=event_id, message="Webhook accepted for async processing."
+    )
 
 
 def datetime_from_epoch_or_iso(value):

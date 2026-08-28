@@ -8,14 +8,8 @@ import './enhancements.css';
 const money = v => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(Number(v) || 0);
 const pretty = v => String(v ?? '').replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 
-/* Demo-fallback data - shown ONLY when the backend is unreachable.
-   All live data flows through api methods in ./api.js */
-const demoSummary = { total_at_risk: 45000.5, total_recovered: 12000, recovery_rate_percent: 26.67, open_cases: 15, escalated_cases: 3 };
-const demoCases = [
-  { id: 1, payment_id: 'pay_demo_001', status: 'OPEN', retry_count: 0, diagnosis: 'Gateway timeout; customer has prior successful payments.', recommended_action: 'SEND_RETRY_LINK', risk_level: 'LOW', failure_category: 'temporary_gateway_failure', failure_reason: 'Gateway timeout', amount: 2499, customer_name: 'Arjun Kumar' },
-  { id: 2, payment_id: 'pay_demo_014', status: 'OPEN', retry_count: 0, diagnosis: 'Issuer decline; safer to request a fresh payment authorization.', recommended_action: 'SEND_RETRY_LINK', risk_level: 'MEDIUM', failure_category: 'issuer_decline', failure_reason: 'Issuer decline', amount: 1999, customer_name: 'Meera Iyer' },
-  { id: 3, payment_id: 'pay_demo_021', status: 'RECOVERED', retry_count: 1, diagnosis: 'Transient gateway issue recovered within policy.', recommended_action: 'SEND_RETRY_LINK', risk_level: 'LOW', failure_category: 'temporary_gateway_failure', failure_reason: 'Gateway timeout', amount: 4299, customer_name: 'Rohit Sharma' },
-];
+/* No demo fallback data: when the backend is unreachable the UI shows honest
+   zeros and an offline state. All live data flows through api methods in ./api.js */
 
 const RISKS = ['all', 'LOW', 'MEDIUM', 'HIGH'];
 const TERMINAL_STATES = new Set(['recovered', 'blocked', 'needs_human_review', 'skipped']);
@@ -61,8 +55,8 @@ class ErrorBoundary extends React.Component {
 
 /* ---------- app ---------- */
 function App() {
-  const [summary, setSummary] = React.useState(demoSummary);
-  const [cases, setCases] = React.useState(demoCases);
+  const [summary, setSummary] = React.useState({ total_at_risk: 0, total_recovered: 0, recovery_rate_percent: 0, open_cases: 0, escalated_cases: 0 });
+  const [cases, setCases] = React.useState([]);
   const [audit, setAudit] = React.useState([]);
   const [loading, setLoading] = React.useState(false);
   const [booting, setBooting] = React.useState(true);
@@ -373,7 +367,7 @@ function App() {
             <div>
               <div className="eyebrow">Recovery queue</div>
               <h2>Payment recovery cases</h2>
-              <p>{live ? cases.length + ' cases loaded from backend' : 'Backend unavailable — showing demo fallback'} · showing {filtered.length} · {freshness}</p>
+              <p>{live ? cases.length + ' cases loaded from backend' : 'Backend offline — press Retry Connection for live data'} · showing {filtered.length} · {freshness}</p>
             </div>
             <div className="panel-tools">
               <input
@@ -416,7 +410,15 @@ function App() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(item => {
+                {!live && !booting ? (
+                  <tr>
+                    <td colSpan={11}>
+                      <div className="empty-state">
+                        Backend offline — no live recovery data is shown. Press <strong>Retry Connection</strong> above, or start the backend with <code>uvicorn app.main:app --reload</code>.
+                      </div>
+                    </td>
+                  </tr>
+                ) : filtered.map(item => {
                   const itemStatus = String(item.status || item.recovery_status || '').toLowerCase();
                   const isTerm = ['recovered', 'blocked', 'needs_human_review', 'skipped'].includes(itemStatus);
                   return (

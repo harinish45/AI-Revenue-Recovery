@@ -21,14 +21,22 @@ def model_suggest_action(reason: str, amount: float) -> tuple[str | None, str | 
         "customer_reminder, needs_human_review. Never authorize money movement. "
         f"Failure: {reason}; amount INR: {amount}."
     )
-    payload = {"model": settings.OPENAI_MODEL, "temperature": 0, "messages": [
-        {"role": "system", "content": "You make bounded recovery suggestions."},
-        {"role": "user", "content": prompt},
-    ], "response_format": {"type": "json_object"}}
+    payload = {
+        "model": settings.OPENAI_MODEL,
+        "temperature": 0,
+        "messages": [
+            {"role": "system", "content": "You make bounded recovery suggestions."},
+            {"role": "user", "content": prompt},
+        ],
+        "response_format": {"type": "json_object"},
+    }
     request = Request(
         "https://api.openai.com/v1/chat/completions",
         data=json.dumps(payload).encode(),
-        headers={"Authorization": f"Bearer {settings.OPENAI_API_KEY}", "Content-Type": "application/json"},
+        headers={
+            "Authorization": f"Bearer {settings.OPENAI_API_KEY}",
+            "Content-Type": "application/json",
+        },
         method="POST",
     )
     try:

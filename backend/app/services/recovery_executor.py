@@ -41,7 +41,9 @@ def execute_recovery(db: Session, case: RecoveryCase, idempotency_key: str = Non
         )
         if cached:
             if cached.response and cached.response.get("case_id") != case.id:
-                raise HTTPException(status_code=409, detail="Idempotency-Key is already used for another case")
+                raise HTTPException(
+                    status_code=409, detail="Idempotency-Key is already used for another case"
+                )
             return cached.response
 
     try:
@@ -52,7 +54,11 @@ def execute_recovery(db: Session, case: RecoveryCase, idempotency_key: str = Non
             db.commit()
         except IntegrityError:
             db.rollback()
-            cached = db.query(IdempotencyKey).filter(IdempotencyKey.key == idempotency_key, IdempotencyKey.endpoint == "execute").first()
+            cached = (
+                db.query(IdempotencyKey)
+                .filter(IdempotencyKey.key == idempotency_key, IdempotencyKey.endpoint == "execute")
+                .first()
+            )
             if cached and cached.response and cached.response.get("case_id") == case.id:
                 return cached.response
             raise
@@ -91,7 +97,8 @@ def _run_recovery(db: Session, case: RecoveryCase) -> dict:
         return _escalate(
             db,
             case,
-            "Payment record is missing for this case; automatic recovery is unsafe. Escalated to human review.",
+            "Payment record is missing for this case; automatic recovery is "
+            "unsafe. Escalated to human review.",
             decision="missing_payment_record",
         )
 
@@ -100,12 +107,18 @@ def _run_recovery(db: Session, case: RecoveryCase) -> dict:
         case.recovery_status = "skipped"
         case.action_status = "skipped"
         audit = log_event(
-            db, case.id, "recovery_skipped", action="smart_skip", result="skipped",
+            db,
+            case.id,
+            "recovery_skipped",
+            action="smart_skip",
+            result="skipped",
             reason=f"Expected recovery value {payment.amount:.2f} is below the "
-                   f"configured intervention floor {settings.SMART_SKIP_MIN_AMOUNT:.2f}.",
+            f"configured intervention floor {settings.SMART_SKIP_MIN_AMOUNT:.2f}.",
         )
         return {
-            "case_id": case.id, "status": "skipped", "recovered_amount": 0.0,
+            "case_id": case.id,
+            "status": "skipped",
+            "recovered_amount": 0.0,
             "message": "Smart skip: intervention cost exceeds recovery value.",
             "audit_event_id": audit.id,
         }
@@ -174,7 +187,9 @@ def _run_recovery(db: Session, case: RecoveryCase) -> dict:
             amount_recovered=0.0,
         )
         db.add(execution)
-        if case.retry_count >= min(int(case.max_retries or settings.MAX_RETRIES), settings.MAX_RETRIES):
+        if case.retry_count >= min(
+            int(case.max_retries or settings.MAX_RETRIES), settings.MAX_RETRIES
+        ):
             log_event(
                 db,
                 case.id,
@@ -229,7 +244,10 @@ def _run_recovery(db: Session, case: RecoveryCase) -> dict:
             "case_id": case.id,
             "status": "awaiting_payment",
             "recovered_amount": 0.0,
-            "message": "Intervention sent. Awaiting provider payment confirmation before revenue is counted.",
+            "message": (
+                "Intervention sent. Awaiting provider payment confirmation "
+                "before revenue is counted."
+            ),
             "audit_event_id": audit.id,
         }
 
@@ -268,7 +286,9 @@ def _run_recovery(db: Session, case: RecoveryCase) -> dict:
     }
 
 
-def confirm_provider_payment(db: Session, case: RecoveryCase, actor: str = "razorpay_webhook") -> dict:
+def confirm_provider_payment(
+    db: Session, case: RecoveryCase, actor: str = "razorpay_webhook"
+) -> dict:
     """Transition awaiting_payment -> recovered, driven by a provider event."""
     if case.recovery_status != "awaiting_payment":
         return None
@@ -356,8 +376,7 @@ def run_batch_recovery(db: Session) -> dict:
         "recovery_rate": round(recovery_rate, 2),
         "skipped": skipped,
         "estimated_cost": round(attempted * settings.RECOVERY_COST_PER_ATTEMPT, 2),
-        "net_recovered": round(max(0.0, amount_recovered - attempted * settings.RECOVERY_COST_PER_ATTEMPT), 2),
+        "net_recovered": round(
+            max(0.0, amount_recovered - attempted * settings.RECOVERY_COST_PER_ATTEMPT), 2
+        ),
     }
-
-
-

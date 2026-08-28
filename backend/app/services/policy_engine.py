@@ -21,7 +21,11 @@ def retry_window(case: RecoveryCase):
     """Return the earliest datetime the next retry is permitted, or None."""
     if case.retry_count <= 0:
         return None  # First intervention fires immediately.
-    hours = settings.RETRY_COOLDOWN_FIRST_HOURS if case.retry_count == 1 else settings.RETRY_COOLDOWN_HOURS
+    hours = (
+        settings.RETRY_COOLDOWN_FIRST_HOURS
+        if case.retry_count == 1
+        else settings.RETRY_COOLDOWN_HOURS
+    )
     reference = case.updated_at or case.created_at
     if reference is None:
         return None

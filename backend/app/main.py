@@ -1,16 +1,16 @@
-from pathlib import Path
-from uuid import uuid4
 import json
 import logging
+from pathlib import Path
 from time import perf_counter
+from uuid import uuid4
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, RedirectResponse
-from sqlalchemy import inspect, text
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
+from sqlalchemy import inspect, text
 
 from .config import settings
 from .database import Base, engine
@@ -22,6 +22,7 @@ from .middleware.error_handler import (
 )
 from .middleware.rate_limit import limiter
 from .routers import audit, batch, cases, dashboard, demo, execution, health, voice, webhooks
+
 
 def _resolve_standalone_html_path() -> Path:
     candidates = [
@@ -52,7 +53,6 @@ def _ensure_sqlite_compatibility():
         if "sequence" not in columns:
             with engine.begin() as connection:
                 connection.execute(text("ALTER TABLE audit_seals ADD COLUMN sequence INTEGER"))
-
 
 
 _ensure_sqlite_compatibility()
@@ -88,7 +88,17 @@ async def security_headers(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "no-referrer"
     response.headers["Cache-Control"] = "no-store"
-    logger.info(json.dumps({"request_id": request_id, "method": request.method, "path": request.url.path, "status": response.status_code, "duration_ms": round((perf_counter() - started) * 1000, 2)}))
+    logger.info(
+        json.dumps(
+            {
+                "request_id": request_id,
+                "method": request.method,
+                "path": request.url.path,
+                "status": response.status_code,
+                "duration_ms": round((perf_counter() - started) * 1000, 2),
+            }
+        )
+    )
     return response
 
 

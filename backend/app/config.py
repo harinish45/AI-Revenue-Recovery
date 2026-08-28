@@ -37,7 +37,6 @@ class Settings(BaseSettings):
     # Case amount and payment amount must agree within this tolerance.
     AMOUNT_TOLERANCE: float = 0.01
 
-
     @property
     def demo_controls_enabled(self) -> bool:
         """Demo control-plane routes are safe only outside production."""

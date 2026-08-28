@@ -108,9 +108,7 @@ def verify_chain(db: Session, case_id: str | None = None) -> dict:
 
     logs_by_id = {
         log.id: log
-        for log in db.query(AuditLog).filter(
-            AuditLog.id.in_([s.audit_id for s in seals])
-        ).all()
+        for log in db.query(AuditLog).filter(AuditLog.id.in_([s.audit_id for s in seals])).all()
     }
 
     events = []
@@ -120,7 +118,9 @@ def verify_chain(db: Session, case_id: str | None = None) -> dict:
         log = logs_by_id.get(seal.audit_id)
         expected_previous = previous_hash_by_case.get(seal.case_id)
         if log is None:
-            events.append({"audit_id": seal.audit_id, "valid": False, "reason": "audit event missing"})
+            events.append(
+                {"audit_id": seal.audit_id, "valid": False, "reason": "audit event missing"}
+            )
             all_valid = False
             continue
         payload = {
@@ -142,13 +142,15 @@ def verify_chain(db: Session, case_id: str | None = None) -> dict:
         valid = hash_ok and link_ok
         if not valid:
             all_valid = False
-        events.append({
-            "audit_id": seal.audit_id,
-            "sequence": seal.sequence,
-            "valid": valid,
-            "hash_ok": hash_ok,
-            "chain_link_ok": link_ok,
-        })
+        events.append(
+            {
+                "audit_id": seal.audit_id,
+                "sequence": seal.sequence,
+                "valid": valid,
+                "hash_ok": hash_ok,
+                "chain_link_ok": link_ok,
+            }
+        )
         previous_hash_by_case[seal.case_id] = seal.event_hash
 
     return {"valid": all_valid, "events_checked": len(events), "events": events}

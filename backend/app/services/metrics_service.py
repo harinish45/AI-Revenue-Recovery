@@ -1,8 +1,8 @@
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from ..models import Execution, Payment, RecoveryCase
 from ..config import settings
+from ..models import Execution, Payment, RecoveryCase
 from ..utils.cache import TTLCache
 
 _cache = TTLCache(ttl_seconds=3)

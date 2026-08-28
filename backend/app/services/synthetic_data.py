@@ -3,11 +3,20 @@ from datetime import timedelta
 
 from sqlalchemy.orm import Session
 
-from ..models import AuditLog, AuditSeal, Customer, DemoFlag, IdempotencyKey, Payment, RecoveryCase, WebhookEvent
+from ..models import (
+    AuditLog,
+    AuditSeal,
+    Customer,
+    DemoFlag,
+    IdempotencyKey,
+    Payment,
+    RecoveryCase,
+    WebhookEvent,
+)
+from ..utils.time import utcnow
 from .audit_service import log_event
 from .decision_engine import diagnose_and_recommend
 from .metrics_service import invalidate_metrics_cache
-from ..utils.time import utcnow
 
 INDIAN_NAMES = [
     "Arjun Kumar",

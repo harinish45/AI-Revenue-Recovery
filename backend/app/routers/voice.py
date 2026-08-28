@@ -56,7 +56,9 @@ def record_voice_event(
         body.event_type,
         actor="voice_agent",
         decision=decision,
-        action="promise_capture" if body.event_type == "voice_promise_captured" else "voice_interaction",
+        action="promise_capture"
+        if body.event_type == "voice_promise_captured"
+        else "voice_interaction",
         reason=reason,
     )
     db.commit()
