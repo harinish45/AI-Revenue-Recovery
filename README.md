@@ -10,7 +10,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
 ![Razorpay](https://img.shields.io/badge/Razorpay-Integrated-0C2451?logo=razorpay&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-40%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-43%20passing-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 *RecoverAI does not let the model move money. The model recommends; deterministic policy decides; the provider confirms; only confirmed payment events count as recovered revenue; every decision is auditable and every unsafe path escalates.*
@@ -112,13 +112,13 @@ npm install
 npm run dev                     # http://localhost:5173
 ```
 
-Prefer zero build tooling? Open **`RecoverAI-standalone.html`** — a self-contained dashboard (the demo surface for judges) with the same API contract.
+Prefer zero build tooling? Open **`RecoverAI-standalone.html`** — a self-contained, single-file dashboard with the same API contract and no `npm install` required. It's a parity snapshot of the React app for anyone reviewing without a dev environment; feature work happens in `frontend/src/` first.
 
 ### Run the test suite
 
 ```bash
 cd backend
-python -m pytest tests/ -v      # 40 tests: safety, adversarial, business logic, API
+python -m pytest tests/ -v      # 43 tests: safety, adversarial, business logic, API
 ```
 
 ## 🔌 API Highlights
@@ -170,6 +170,8 @@ Policy checks:         10/10 passed   → compliance score 100%
 
 ## 🛡️ Security Posture
 
+- **API-key authorization** (`X-API-Key`, `readonly`/`operator` roles) on every core route — cases, execution, voice events, audit, dashboard, batch. Open outside production for zero-friction local dev; `APP_ENV=production` refuses to boot without `API_KEYS` configured.
+- **HMAC-signed, chained audit trail** — each event is sealed with `AUDIT_SIGNING_KEY`, so forging a self-consistent chain requires the signing secret, not just database write access.
 - HMAC-SHA256 webhook signature verification (timing-safe compare)
 - Webhook staleness window, event-type allowlist, provider-ID requirement, payload size cap
 - Idempotency with request-hash separation and `409` misuse response
@@ -177,6 +179,10 @@ Policy checks:         10/10 passed   → compliance score 100%
 - Security headers: CSP, Permissions-Policy, HSTS, COOP, CORP
 - Strict Pydantic validation: language allowlists, transcript/intent bounds, confidence range, pagination ceilings
 - Demo routes triple-guarded and excluded from production
+- **CI security scanning**: `pip-audit` + `npm audit` (dependency CVEs), `bandit` (Python SAST), Gitleaks (secret scanning), Dependabot (pip/npm/Actions/Docker)
+- Both container images run as a non-root user with a `HEALTHCHECK`
+
+See [`docs/security.md`](docs/security.md) for the full control list and threat model.
 
 ## 🗺️ Roadmap
 

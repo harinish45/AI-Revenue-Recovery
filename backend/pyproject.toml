@@ -14,3 +14,10 @@ ignore = []
 
 [tool.ruff.lint.isort]
 known-first-party = ["app"]
+
+[tool.bandit]
+# B311 (weak PRNG): the only `random` usage in app/ is synthetic_data.py
+# generating non-secret demo/seed data (fake names, amounts, timestamps).
+# Anything security-sensitive (keys, tokens, comparisons) already uses the
+# `secrets` module — see security/auth.py and services/audit_service.py.
+skips = ["B311"]

@@ -27,8 +27,8 @@ from ..models import (
 )
 from ..schemas import BatchResponse, SeedResponse, SimulateFailureResponse
 from ..services.audit_service import log_event
+from ..services.batch_executor import run_batch_recovery
 from ..services.metrics_service import invalidate_metrics_cache
-from ..services.recovery_executor import run_batch_recovery
 from ..services.synthetic_data import generate_synthetic_data
 
 router = APIRouter()

@@ -40,6 +40,24 @@ def _resolve_standalone_html_path() -> Path:
 STANDALONE_HTML_PATH = _resolve_standalone_html_path()
 
 
+def _enforce_production_secrets():
+    """Refuse to boot in production without the secrets that make the core
+    security controls meaningful, instead of silently running an open API or
+    a forgeable audit chain."""
+    if not settings.is_production:
+        return
+    missing = []
+    if not settings.api_keys_by_role:
+        missing.append("API_KEYS")
+    if not settings.AUDIT_SIGNING_KEY:
+        missing.append("AUDIT_SIGNING_KEY")
+    if missing:
+        raise RuntimeError(
+            "APP_ENV=production requires the following settings to be configured: "
+            + ", ".join(missing)
+        )
+
+
 def _ensure_sqlite_compatibility():
     """Apply additive fixes for demo databases created by an older checkout."""
     if engine.dialect.name != "sqlite":
@@ -55,6 +73,7 @@ def _ensure_sqlite_compatibility():
                 connection.execute(text("ALTER TABLE audit_seals ADD COLUMN sequence INTEGER"))
 
 
+_enforce_production_secrets()
 _ensure_sqlite_compatibility()
 Base.metadata.create_all(bind=engine)
 

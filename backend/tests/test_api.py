@@ -109,6 +109,21 @@ def test_voice_event_is_persisted_to_real_audit_trail(client: TestClient):
     assert matching[0]["decision"] == "PROMISE_TO_PAY"
 
 
+def test_voice_event_accepts_full_bcp47_language_tags(client: TestClient):
+    """The voice cockpit always sends full tags like "hi-IN"/"mr-IN", not
+    bare "hi"/"mr" -- the allowlist check must match on the primary subtag,
+    not the whole tag, or every real voice event is rejected."""
+    client.post("/api/demo/seed")
+    case_id = client.get("/api/cases").json()["items"][0]["id"]
+
+    for language in ("hi-IN", "en-IN", "ta-IN", "kn-IN", "te-IN", "mr-IN", "bn-IN", "ml-IN"):
+        response = client.post(
+            f"/api/cases/{case_id}/voice-events",
+            json={"event_type": "voice_call_started", "language": language, "confidence": 0.9},
+        )
+        assert response.status_code == 200, (language, response.json())
+
+
 def test_voice_event_rejects_unknown_case(client: TestClient):
     response = client.post(
         "/api/cases/RC-NOPE/voice-events",

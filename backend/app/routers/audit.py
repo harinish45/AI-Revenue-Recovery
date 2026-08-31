@@ -6,9 +6,10 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import AuditLog, AuditSeal
 from ..schemas import AuditListResponse, AuditSealVerifyResponse
+from ..security.auth import require_readonly
 from ..services.audit_service import _compute_event_hash, verify_chain
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_readonly)])
 
 
 def _sealed_payload(log: AuditLog, seal: AuditSeal) -> dict:

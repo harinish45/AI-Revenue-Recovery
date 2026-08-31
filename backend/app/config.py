@@ -37,10 +37,37 @@ class Settings(BaseSettings):
     # Case amount and payment amount must agree within this tolerance.
     AMOUNT_TOLERANCE: float = 0.01
 
+    # API key auth for the core API. Each entry is "<key>:<role>", role is
+    # "operator" (read + execute) or "readonly" (read only). Empty outside
+    # production means "no auth configured yet" and is allowed; empty in
+    # production is refused at startup — see main.py's boot check.
+    API_KEYS: tuple = ()
+    # HMAC key that seals the audit hash chain. Without a real secret, anyone
+    # with database write access could recompute a self-consistent chain, so
+    # this is required in production. Left blank in dev/demo, a random
+    # per-process key is generated at startup instead.
+    AUDIT_SIGNING_KEY: str = ""
+
     @property
     def demo_controls_enabled(self) -> bool:
         """Demo control-plane routes are safe only outside production."""
         return self.DEMO_MODE and self.APP_ENV.lower() != "production"
+
+    @property
+    def is_production(self) -> bool:
+        return self.APP_ENV.lower() == "production"
+
+    @property
+    def api_keys_by_role(self) -> dict:
+        """Parse ``API_KEYS`` entries of the form ``<key>:<role>`` into a map."""
+        parsed = {}
+        for entry in self.API_KEYS:
+            key, _, role = str(entry).partition(":")
+            key = key.strip()
+            role = role.strip() or "readonly"
+            if key:
+                parsed[key] = role
+        return parsed
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

@@ -1,4 +1,4 @@
-"""Recovery execution service.
+"""Single-case recovery execution.
 
 Execution order is a hard safety contract:
 
@@ -11,6 +11,10 @@ Execution order is a hard safety contract:
    ``payment_link`` / ``customer_reminder`` => ``awaiting_payment`` (no money
    is claimed until the provider confirms), ``retry_payment`` => provider
    confirms the direct charge in test mode => ``recovered``.
+
+Provider-confirmed payment handling lives in ``payment_confirmation.py`` and
+batch orchestration in ``batch_executor.py`` -- both call into this module's
+``execute_recovery`` rather than duplicating the safety contract above.
 """
 
 import uuid
@@ -283,100 +287,4 @@ def _run_recovery(db: Session, case: RecoveryCase) -> dict:
         "recovered_amount": execution.amount_recovered,
         "message": final_msg,
         "audit_event_id": audit.id,
-    }
-
-
-def confirm_provider_payment(
-    db: Session, case: RecoveryCase, actor: str = "razorpay_webhook"
-) -> dict:
-    """Transition awaiting_payment -> recovered, driven by a provider event."""
-    if case.recovery_status != "awaiting_payment":
-        return None
-    payment = db.query(Payment).filter(Payment.id == case.payment_id).first()
-    if payment is None:
-        return None
-    case.recovery_status = "recovered"
-    case.recovered_amount = payment.amount
-    payment.status = "success"
-    execution = Execution(
-        id=f"EXE-{uuid.uuid4().hex[:6].upper()}",
-        case_id=case.id,
-        action_taken="provider_confirmation",
-        result="payment_confirmed",
-        amount_recovered=payment.amount,
-    )
-    db.add(execution)
-    audit = log_event(
-        db,
-        case.id,
-        "payment_confirmed",
-        actor=actor,
-        action="payment_confirmation",
-        result="recovered",
-        reason=f"Provider confirmed payment of {payment.amount:.2f}.",
-    )
-    invalidate_metrics_cache()
-    return {
-        "case_id": case.id,
-        "status": "recovered",
-        "recovered_amount": payment.amount,
-        "message": "Provider confirmed the payment. Revenue recorded.",
-        "audit_event_id": audit.id,
-    }
-
-
-def run_batch_recovery(db: Session) -> dict:
-    pending_cases = (
-        db.query(RecoveryCase)
-        .filter(RecoveryCase.recovery_status.in_(["pending", "failed"]))
-        .filter(RecoveryCase.action_status == "eligible")
-        .all()
-    )
-
-    batch_id = f"BATCH-{uuid.uuid4().hex[:8].upper()}"
-    total_cases = len(pending_cases)
-    amount_at_risk = sum(c.amount_at_risk for c in pending_cases)
-
-    attempted, successful, failed, escalated, skipped, awaiting = 0, 0, 0, 0, 0, 0
-    amount_recovered = 0.0
-
-    for case in pending_cases:
-        try:
-            result = execute_recovery(db, case)
-        except Exception:
-            # One poisoned case must never abort the whole batch.
-            db.rollback()
-            escalated += 1
-            continue
-        attempted += 1
-        if result["status"] == "recovered":
-            successful += 1
-            amount_recovered += result["recovered_amount"]
-        elif result["status"] == "awaiting_payment":
-            awaiting += 1
-        elif result["status"] == "failed":
-            failed += 1
-        elif result["status"] in ("needs_human_review", "blocked"):
-            escalated += 1
-        elif result["status"] == "skipped":
-            skipped += 1
-
-    recovery_rate = (amount_recovered / amount_at_risk * 100) if amount_at_risk > 0 else 0.0
-
-    return {
-        "batch_id": batch_id,
-        "total_cases": total_cases,
-        "attempted": attempted,
-        "successful": successful,
-        "awaiting": awaiting,
-        "failed": failed,
-        "escalated": escalated,
-        "amount_at_risk": amount_at_risk,
-        "amount_recovered": amount_recovered,
-        "recovery_rate": round(recovery_rate, 2),
-        "skipped": skipped,
-        "estimated_cost": round(attempted * settings.RECOVERY_COST_PER_ATTEMPT, 2),
-        "net_recovered": round(
-            max(0.0, amount_recovered - attempted * settings.RECOVERY_COST_PER_ATTEMPT), 2
-        ),
     }

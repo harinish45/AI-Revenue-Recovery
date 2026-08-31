@@ -1,3 +1,8 @@
+"""Dashboard summary metrics, short-TTL cached so bursts of reads don't
+recompute aggregates on every request while still reflecting mutations
+within a few seconds (see ``invalidate_metrics_cache``, called by every
+mutation path)."""
+
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 

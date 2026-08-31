@@ -8,9 +8,11 @@ from ..database import get_db
 from ..middleware.rate_limit import limiter
 from ..models import RecoveryCase
 from ..schemas import ExecuteRequest, ExecuteResponse
-from ..services.recovery_executor import confirm_provider_payment, execute_recovery
+from ..security.auth import require_operator
+from ..services.payment_confirmation import confirm_provider_payment
+from ..services.recovery_executor import execute_recovery
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_operator)])
 
 
 def _execute_case(db: Session, case_id: str, idempotency_key: Optional[str]) -> dict:

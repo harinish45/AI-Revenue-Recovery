@@ -21,3 +21,5 @@ jobs:
           cache-dependency-path: frontend/package.json
       - run: npm install
       - run: npm run build
+      # Fails the build on known high/critical CVEs in npm dependencies.
+      - run: npm audit --audit-level=high

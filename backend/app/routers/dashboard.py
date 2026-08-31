@@ -3,9 +3,10 @@ from sqlalchemy.orm import Session
 
 from ..database import get_db
 from ..schemas import DashboardSummary
+from ..security.auth import require_readonly
 from ..services.metrics_service import get_metrics
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_readonly)])
 
 
 @router.get("/summary", response_model=DashboardSummary)

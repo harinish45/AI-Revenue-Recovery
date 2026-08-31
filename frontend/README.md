@@ -22,7 +22,7 @@ Copy `.env.example` to `.env` locally. Never commit secrets.
 
 The frontend uses `src/api.js` and the shared contract at `docs/api-contract.md`.
 
-When the backend is unavailable, the dashboard intentionally falls back to deterministic demo data so the pitch UI remains runnable. It never claims those demo values are live Razorpay transactions.
+When the backend is unavailable, the dashboard intentionally falls back to deterministic demo data so the UI remains usable for a walkthrough. It never claims those demo values are live Razorpay transactions.
 
 ## Main flows
 

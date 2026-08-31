@@ -6,9 +6,10 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..models import Payment, RecoveryCase
 from ..schemas import CaseDetailResponse, CaseOut, CasesListResponse
+from ..security.auth import require_readonly
 from ..services.policy_engine import compliance_score, retry_window
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_readonly)])
 
 
 @router.get("/cases", response_model=CasesListResponse)

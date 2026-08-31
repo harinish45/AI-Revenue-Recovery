@@ -13,10 +13,11 @@ from ..database import get_db
 from ..middleware.rate_limit import limiter
 from ..models import RecoveryCase
 from ..schemas import VoiceEventRequest, VoiceEventResponse
+from ..security.auth import require_operator
 from ..services.audit_service import log_event
 from ..services.policy_engine import TERMINAL_STATES
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_operator)])
 
 
 @router.post("/cases/{case_id}/voice-events", response_model=VoiceEventResponse)

@@ -18,7 +18,7 @@ from ..database import get_db
 from ..models import RecoveryCase, WebhookEvent
 from ..schemas import WebhookResponse
 from ..services.audit_service import log_event
-from ..services.recovery_executor import confirm_provider_payment
+from ..services.payment_confirmation import confirm_provider_payment
 from ..utils.time import utcnow
 
 router = APIRouter()

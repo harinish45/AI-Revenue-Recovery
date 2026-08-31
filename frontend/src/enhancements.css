@@ -65,7 +65,7 @@
 .customer-history { display: grid; gap: 6px; margin: 0 22px 18px; }.customer-history div { display: flex; justify-content: space-between; gap: 12px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 7px; background: var(--surface-3); }.customer-history strong { color: var(--green); font-size: 10px; }.customer-history span { color: var(--text-faint); font-size: 9px; }
 .smart-skip-note { display: grid; gap: 5px; margin-top: 14px; padding: 11px 12px; border: 1px solid rgba(224, 184, 63, .3); border-radius: 8px; background: rgba(224, 184, 63, .07); }.smart-skip-note strong { color: var(--amber); font-size: 10px; }.smart-skip-note span { color: var(--text-muted); font-size: 10px; line-height: 1.45; }
 .shortcut-list { display: grid; gap: 8px; margin: 8px 0 18px; }.shortcut-list div { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface-3); }.shortcut-list span { color: var(--text-muted); font-size: 10px; }.shortcut-list kbd { min-width: 58px; padding: 5px 7px; border: 1px solid #3a4865; border-bottom-width: 2px; border-radius: 5px; color: var(--text-strong); font: 600 10px/1 monospace; text-align: center; }
-.pitch-proof b { animation: flow-pulse 1.8s ease-in-out infinite; }.pitch-proof b:nth-of-type(2) { animation-delay: .3s; }.pitch-proof b:nth-of-type(3) { animation-delay: .6s; }
+.arch-flow b { animation: flow-pulse 1.8s ease-in-out infinite; }.arch-flow b:nth-of-type(2) { animation-delay: .3s; }.arch-flow b:nth-of-type(3) { animation-delay: .6s; }
 @keyframes flow-pulse { 50% { color: var(--green); transform: translateX(3px); } }
 
 /* subtle top sheen line on panels */
@@ -102,8 +102,8 @@ button:focus-visible, input:focus-visible, [role="group"]:focus-within {
 /* Small desktop / large tablet */
 @media (max-width: 1100px) {
   .metrics-grid { grid-template-columns: repeat(3, 1fr); }
-  .pitch-proof { grid-template-columns: 1fr; gap: 8px; }
-  .pitch-proof b { display: none; }
+  .arch-flow { grid-template-columns: 1fr; gap: 8px; }
+  .arch-flow b { display: none; }
   .action-center { flex-direction: column; align-items: flex-start; }
   .action-buttons { justify-content: flex-start; }
 }

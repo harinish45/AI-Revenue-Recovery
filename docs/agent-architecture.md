@@ -47,6 +47,12 @@ rules. Invalid instruments and low-confidence decisions escalate instead of
 retrying. Repeated HTTP requests with the same `Idempotency-Key` return the
 original result without creating another execution.
 
+Every route that can read case data or trigger an intervention sits behind an
+API-key authorization boundary (`backend/app/security/auth.py`), and every
+audit event is sealed with an HMAC keyed by `AUDIT_SIGNING_KEY` — the agent's
+decisions are not just policy-gated, the record of them is tamper-evident
+against anyone without that key. See `docs/security.md` for the full model.
+
 ## Demo scenarios
 
 The seeded dataset covers gateway timeout, insufficient funds, bank rejection,
@@ -67,6 +73,7 @@ The failure simulation demonstrates a bounded stop and human handoff.
 ## Extension path
 
 The same contract can support overdue receivables, mandate retry sequencing,
-promise-to-pay tracking, and compliant Hinglish voice messages. Each new
-intervention must be added to the action allowlist with its own channel,
-consent rules, retry budget, and escalation condition.
+promise-to-pay tracking, and compliant multilingual voice messages (the voice
+cockpit already covers 8 Indian languages, including code-switched Hinglish).
+Each new intervention must be added to the action allowlist with its own
+channel, consent rules, retry budget, and escalation condition.

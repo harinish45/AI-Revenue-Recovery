@@ -17,9 +17,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - run: pip install ruff
+      - run: pip install ruff bandit
       - run: ruff check app tests
       - run: ruff format --check app tests
+      # SAST: hardcoded secrets, weak hashes, eval/exec, etc. in app code only
+      # (tests intentionally exercise adversarial input and trip some rules).
+      # -c pyproject.toml is required: bandit does not auto-discover its
+      # [tool.bandit] config without an explicit -c flag.
+      - run: bandit -q -c pyproject.toml -r app
 
   test:
     runs-on: ubuntu-latest
@@ -33,3 +38,17 @@ jobs:
           python-version: '3.11'
       - run: pip install -r requirements.txt
       - run: pytest -q
+
+  security:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pip-audit
+      # Fails the build on known CVEs in pinned dependencies.
+      - run: pip-audit -r requirements.txt

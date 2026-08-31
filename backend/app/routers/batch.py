@@ -5,9 +5,10 @@ from ..config import settings
 from ..database import get_db
 from ..middleware.rate_limit import limiter
 from ..schemas import BatchResponse
-from ..services.recovery_executor import run_batch_recovery
+from ..security.auth import require_operator
+from ..services.batch_executor import run_batch_recovery
 
-router = APIRouter()
+router = APIRouter(dependencies=[Depends(require_operator)])
 
 
 @router.post("/process", response_model=BatchResponse)

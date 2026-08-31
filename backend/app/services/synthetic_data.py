@@ -74,8 +74,18 @@ def generate_synthetic_data(db: Session):
         )
         payments.append(p)
 
+    # Guarantee every failure category appears at least once (shuffled, then
+    # topped up randomly): with 5 categories and a plain random.choice per
+    # payment, an unlucky seed could omit a whole category (e.g. no
+    # gateway_timeout -> no retry_payment case at all), so a fresh demo seed
+    # would silently fail to showcase one of the agent's recovery paths.
+    failure_pool = FAILURE_REASONS.copy()
+    random.shuffle(failure_pool)
     for i in range(20):
-        _, reason_text, category = random.choice(FAILURE_REASONS)
+        if i < len(failure_pool):
+            _, reason_text, category = failure_pool[i]
+        else:
+            _, reason_text, category = random.choice(FAILURE_REASONS)
         p = Payment(
             id=f"pay_fail_{i + 1:03d}",
             customer_id=random.choice(customers).id,

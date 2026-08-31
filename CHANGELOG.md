@@ -33,3 +33,13 @@ All notable changes to RecoverAI, by day. See `git log` for the full commit-leve
 - Added a dedicated `/api/health` endpoint for uptime checks (`scripts/health-check.js` previously relied on the root HTML route).
 - Documented the `docker-compose.yml` frontend port (`3000:80`, nginx) to avoid confusion with the Vite dev server's `5173`.
 - `start.sh` / `start.bat` now print a note when Razorpay keys are unset, making the simulated demo mode explicit at launch.
+
+## 2026-09-01 — Security hardening pass
+- Added API-key authorization (`X-API-Key`, `readonly`/`operator` roles) across the core API — cases, execution, voice events, audit, dashboard, and batch — leaving the public demo unauthenticated as before, but requiring keys once `APP_ENV=production`.
+- The app now refuses to boot in production unless `API_KEYS` and `AUDIT_SIGNING_KEY` are configured, instead of silently running open or with a forgeable audit trail.
+- The tamper-evident audit chain is now HMAC-SHA256 sealed (keyed with `AUDIT_SIGNING_KEY`) instead of a plain hash, so forging a self-consistent chain requires the signing secret, not just database write access.
+- Bounded and sanitized the failure-reason text passed into the optional LLM diagnosis prompt as defense-in-depth against prompt injection.
+- Patched known CVEs in pinned dependencies (`fastapi`, `starlette`, `pydantic`, `python-dotenv`, `pytest`, `razorpay`); `pip-audit` and `npm audit` now run clean.
+- Added CI security scanning: `pip-audit`, `bandit`, `npm audit`, a Gitleaks secret scan, and Dependabot for pip/npm/GitHub Actions/Docker.
+- Hardened both container images: non-root user and a `HEALTHCHECK` against the app's own liveness endpoint.
+- Documented the new controls and an explicit in-scope/out-of-scope threat model in `docs/security.md`.

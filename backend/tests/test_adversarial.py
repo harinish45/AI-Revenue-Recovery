@@ -327,6 +327,64 @@ def test_audit_chain_verification_detects_tampering(client: TestClient, db_sessi
     assert tampered and tampered[0]["valid"] is False
 
 
+def test_core_api_is_open_outside_production_with_no_keys_configured(client: TestClient):
+    """Demo/dev mode must keep working unauthenticated: no API_KEYS configured
+    and APP_ENV != production is the existing, unchanged public-demo posture."""
+    assert client.get("/api/cases").status_code == 200
+    assert client.get("/api/dashboard/summary").status_code == 200
+    assert client.get("/api/audit").status_code == 200
+
+
+def test_core_api_requires_api_key_in_production(client: TestClient, monkeypatch):
+    monkeypatch.setattr(app_settings, "APP_ENV", "production")
+    monkeypatch.setattr(app_settings, "API_KEYS", ("opkey:operator", "rokey:readonly"))
+
+    assert client.get("/api/cases").status_code == 401
+    assert client.get("/api/cases", headers={"X-API-Key": "wrong"}).status_code == 401
+    assert client.get("/api/cases", headers={"X-API-Key": "rokey"}).status_code == 200
+    assert client.get("/api/cases", headers={"X-API-Key": "opkey"}).status_code == 200
+
+    # A readonly key must not be able to trigger money-movement actions.
+    readonly_execute = client.post(
+        "/api/execution/execute",
+        json={"case_id": "RC-DOES-NOT-EXIST"},
+        headers={"Idempotency-Key": "prod-key-1", "X-API-Key": "rokey"},
+    )
+    assert readonly_execute.status_code == 403
+
+    # An operator key passes auth; the 404 proves the request reached the
+    # handler (the fake case id doesn't exist), not that auth was skipped.
+    operator_execute = client.post(
+        "/api/execution/execute",
+        json={"case_id": "RC-DOES-NOT-EXIST"},
+        headers={"Idempotency-Key": "prod-key-2", "X-API-Key": "opkey"},
+    )
+    assert operator_execute.status_code == 404
+
+
+def test_audit_event_hash_is_keyed_and_not_forgeable_with_plain_sha256(monkeypatch):
+    """The seal must depend on AUDIT_SIGNING_KEY, not just the payload — proving
+    that database write access alone (without the key) can't forge a
+    self-consistent chain the way an unkeyed SHA-256 hash would allow."""
+    import hashlib
+    import json
+
+    from app.services import audit_service
+
+    payload = {"event_type": "recovery_succeeded", "case_id": "RC-1", "sequence": 1}
+
+    monkeypatch.setattr(audit_service.settings, "AUDIT_SIGNING_KEY", "key-one")
+    hash_with_key_one = audit_service._compute_event_hash(payload)
+    monkeypatch.setattr(audit_service.settings, "AUDIT_SIGNING_KEY", "key-two")
+    hash_with_key_two = audit_service._compute_event_hash(payload)
+    assert hash_with_key_one != hash_with_key_two
+
+    unkeyed_hash = hashlib.sha256(
+        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    ).hexdigest()
+    assert unkeyed_hash not in (hash_with_key_one, hash_with_key_two)
+
+
 def test_batch_isolates_poisoned_cases(client: TestClient, db_session, monkeypatch):
     _seed(client)
     case = db_session.query(RecoveryCase).filter(RecoveryCase.recovery_status == "pending").first()

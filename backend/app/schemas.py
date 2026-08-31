@@ -194,9 +194,16 @@ class VoiceEventRequest(BaseModel):
     @field_validator("language")
     @classmethod
     def _allowlist_language(cls, value: Optional[str]) -> Optional[str]:
-        if value is not None and value.lower() not in VOICE_LANGUAGE_ALLOWLIST:
+        if value is None:
+            return value
+        # Clients send full BCP-47 tags (e.g. "hi-IN", "en-IN"); the allowlist
+        # is primary subtags only, so compare on the part before the first
+        # "-" rather than the full tag. Every voice event previously failed
+        # this check for every language, silently blocking promise capture.
+        primary_subtag = value.split("-")[0].lower()
+        if primary_subtag not in VOICE_LANGUAGE_ALLOWLIST:
             raise ValueError("Unsupported language code")
-        return value.lower() if value else value
+        return value
 
     @field_validator("confidence")
     @classmethod

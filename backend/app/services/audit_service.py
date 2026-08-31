@@ -1,24 +1,42 @@
 """Tamper-evident audit service.
 
-Every event is sealed with a SHA-256 hash chained to the previous event for
-the same case, plus a monotonic sequence number so ordering never depends on
-timestamps (which can collide under concurrency).
+Every event is sealed with an HMAC-SHA256 hash chained to the previous event
+for the same case, plus a monotonic sequence number so ordering never depends
+on timestamps (which can collide under concurrency).
+
+The seal is keyed with ``AUDIT_SIGNING_KEY`` rather than a plain SHA-256 hash:
+without a secret key, anyone with database write access (a leaked app
+credential, an operator mistake, an insider) could rewrite audit history and
+recompute a fully self-consistent chain, and ``verify_chain`` would report it
+as valid. HMAC means forging the chain requires the key, not just the
+(public) hashing algorithm. Production deployments must set
+``AUDIT_SIGNING_KEY`` explicitly (enforced at startup in main.py); dev/demo
+falls back to a random key generated once per process, which still makes the
+chain internally verifiable for the lifetime of that process.
 """
 
 import hashlib
+import hmac
 import json
+import secrets
 import uuid
 
 from sqlalchemy.orm import Session
 
+from ..config import settings
 from ..models import AuditLog, AuditSeal
 from ..utils.time import utcnow
 
+_FALLBACK_SIGNING_KEY = secrets.token_hex(32)
+
+
+def _signing_key() -> bytes:
+    return (settings.AUDIT_SIGNING_KEY or _FALLBACK_SIGNING_KEY).encode()
+
 
 def _compute_event_hash(payload: dict) -> str:
-    return hashlib.sha256(
-        json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
-    ).hexdigest()
+    body = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode()
+    return hmac.new(_signing_key(), body, hashlib.sha256).hexdigest()
 
 
 def _next_sequence(db: Session, case_id: str | None) -> int:
