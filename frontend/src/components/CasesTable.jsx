@@ -7,7 +7,7 @@ import { RiskBadge } from './RiskBadge';
 export function CasesTable({
   cases, filtered, live, booting, freshness,
   search, setSearch, riskFilter, setRiskFilter,
-  loading, inFlight, execute, setSelected,
+  loading, inFlight, execute, viewCase,
 }) {
   return (
     <section className="panel cases-panel">
@@ -80,15 +80,14 @@ export function CasesTable({
                   <td>{pretty(item.recommended_action)}</td>
                   <td><Badge status={item.status} /></td>
                   <td>
-                    {isTerm ? (
-                      <button className="execute-btn" disabled style={{ opacity: 0.35, cursor: 'not-allowed' }}>Done</button>
-                    ) : live ? (
-                      <button className={`execute-btn ${loading ? 'is-busy' : ''}`} disabled={loading} onClick={() => execute(item)}>
-                        {loading && inFlight[item.id] ? 'Executing…' : 'Execute'}
-                      </button>
-                    ) : (
-                      <button className="details-btn" onClick={() => setSelected(item)}>Details</button>
-                    )}
+                    <div className="row-actions">
+                      {live && !isTerm && (
+                        <button className={`execute-btn ${loading ? 'is-busy' : ''}`} disabled={loading} onClick={() => execute(item)}>
+                          {loading && inFlight[item.id] ? 'Executing…' : 'Execute'}
+                        </button>
+                      )}
+                      <button className="details-btn" onClick={() => viewCase(item)}>Details</button>
+                    </div>
                   </td>
                 </tr>
               );

@@ -100,6 +100,57 @@ def test_decision_engine_flags_gateway_timeout_as_low_risk_retry(db_session):
     assert evidence["total_payments"] == 1
 
 
+def test_decision_engine_confidence_reflects_real_customer_history(db_session):
+    """diagnose_and_recommend queries the customer's actual payment rows for
+    evidence -- confidence must move with that history, end to end through
+    the real DB-backed path (not just the isolated agent function)."""
+    troubled_customer = Customer(id="cus_troubled", name="Troubled", email="t@recoverai.demo")
+    clean_customer = Customer(id="cus_clean", name="Clean", email="c@recoverai.demo")
+    db_session.add_all([troubled_customer, clean_customer])
+
+    troubled_payment = Payment(
+        id="pay_troubled_current",
+        customer_id="cus_troubled",
+        amount=2000.0,
+        status="failed",
+        failure_reason="Gateway timeout",
+    )
+    db_session.add(troubled_payment)
+    for i in range(4):
+        db_session.add(
+            Payment(
+                id=f"pay_troubled_prior_{i}",
+                customer_id="cus_troubled",
+                amount=500.0,
+                status="failed",
+                failure_reason="Gateway timeout",
+            )
+        )
+
+    clean_payment = Payment(
+        id="pay_clean_current",
+        customer_id="cus_clean",
+        amount=2000.0,
+        status="failed",
+        failure_reason="Gateway timeout",
+    )
+    db_session.add(clean_payment)
+    for i in range(6):
+        db_session.add(
+            Payment(
+                id=f"pay_clean_prior_{i}", customer_id="cus_clean", amount=500.0, status="success"
+            )
+        )
+    db_session.commit()
+
+    _, _, _, troubled_evidence, _ = diagnose_and_recommend(
+        db_session, troubled_payment, troubled_customer
+    )
+    _, _, _, clean_evidence, _ = diagnose_and_recommend(db_session, clean_payment, clean_customer)
+
+    assert clean_evidence["confidence"] > troubled_evidence["confidence"]
+
+
 def test_decision_engine_flags_bank_decline_as_high_risk_review(db_session):
     customer, payment = _make_customer_and_payment(
         db_session, failure_reason="Bank declined transaction"

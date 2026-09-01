@@ -29,11 +29,39 @@ class AgentDecision:
         }
 
 
-def choose_intervention(reason_code: str, success_rate: float) -> AgentDecision:
+def _confidence(
+    base: float, previous_failures: int, total_payments: int, success_rate: float
+) -> float:
+    """Turn a category's base pattern-match strength into an evidence-weighted score.
+
+    A fixed per-category number would mean two customers with wildly
+    different payment histories get identical confidence for the same
+    failure text — which is not a judgment a real agent would make. This
+    factors in how much history exists (more data, more trust) and whether
+    that history is trending toward repeated failure (less trust), and
+    clamps to a band the policy engine's 0.70 confidence gate can actually
+    discriminate on.
+    """
+    value = base - min(0.12, previous_failures * 0.02)
+    if total_payments == 0:
+        value -= 0.03  # first-ever payment: no track record to corroborate the pattern
+    elif total_payments >= 5 and success_rate >= 50:
+        value += 0.04  # a customer with a healthy payment history backs up the read
+    return round(min(0.99, max(0.55, value)), 2)
+
+
+def choose_intervention(
+    reason_code: str,
+    success_rate: float,
+    previous_failures: int = 0,
+    total_payments: int = 0,
+) -> AgentDecision:
     """Select the safest useful intervention from payment evidence.
 
-    This is intentionally deterministic for the demo. A model can later
-    replace this function while keeping the same typed decision contract.
+    The category match is deterministic for the demo (a model can later
+    replace it behind the same typed decision contract), but confidence is
+    computed from the customer's actual payment history via `_confidence`,
+    not a hardcoded number — it is a real function of the evidence.
     """
     reason = (reason_code or "").lower()
     if "gateway" in reason or "timeout" in reason:
@@ -42,7 +70,7 @@ def choose_intervention(reason_code: str, success_rate: float) -> AgentDecision:
             "retry_payment",
             "low",
             "Transient gateway issue; retry once while the failure is recoverable.",
-            0.94,
+            _confidence(0.94, previous_failures, total_payments, success_rate),
             "payment_gateway",
             ["stop after 2 attempts", "escalate if the retry fails"],
         )
@@ -52,7 +80,7 @@ def choose_intervention(reason_code: str, success_rate: float) -> AgentDecision:
             "payment_link",
             "medium",
             "Funds appear unavailable; offer a deferred payment path without repeated retries.",
-            0.91,
+            _confidence(0.91, previous_failures, total_payments, success_rate),
             "payment_link",
             ["do not retry the card", "escalate after the payment-link window expires"],
         )
@@ -62,7 +90,7 @@ def choose_intervention(reason_code: str, success_rate: float) -> AgentDecision:
             "needs_human_review",
             "high",
             "Payment instrument rejected; automated retries risk frustrating the customer.",
-            0.96,
+            _confidence(0.96, previous_failures, total_payments, success_rate),
             "human_review",
             ["never retry automatically", "require human approval for alternate collection"],
         )
@@ -72,17 +100,16 @@ def choose_intervention(reason_code: str, success_rate: float) -> AgentDecision:
             "needs_human_review",
             "high",
             "Invalid payment details; automated retries risk frustrating the customer.",
-            0.96,
+            _confidence(0.96, previous_failures, total_payments, success_rate),
             "human_review",
             ["never retry automatically", "require human approval for alternate collection"],
         )
-    confidence = 0.86 if success_rate >= 40 else 0.72
     return AgentDecision(
         "user_abandonment",
         "customer_reminder",
         "low",
         "Checkout appears abandoned; send one gentle reminder and stop if it is ignored.",
-        confidence,
+        _confidence(0.80, previous_failures, total_payments, success_rate),
         "customer_message",
         ["send at most one reminder", "do not contact after opt-out"],
     )

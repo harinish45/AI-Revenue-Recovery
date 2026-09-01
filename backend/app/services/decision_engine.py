@@ -33,7 +33,7 @@ def diagnose_and_recommend(db: Session, payment: Payment, customer: Customer) ->
         "current_retry_count": 0,
     }
 
-    decision = choose_intervention(reason_code, success_rate)
+    decision = choose_intervention(reason_code, success_rate, previous_failures, total_payments)
     if settings.AI_DIAGNOSIS_ENABLED:
         suggested_action, model_note = model_suggest_action(reason_code, payment.amount)
         if suggested_action:

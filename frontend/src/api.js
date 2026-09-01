@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
+export const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000';
 // Only sent when the deployment configures VITE_API_KEY; the public demo
 // backend runs with no API_KEYS configured, so this stays unused there.
 const API_KEY = import.meta.env.VITE_API_KEY || '';

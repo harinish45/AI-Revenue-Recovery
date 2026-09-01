@@ -3,8 +3,12 @@ import { money, pretty } from '../utils/format';
 import { Badge } from './Badge';
 import { RiskBadge } from './RiskBadge';
 
-export function CaseDetailModal({ selected, cases, audit, copied, copyToClipboard, onClose }) {
+export function CaseDetailModal({ selected, cases, audit, detailLoading, copied, copyToClipboard, onClose }) {
   if (!selected) return null;
+  const evidence = selected.evidence || {};
+  const policyChecks = selected.policy_checks || {};
+  const checkEntries = Object.entries(policyChecks);
+  const hasEvidence = Object.keys(evidence).length > 0;
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <div className="case-modal" onMouseDown={e => e.stopPropagation()} role="dialog" aria-label={'Case detail ' + selected.id}>
@@ -44,9 +48,45 @@ export function CaseDetailModal({ selected, cases, audit, copied, copyToClipboar
         </div>
 
         <h3>Diagnosis</h3>
-        <p>{selected.diagnosis || 'Payment failure requires recovery review.'}</p>
+        <p>{selected.reason || selected.diagnosis || (detailLoading ? 'Loading the agent’s reasoning…' : 'Payment failure requires recovery review.')}</p>
         <h3>Recommended action</h3>
         <p>{pretty(selected.recommended_action)}</p>
+
+        <h3>Agent reasoning</h3>
+        {hasEvidence ? (
+          <div className="agent-reasoning">
+            <div className="case-detail">
+              <div><span>Confidence</span><strong>{evidence.confidence != null ? `${Math.round(evidence.confidence * 100)}%` : '—'}</strong></div>
+              <div><span>Diagnosis mode</span><strong>{pretty(evidence.diagnosis_mode || 'deterministic')}</strong></div>
+              <div><span>Channel</span><strong>{pretty(evidence.channel || selected.recommended_action)}</strong></div>
+              <div><span>Agent</span><strong>{evidence.agent || 'recoverai-bounded-agent'}</strong></div>
+              <div><span>Payment history</span><strong>{evidence.total_payments ?? 0} total · {evidence.successful_payments ?? 0} succeeded · {evidence.previous_failures ?? 0} failed</strong></div>
+              <div><span>Success rate</span><strong>{evidence.success_rate_percent != null ? `${evidence.success_rate_percent}%` : '—'}</strong></div>
+            </div>
+            {Array.isArray(evidence.stopping_rules) && evidence.stopping_rules.length > 0 && (
+              <div className="stopping-rules">
+                <span>Stopping rules (the agent will not act beyond these bounds)</span>
+                <ul>{evidence.stopping_rules.map((rule, i) => <li key={i}>{rule}</li>)}</ul>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="muted">{detailLoading ? 'Loading evidence…' : 'No evidence recorded for this case yet.'}</p>
+        )}
+
+        <h3>Safety &amp; policy checks</h3>
+        {checkEntries.length > 0 ? (
+          <ul className="policy-check-list">
+            {checkEntries.map(([name, passed]) => (
+              <li key={name} className={passed ? 'check-pass' : 'check-fail'}>
+                <span aria-hidden="true">{passed ? '✓' : '✗'}</span> {pretty(name.replace(/_check$/, ''))}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="muted">{detailLoading ? 'Loading policy checks…' : 'This case has not been through the policy gate yet — checks appear after the first execution attempt.'}</p>
+        )}
+
         <h3>Retry sequencer</h3>
         <p>{selected.next_retry_at ? `Next policy-allowed retry: ${new Date(selected.next_retry_at).toLocaleString()}` : 'No retry scheduled; terminal or human review boundary applies.'}</p>
         <h3>Customer lifecycle</h3>

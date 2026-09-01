@@ -74,6 +74,7 @@ The failure simulation demonstrates a bounded stop and human handoff.
 
 The same contract can support overdue receivables, mandate retry sequencing,
 promise-to-pay tracking, and compliant multilingual voice messages (the voice
-cockpit already covers 8 Indian languages, including code-switched Hinglish).
+cockpit already covers 8 Indian languages, each spoken in its own native
+script rather than a romanized/English-mixed approximation).
 Each new intervention must be added to the action allowlist with its own
 channel, consent rules, retry budget, and escalation condition.

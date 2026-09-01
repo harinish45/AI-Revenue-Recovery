@@ -93,7 +93,7 @@ Every execution passes this gauntlet — **in this exact order**:
 - **Idempotent by contract** — `Idempotency-Key` returns the original response on retry; reusing a key for a different case returns `409`.
 - **Tamper-evident audit** — per-case monotonic sequence + chained SHA-256 hashes; `/api/audit/chain/verify` re-verifies the entire chain from the root forward.
 - **Fail-safe demo isolation** — `/api/demo/*` (seed, reset, simulate-failure) are triple-guarded: `DEMO_MODE=false` by default, hard-disabled when `APP_ENV=production`, optional `X-Demo-Token`.
-- **Multilingual voice cockpit** — the voice-recovery playbook negotiates promise-to-pay across 8 Indian languages (including code-switched Hinglish), with every promise gated behind explicit recorded consent.
+- **Multilingual voice cockpit** — the voice-recovery playbook negotiates promise-to-pay across 8 Indian languages, each spoken and recognized in its own native script (no English mixed into a non-English reply), with every promise gated behind explicit recorded consent.
 
 ## 📁 Project Structure
 

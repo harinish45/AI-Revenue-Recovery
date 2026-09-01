@@ -10,6 +10,7 @@ import { useBatchRecovery } from './hooks/useBatchRecovery';
 import { useAuditTrail } from './hooks/useAuditTrail';
 import { useClipboard } from './hooks/useClipboard';
 import { useShortcuts } from './hooks/useShortcuts';
+import { api, API_BASE } from './api';
 
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { TopBar } from './components/TopBar';
@@ -28,10 +29,31 @@ import { ShortcutsModal } from './components/ShortcutsModal';
 /* ---------- app ---------- */
 function App() {
   const [selected, setSelected] = React.useState(null);
+  const [detailLoading, setDetailLoading] = React.useState(false);
   const [search, setSearch] = React.useState('');
   const [riskFilter, setRiskFilter] = React.useState('all');
 
   const { notices, pushNotice, dismissNotice } = useNotices();
+
+  // Row-level "Details" pulls the full case record (evidence, confidence,
+  // stopping rules, policy checks) from the backend — the list endpoint only
+  // carries summary fields, so opening the modal from just the row's list
+  // item would show generic placeholder text instead of the agent's actual
+  // reasoning. Show the modal immediately with what we have, then upgrade it
+  // in place once the detail call resolves.
+  const viewCase = React.useCallback(async (item) => {
+    setSelected(item);
+    setDetailLoading(true);
+    try {
+      const detail = await api.getCase(item.id);
+      setSelected(current => (current && String(current.id) === String(item.id)) ? { ...item, ...detail } : current);
+    } catch (e) {
+      pushNotice({ type: 'warning', text: `Could not load full case detail for #${item.id}: ${e.message}` });
+    } finally {
+      setDetailLoading(false);
+    }
+  }, [pushNotice]);
+
   const dashboard = useDashboardData(pushNotice);
   const { summary, cases, audit, setAudit, loading, setLoading, booting, live, lastUpdated, refresh, runAction, seed } = dashboard;
 
@@ -92,7 +114,7 @@ function App() {
               {failureArmed ? '⚠ Failure Armed — Next Execute Will Escalate' : '⚠ Arm Failure Simulation'}
             </button>
             <button className="audit-btn" onClick={openAuditDrawer}>View Compliance Audit</button>
-            <a className="audit-btn" href="/" title="Open the full multilingual agent cockpit">Open Full Agent Cockpit</a>
+            <a className="audit-btn" href={`${API_BASE}/`} target="_blank" rel="noopener noreferrer" title="Open the full multilingual agent cockpit">Open Full Agent Cockpit</a>
           </div>
           {progress > 0 && <div className="batch-progress" aria-label={`Batch progress ${progress}%`}><span style={{ width: `${progress}%` }} /><small>{progress >= 100 ? 'Recovery complete' : `Agent processing ${progress}%`}</small></div>}
         </section>
@@ -100,7 +122,7 @@ function App() {
         <CasesTable
           cases={cases} filtered={filtered} live={live} booting={booting} freshness={freshness}
           search={search} setSearch={setSearch} riskFilter={riskFilter} setRiskFilter={setRiskFilter}
-          loading={loading} inFlight={inFlight} execute={execute} setSelected={setSelected}
+          loading={loading} inFlight={inFlight} execute={execute} viewCase={viewCase}
         />
 
         <ArchFlow />
@@ -109,7 +131,7 @@ function App() {
       <BatchResultModal batchResult={batchResult} progress={progress} onClose={() => setBatchResult(null)} />
 
       <CaseDetailModal
-        selected={selected} cases={cases} audit={audit}
+        selected={selected} cases={cases} audit={audit} detailLoading={detailLoading}
         copied={copied} copyToClipboard={copyToClipboard} onClose={() => setSelected(null)}
       />
 
