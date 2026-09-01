@@ -25,7 +25,7 @@
 
 ### Contents
 
-[The Problem](#-the-problem) · [The Solution](#-the-solution) · [Architecture](#️-architecture) · [Project Structure](#-project-structure) · [Quickstart (any OS)](#-quickstart) · [API Highlights](#-api-highlights) · [End-to-End Workflow](#-real-end-to-end-workflow) · [Test Matrix](#-adversarial-test-matrix) · [Security Layers](#️-security-posture--defense-in-depth) · [Roadmap](#️-roadmap)
+[The Problem](#-the-problem) · [The Solution](#-the-solution) · [Architecture](#️-architecture) · [Project Structure](#-project-structure) · [Quickstart (any OS)](#-quickstart) · [API Highlights](#-api-highlights) · [End-to-End Workflow](#-real-end-to-end-workflow) · [Test Matrix](#-adversarial-test-matrix) · [Security Layers](#️-security-posture--defense-in-depth) · [Design Decisions](#-design-decisions--trade-offs) · [Roadmap](#️-roadmap)
 
 ---
 
@@ -342,6 +342,63 @@ Plus, orthogonal to the request path:
 - **Demo isolation** — `/api/demo/*` triple-guarded: off by default, hard-disabled in production, optional shared-token gate
 
 See [`docs/security.md`](docs/security.md) for the full control list and threat model.
+
+## 🎯 Design Decisions & Trade-offs
+
+Every choice below was deliberate, not a shortcut we ran out of time to fix. Each
+one trades a capability for a safety or reproducibility guarantee — read this
+before concluding any of them is a gap.
+
+**Why the agent is deterministic-first, with the model as an optional layer, not the core.**
+`services/recovery_agent.py` classifies and scores confidence from real evidence
+(the customer's actual payment history) without calling any external model —
+that path is what runs by default, and it's what makes every decision in this
+README reproducible on demand. An LLM-assisted suggestion path already exists
+(`AI_DIAGNOSIS_ENABLED` + `OPENAI_API_KEY`, see `services/diagnosis_service.py`)
+and can propose an action — but it still can't move money, because the policy
+engine has veto power over the model's output too, same as the deterministic
+path. The model was kept optional specifically so this system's core safety
+property — "the policy engine decides, not the model" — holds regardless of
+whether a model is even configured. That's the harder, more defensible design;
+a model call wrapped in a `try/except` is not what makes an agent trustworthy.
+
+**Why every payment action is simulated, never live.**
+This repo has never sent a real rupee anywhere, on purpose. The architecture is
+provider-agnostic by construction (`services/razorpay_service.py` is the only
+file that would change to add a real credential path — everything upstream of
+it, including the entire policy gate and audit chain, is provider-independent
+already). Wiring in live payment credentials for a hackathon demo is the
+irresponsible option, not the missing one — it would mean testing money-moving
+code against strangers' cards with no operational safety net. The correct
+sequence is: prove the safety architecture first (this repo), then connect a
+real provider behind it (see Roadmap) — not the reverse.
+
+**Why voice uses the browser's built-in speech APIs instead of a paid cloud service.**
+This keeps the demo running with zero API keys, zero signup, and zero recurring
+cost for anyone who clones it. The trade-off is real: pronunciation quality
+depends on what voices the browser/OS already has installed (Microsoft Edge
+ships strong neural voices for all 8 languages out of the box; Chrome often
+doesn't). Rather than hide that, the app is honest about it at runtime — see
+`voiceDiagnostics()` and the in-call fallback notice in
+`RecoverAI-standalone.html` — and shows text instead of playing mispronounced
+audio through the wrong engine. A production deployment would swap in a paid
+TTS/STT provider behind the same `speakText()`/`startListening()` interface;
+nothing else in the conversation logic would need to change.
+
+**Why there are two frontends.** `frontend/src/` (React) is where feature work
+happens first. `RecoverAI-standalone.html` is a byte-for-byte-parity snapshot
+kept in sync deliberately, so anyone reviewing this — a judge, a recruiter, a
+teammate without Node installed — can open one file with zero build step and
+see the exact same product. That's an explicit accessibility trade-off against
+maintaining one codebase, made because "can a reviewer see this working in ten
+seconds" mattered more than saving the sync effort.
+
+**Why SQLite, not Postgres, right now.** Zero setup, zero external dependency,
+same SQLAlchemy models either way — `DATABASE_URL` is the only thing that
+changes to point this at Postgres in production (see Roadmap). Shipping a
+demo that requires standing up a database server before a reviewer can even
+run it would trade real accessibility for a production property nobody
+evaluating a submission actually needs yet.
 
 ## 🗺️ Roadmap
 
