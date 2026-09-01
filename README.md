@@ -128,24 +128,32 @@ structured the way a codebase meant to be extended, not just demoed, should be.
 
 RecoverAI runs the same way on **Windows, macOS, and Linux** — pick whichever track fits how you like to work.
 
-### Option A — one command, any OS
+### Option A — one command, any OS, nothing pre-installed required
 
-The launcher auto-detects a usable Python, creates the virtualenv, installs dependencies, and opens the app for you.
+One command sets up *and* launches the app — including installing Python
+itself if it isn't already on your machine. Every step is skip-if-already-done,
+so re-running it is always safe.
 
-| OS | Command |
-|---|---|
-| 🪟 Windows | double-click `start.bat`, or run it from cmd/PowerShell |
-| 🍎 macOS / 🐧 Linux | `./start.sh` |
+| OS | Command | If Python is missing |
+|---|---|---|
+| 🪟 Windows | `start.bat` (double-click it, or run from cmd/PowerShell) | Installs it via `winget` (built into Windows 10 2004+ / 11) |
+| 🍎 macOS | `./start.sh` | Installs Homebrew (if needed) then Python via `brew` |
+| 🐧 Linux | `./start.sh` | Installs Python via `apt` / `dnf` / `pacman` / `zypper`, whichever your distro has |
 
 ```text
-[1/3] Using Python: 3.11.x
-[2/3] Installing backend dependencies (skipped if already present)...
-[3/3] Starting RecoverAI on :8000 ...
+[1/4] Using Python: 3.11.x
+[2/4] Creating backend virtualenv (first run only)...
+[3/4] Installing backend dependencies (skipped if already present)...
+[4/4] Starting RecoverAI on :8000 ...
 
   RecoverAI is running!
     App  : http://localhost:8000
     Docs : http://localhost:8000/docs
 ```
+
+On Linux/macOS a missing package manager falls back to a clear message with
+the official Python download link rather than failing silently — this never
+guesses at sudo access it doesn't have.
 
 ### Option B — Docker Compose (identical container on every OS)
 

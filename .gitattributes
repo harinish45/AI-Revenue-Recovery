@@ -1,0 +1,7 @@
+# Shell scripts must stay LF-terminated regardless of a contributor's local
+# core.autocrlf setting -- a CRLF shebang line breaks `./start.sh` outright
+# on macOS/Linux ("bad interpreter: /bin/bash^M: no such file or directory").
+*.sh text eol=lf
+
+# Windows batch files are the opposite case -- keep native CRLF.
+*.bat text eol=crlf
