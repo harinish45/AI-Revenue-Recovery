@@ -12,9 +12,11 @@ services:
       - key: DATABASE_URL
         value: sqlite:///./recoverai.db
       - key: APP_ENV
-        value: production
-      # DEMO_MODE defaults to false: /api/demo/* routes are hard-disabled
-      # in production regardless of any environment setting.
+        value: development
+      # Match the local Docker demo: synthetic seed/reset controls are enabled
+      # and the public cockpit does not require an API key.
+      - key: DEMO_MODE
+        value: "true"
       - key: RAZORPAY_SIMULATE
         value: "true"
       - key: CORS_ORIGINS
@@ -23,13 +25,6 @@ services:
       # X-Demo-Token wherever demo controls are enabled.
       - key: DEMO_API_TOKEN
         sync: false
-      # main.py refuses to boot with APP_ENV=production unless both of
-      # these are non-empty. Generate API_KEYS here so a first deploy cannot
-      # fail at startup because a required secret was left blank. Replace the
-      # generated value in Render with "<your-key>:operator" before using
-      # mutating API endpoints; the generated default is readonly.
-      - key: API_KEYS
-        generateValue: true
       # AUDIT_SIGNING_KEY just needs to be a stable secret nobody can
       # guess -- Render generates and stores one automatically.
       - key: AUDIT_SIGNING_KEY
