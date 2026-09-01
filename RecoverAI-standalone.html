@@ -1165,7 +1165,18 @@ function speakText(text,cb){
   // firing start/end/error, which would otherwise stall the whole call.
   // Fires unconditionally on timeout -- speechSynthesis.speaking can itself
   // be the thing stuck reporting true, so it can't be trusted to gate this.
-  setTimeout(function(){if(!done)finish();},6000);
+  //
+  // This used to be a flat 6s, which was the actual bug behind the agent
+  // "hearing itself": a long combined reply (e.g. an answer plus the
+  // payment-promise confirmation prompt appended to it) genuinely takes
+  // 8-10+ seconds to speak. The flat timeout fired while the browser was
+  // still legitimately mid-sentence, this code gave up and reopened the
+  // mic, and the mic then picked up the agent's own still-playing voice
+  // as if the customer had said it. Scaling the timeout by text length
+  // means it only fires for a genuinely stuck utterance, never a merely
+  // long one.
+  var safetyMs=Math.max(6000,Math.min(20000,text.length*110));
+  setTimeout(function(){if(!done)finish();},safetyMs);
  },120);
 }
 function startListening(){
@@ -1288,7 +1299,7 @@ function voiceUserSaid(text){
   if(!S.voiceActive){S.voiceBusy=false;return;}
   S.voiceBusy=false;S.voiceMsgs.push({role:'agent',text:resp.say});S.voiceStage=resp.stage||'objection';renderVoiceChat();
   if(resp.stage==='closed'){speakText(resp.say,function(){setTimeout(function(){endCall(resp.outcome||'COMPLETED',text);},800);});}
-  else{speakText(resp.say,function(){if(S.voiceActive&&!S.voiceBusy)setTimeout(startListening,400);});}
+  else{speakText(resp.say,function(){if(S.voiceActive&&!S.voiceBusy)setTimeout(startListening,600);});}
  },500);
 }
 function startVoiceCall(){
@@ -1302,7 +1313,7 @@ function startVoiceCall(){
   if(!S.voiceActive)return;
   var brain=VOICE_BRAIN[S.voiceLang];var resp={say:brain.greeting(c),stage:'context'};
   S.voiceMsgs.push({role:'agent',text:resp.say});S.voiceStage='permission';renderVoiceChat();
-  speakText(resp.say,function(){if(S.voiceActive)setTimeout(startListening,400);});
+  speakText(resp.say,function(){if(S.voiceActive)setTimeout(startListening,600);});
  },100);
  toast('i','Call Started',VOICE_BRAIN[S.voiceLang].name+' agent active');startVoiceTimer();
 }
