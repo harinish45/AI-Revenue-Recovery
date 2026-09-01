@@ -131,8 +131,6 @@ structured the way a codebase meant to be extended, not just demoed, should be.
 
 ## 🚀 Quickstart
 
-**Render deployment:** [Create the RecoverAI service on Render](https://dashboard.render.com/blueprint/new?repo=https://github.com/harinish45/AI-Revenue-Recovery)
-
 **Live demo:** [recoverai-5orn.onrender.com](https://recoverai-5orn.onrender.com)
 
 **Paste one line into a terminal.** It clones the repo (if you don't already
@@ -185,6 +183,24 @@ DEMO_MODE=true
 ```
 
 </details>
+
+### Voice agent: use Microsoft Edge
+
+The voice agent is a real browser interaction: it requests microphone input,
+recognizes speech, speaks replies aloud, and records consent and outcomes to
+the backend audit trail. Payments remain simulated in this test-mode demo;
+the voice conversation and audit events are real.
+
+For the best result, open either the [live Render demo](https://recoverai-5orn.onrender.com)
+or `http://localhost:8000` in **Microsoft Edge**. Edge generally provides the
+best built-in neural voices for the supported Indian languages. Allow the
+microphone permission when prompted, select a case, check the consent box,
+and start the call. If a language voice is missing, the agent intentionally
+shows the response as text instead of playing incorrect pronunciation.
+
+The live Render URL uses HTTPS, so microphone access is supported. When using
+the React development dashboard separately, run it at `http://localhost:5173`
+and keep the backend running at `http://localhost:8000`.
 
 ### Run the test suite
 
