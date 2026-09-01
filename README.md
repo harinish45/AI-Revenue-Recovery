@@ -10,7 +10,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
 ![Razorpay](https://img.shields.io/badge/Razorpay-Integrated-0C2451?logo=razorpay&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-46%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-60%20passing-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 [![Backend CI](https://github.com/harinish45/AI-Revenue-Recovery/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/harinish45/AI-Revenue-Recovery/actions/workflows/backend-ci.yml)
@@ -99,14 +99,17 @@ Every execution passes this gauntlet — **in this exact order**:
 ## 📁 Project Structure
 
 ```text
-backend/app/
-├── routers/          cases · execution · webhooks · audit · demo · batch
-├── services/          recovery_executor · payment_confirmation · batch_executor
-│                       policy_engine · decision_engine · diagnosis_service
-│                       audit_service · razorpay_service · metrics_service
-├── security/           API-key auth boundary
-├── models.py · schemas.py · main.py
-└── tests/              46 tests — safety, adversarial, business logic, API
+backend/
+├── app/
+│   ├── routers/         cases · execution · webhooks · audit · demo · batch
+│   ├── services/         recovery_executor · payment_confirmation · batch_executor
+│   │                      policy_engine · decision_engine · diagnosis_service
+│   │                      audit_service · razorpay_service · metrics_service
+│   ├── security/          API-key auth boundary
+│   └── models.py · schemas.py · main.py
+├── migrations/          Alembic migrations (real, verified up/down against a
+│                          clean database — see Design Decisions)
+└── tests/                60 tests — safety, adversarial, business logic, API
 
 frontend/src/
 ├── components/         CasesTable · CaseDetailModal · AuditDrawer
@@ -116,7 +119,9 @@ frontend/src/
 ├── api.js · constants.js · utils/
 └── main.jsx             thin composition root — no business logic
 
-RecoverAI-standalone.html   zero-build, single-file parity dashboard
+RecoverAI-standalone.html   zero-build, single-file cockpit — the full feature
+                            set (voice agent, playbooks, promises, settings) —
+                            plus the same case/execution/audit core as above
 ```
 
 Routers stay thin, services own the logic, the policy engine is the single
@@ -190,13 +195,13 @@ APP_ENV=development
 # DEMO_API_TOKEN=optional-shared-secret   → then send X-Demo-Token header
 ```
 
-Prefer zero build tooling? Open **`RecoverAI-standalone.html`** — a self-contained, single-file dashboard with the same API contract and no `npm install` required, no server needed. It's a parity snapshot of the React app for anyone reviewing without a dev environment; feature work happens in `frontend/src/` first.
+Prefer zero build tooling? Open **`RecoverAI-standalone.html`** — a self-contained, single-file cockpit with no `npm install` required and no server needed beyond the backend already running. It's the full-featured reference build (including the multilingual voice agent, playbooks, and promises tracking that the React app doesn't have); the React app is a lighter, actively-developed operational dashboard covering cases, execution, and audit. See [Design Decisions](#-design-decisions--trade-offs) for why both exist.
 
 ### Run the test suite
 
 ```bash
 cd backend
-python -m pytest tests/ -v      # 46 tests: safety, adversarial, business logic, API
+python -m pytest tests/ -v      # 60 tests: safety, adversarial, business logic, API
 ```
 
 ## 🔌 API Highlights
@@ -385,24 +390,34 @@ audio through the wrong engine. A production deployment would swap in a paid
 TTS/STT provider behind the same `speakText()`/`startListening()` interface;
 nothing else in the conversation logic would need to change.
 
-**Why there are two frontends.** `frontend/src/` (React) is where feature work
-happens first. `RecoverAI-standalone.html` is a byte-for-byte-parity snapshot
-kept in sync deliberately, so anyone reviewing this — a judge, a recruiter, a
-teammate without Node installed — can open one file with zero build step and
-see the exact same product. That's an explicit accessibility trade-off against
-maintaining one codebase, made because "can a reviewer see this working in ten
-seconds" mattered more than saving the sync effort.
+**Why there are two frontends, and why they're not identical.**
+`RecoverAI-standalone.html` is the full-featured reference cockpit — cases,
+execution, audit, batch, *and* the multilingual voice agent, playbooks, and
+promise tracking — in one file with zero build step, so anyone reviewing this
+without Node installed can open it and see the complete product in ten
+seconds. `frontend/src/` (React) is a lighter, actively-developed operational
+dashboard covering the core case/execution/audit loop; it's the surface for
+day-to-day recovery work, not a mirror of every cockpit feature. They share
+the same backend API contract for everything both of them implement — that
+part is real, testable overlap, not a claim — but "byte-for-byte parity"
+would be the wrong way to describe two apps with deliberately different
+scope, so this README doesn't say that anymore.
 
 **Why SQLite, not Postgres, right now.** Zero setup, zero external dependency,
-same SQLAlchemy models either way — `DATABASE_URL` is the only thing that
-changes to point this at Postgres in production (see Roadmap). Shipping a
-demo that requires standing up a database server before a reviewer can even
-run it would trade real accessibility for a production property nobody
-evaluating a submission actually needs yet.
+same SQLAlchemy models either way — `DATABASE_URL` is genuinely the only thing
+that changes to point this at Postgres in production: real Alembic migrations
+already exist (`backend/migrations/`, verified upgrade *and* downgrade against
+a clean database), and `create_engine`'s connection args are resolved per-
+dialect rather than hardcoding a SQLite-only argument that would otherwise
+crash a Postgres connection at startup. Shipping a demo that requires standing
+up a database server before a reviewer can even run it would trade real
+accessibility for a production property nobody evaluating a submission
+actually needs yet — but the migration path off SQLite is real code today,
+not a promise.
 
 ## 🗺️ Roadmap
 
-- [ ] PostgreSQL + Alembic migrations (SQLite retained deliberately for zero-setup demos)
+- [x] Alembic migrations (see `backend/migrations/`; SQLite retained deliberately for zero-setup demos — swap `DATABASE_URL` to a Postgres URL and the same migration runs unchanged)
 - [ ] Redis-backed distributed rate limiting & batch queue
 - [ ] SSE batch progress with real per-case status streaming
 - [ ] PII masking layer with role-based field visibility

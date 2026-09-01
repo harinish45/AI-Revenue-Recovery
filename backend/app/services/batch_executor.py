@@ -28,16 +28,25 @@ def run_batch_recovery(db: Session) -> dict:
     total_cases = len(pending_cases)
     amount_at_risk = sum(c.amount_at_risk for c in pending_cases)
 
-    attempted, successful, failed, escalated, skipped, awaiting = 0, 0, 0, 0, 0, 0
+    attempted, successful, failed, escalated, skipped, awaiting, errored = 0, 0, 0, 0, 0, 0, 0
     amount_recovered = 0.0
 
     for case in pending_cases:
         try:
             result = execute_recovery(db, case)
         except Exception:
-            # One poisoned case must never abort the whole batch.
+            # One poisoned case must never abort the whole batch. This is
+            # deliberately counted apart from `escalated`: an escalation
+            # means the policy engine made a decision and the case record
+            # reflects it (needs_human_review/blocked); an unexpected
+            # exception here means execute_recovery never got to update the
+            # case at all -- db.rollback() undoes any partial write, so the
+            # case is left exactly as it was (still pending/eligible), not
+            # actually escalated. Folding the two together would make the
+            # batch summary claim a case was routed to human review when
+            # the case list itself still shows it untouched.
             db.rollback()
-            escalated += 1
+            errored += 1
             continue
         attempted += 1
         if result["status"] == "recovered":
@@ -66,6 +75,7 @@ def run_batch_recovery(db: Session) -> dict:
         "amount_recovered": amount_recovered,
         "recovery_rate": round(recovery_rate, 2),
         "skipped": skipped,
+        "errored": errored,
         "estimated_cost": round(attempted * settings.RECOVERY_COST_PER_ATTEMPT, 2),
         "net_recovered": round(
             max(0.0, amount_recovered - attempted * settings.RECOVERY_COST_PER_ATTEMPT), 2

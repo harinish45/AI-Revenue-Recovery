@@ -1,4 +1,6 @@
 from app.models import Customer, Payment, RecoveryCase
+from app.services import batch_executor
+from app.services.batch_executor import run_batch_recovery
 from app.services.decision_engine import diagnose_and_recommend
 from app.services.metrics_service import get_metrics
 from app.services.policy_engine import evaluate_policy
@@ -189,3 +191,46 @@ def test_metrics_service_computes_recovery_rate_from_real_rows(db_session):
     assert metrics["recovered_amount"] == 1000.0
     assert metrics["successful_recoveries"] == 1
     assert metrics["recovery_rate"] == 100.0
+
+
+def test_batch_recovery_counts_an_unexpected_exception_as_errored_not_escalated(
+    db_session, monkeypatch
+):
+    """A case whose execution raises must not be silently folded into
+    "escalated" -- that implies the policy engine made a decision and the
+    case record reflects it. An exception means execute_recovery never got
+    that far, and db.rollback() leaves the case exactly as it was, so the
+    batch summary must not claim it was routed to human review."""
+    _, payment = _make_customer_and_payment(db_session, amount=2000.0)
+    case = RecoveryCase(
+        id="RC-ERR",
+        payment_id=payment.id,
+        customer_id=payment.customer_id,
+        customer_name="Test",
+        amount_at_risk=payment.amount,
+        risk_level="low",
+        failure_category="temporary_gateway_failure",
+        recommended_action="retry_payment",
+        reason="test",
+        evidence={},
+        retry_count=0,
+        max_retries=2,
+        recovery_status="pending",
+        action_status="eligible",
+    )
+    db_session.add(case)
+    db_session.commit()
+
+    def _boom(db, case_arg):
+        raise RuntimeError("simulated unexpected failure")
+
+    monkeypatch.setattr(batch_executor, "execute_recovery", _boom)
+
+    result = run_batch_recovery(db_session)
+
+    assert result["errored"] == 1
+    assert result["escalated"] == 0
+    assert result["attempted"] == 0
+
+    db_session.refresh(case)
+    assert case.recovery_status == "pending"

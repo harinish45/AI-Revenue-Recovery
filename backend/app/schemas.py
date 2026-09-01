@@ -130,6 +130,10 @@ class BatchResponse(BaseModel):
     amount_recovered: float
     recovery_rate: float
     skipped: int = 0
+    # A case whose execution raised an unexpected exception -- distinct from
+    # `escalated`, which means the policy engine made a decision and the
+    # case record reflects it. An errored case is rolled back untouched.
+    errored: int = 0
     estimated_cost: float = 0.0
     net_recovered: float = 0.0
 
