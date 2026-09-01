@@ -335,6 +335,13 @@ def test_core_api_is_open_outside_production_with_no_keys_configured(client: Tes
     assert client.get("/api/audit").status_code == 200
 
 
+def test_demo_mode_ignores_stale_api_key_configuration(client: TestClient, monkeypatch):
+    """A leftover dashboard key must not lock the public demo behind auth."""
+    monkeypatch.setattr(app_settings, "API_KEYS", ("stale-key:operator",))
+    assert client.get("/api/cases").status_code == 200
+    assert client.get("/api/dashboard/summary").status_code == 200
+
+
 def test_core_api_requires_api_key_in_production(client: TestClient, monkeypatch):
     monkeypatch.setattr(app_settings, "APP_ENV", "production")
     monkeypatch.setattr(app_settings, "API_KEYS", ("opkey:operator", "rokey:readonly"))
