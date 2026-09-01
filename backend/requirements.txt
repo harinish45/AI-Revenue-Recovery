@@ -2,7 +2,7 @@ fastapi==0.141.1
 uvicorn==0.30.6
 sqlalchemy==2.0.32
 alembic==1.19.1
-pydantic==2.13.5
+pydantic==2.13.4
 pydantic-settings==2.4.0
 python-dotenv==1.2.3
 razorpay==2.0.1

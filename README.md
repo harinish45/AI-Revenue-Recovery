@@ -131,77 +131,48 @@ structured the way a codebase meant to be extended, not just demoed, should be.
 
 ## 🚀 Quickstart
 
-RecoverAI runs the same way on **Windows, macOS, and Linux** — pick whichever track fits how you like to work.
+**Live demo:** *[link pending]*
 
-### Option A — one command, any OS, nothing pre-installed required
-
-One command sets up *and* launches the app — including installing Python
-itself if it isn't already on your machine. Every step is skip-if-already-done,
-so re-running it is always safe.
-
-| OS | Command | If Python is missing |
-|---|---|---|
-| 🪟 Windows | `start.bat` (double-click it, or run from cmd/PowerShell) | Installs it via `winget` (built into Windows 10 2004+ / 11) |
-| 🍎 macOS | `./start.sh` | Installs Homebrew (if needed) then Python via `brew` |
-| 🐧 Linux | `./start.sh` | Installs Python via `apt` / `dnf` / `pacman` / `zypper`, whichever your distro has |
-
-```text
-[1/4] Using Python: 3.11.x
-[2/4] Creating backend virtualenv (first run only)...
-[3/4] Installing backend dependencies (skipped if already present)...
-[4/4] Starting RecoverAI on :8000 ...
-
-  RecoverAI is running!
-    App  : http://localhost:8000
-    Docs : http://localhost:8000/docs
-```
-
-On Linux/macOS a missing package manager falls back to a clear message with
-the official Python download link rather than failing silently — this never
-guesses at sudo access it doesn't have.
-
-### Option B — Docker Compose (identical container on every OS)
+**Run it locally — one command, same on Windows, macOS, and Linux:**
 
 ```bash
 docker compose up --build
-# backend → http://localhost:8000   ·   frontend → http://localhost:3000
 ```
 
-Both images run as a non-root user with a `HEALTHCHECK` — see [Security Posture](#️-security-posture--defense-in-depth).
+### 👉 Open **http://localhost:8000**
 
-### Option C — manual setup (most control)
+That's the whole cockpit — standalone dashboard, voice agent, everything. (The
+React dev dashboard, if you want it separately, is on http://localhost:3000.)
+Both containers run as a non-root user with a `HEALTHCHECK` — see
+[Security Posture](#️-security-posture--defense-in-depth). Nothing else needs
+to be pre-installed; Docker is the only prerequisite.
+
+<details>
+<summary><strong>Prefer running it without Docker?</strong></summary>
 
 ```bash
-# Backend
 cd backend
 pip install -r requirements.txt
 cp .env.example .env            # Razorpay test keys optional — simulation is on by default
-uvicorn app.main:app --reload   # http://localhost:8000/docs
+uvicorn app.main:app --reload
 ```
 
-```bash
-# Frontend (separate terminal)
-cd frontend
-npm install
-npm run dev                     # http://localhost:5173
-```
+Open **http://localhost:8000**. To also run the React dev dashboard
+separately: `cd frontend && npm install && npm run dev` → http://localhost:5173.
 
-Local demo controls (seed / reset / batch / failure simulation) are enabled for development:
+Local demo controls (seed / reset / batch / failure simulation) need one more
+line in `backend/.env`:
 
 ```bash
-# .env
 DEMO_MODE=true
-APP_ENV=development
-# DEMO_API_TOKEN=optional-shared-secret   → then send X-Demo-Token header
 ```
 
-Prefer zero build tooling? Open **`RecoverAI-standalone.html`** — a self-contained, single-file cockpit with no `npm install` required and no server needed beyond the backend already running. It's the full-featured reference build (including the multilingual voice agent, playbooks, and promises tracking that the React app doesn't have); the React app is a lighter, actively-developed operational dashboard covering cases, execution, and audit. See [Design Decisions](#-design-decisions--trade-offs) for why both exist.
+</details>
 
 ### Run the test suite
 
 ```bash
-cd backend
-python -m pytest tests/ -v      # 60 tests: safety, adversarial, business logic, API
+cd backend && python -m pytest tests/ -v      # 60 tests: safety, adversarial, business logic, API
 ```
 
 ## 🔌 API Highlights
