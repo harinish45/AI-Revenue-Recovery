@@ -791,7 +791,7 @@ function renderVoice(){
   h+='<div class="vquick" id="vquick"></div>';
   h+='<div class="vinput-row"><input placeholder="Or type your reply…" id="vinput" aria-label="Type reply"><button class="vsend-btn" id="vsend" data-act="send-text" aria-label="Send reply"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>Send</button></div><div class="vhint">Press <kbd>Enter</kbd> to send · tap a suggestion above to reply instantly</div>';
  }else{
-  h+='<div class="empty" style="padding:30px"><div style="margin-bottom:10px;color:#ec4899"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M12 8v8M8 12h8"/></svg></div><h4 style="font-size:16px;margin-bottom:5px">Ready for a '+esc(VOICE_BRAIN[S.voiceLang].name)+' session</h4><p style="font-size:12px;max-width:440px;margin:auto">The agent discloses the purpose, listens for intent, asks before recording a promise, and stops on refusal or uncertainty.</p><label class="voice-compliance"><input type="checkbox" id="voiceConsent" '+(S.voiceConsent?'checked':'')+'><span><b>Operator consent gate</b><br>This is a simulated/test-mode call and the customer-facing disclosure will be respected.</span></label><button class="btn btn-v" data-act="start-call" '+(!S.voiceCase||!S.voiceConsent?'disabled':'')+' style="margin-top:14px">Start '+esc(VOICE_BRAIN[S.voiceLang].label)+' Voice Call</button></div>';
+  h+='<div class="empty" style="padding:30px"><div style="margin-bottom:10px;color:#ec4899"><svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9" opacity=".25"/><path d="M12 8v8M8 12h8"/></svg></div><h4 style="font-size:16px;margin-bottom:5px">Ready for a '+esc(VOICE_BRAIN[S.voiceLang].name)+' session</h4><p style="font-size:12px;max-width:440px;margin:auto">The agent discloses the purpose, listens for intent, asks before recording a promise, and stops on refusal or uncertainty.</p><label class="voice-compliance"><input type="checkbox" id="voiceConsent" '+(S.voiceConsent?'checked':'')+'><span><b>Operator consent gate</b><br>This is a simulated/test-mode call and the customer-facing disclosure will be respected.</span></label><button class="btn btn-v" data-act="start-call" '+(!S.voiceCase||!S.voiceConsent?'disabled':'')+' style="margin-top:14px">Start '+esc(VOICE_BRAIN[S.voiceLang].label)+' Voice Call</button><div style="margin-top:10px"><button class="btn btn-g btn-sm" data-act="speaker-test">🔊 Test my speakers first</button><div id="speakerTestResult" style="font-size:10px;color:var(--dim);margin-top:6px;max-width:420px;margin-left:auto;margin-right:auto"></div></div></div>';
  }
  h+='</div></div>';
  return h;
@@ -1123,6 +1123,28 @@ function getVoice(){
  }
  return voiceCache[S.voiceLang];
 }
+// Raw, isolated test of the browser's TTS pipeline -- deliberately bypasses
+// every bit of RecoverAI's own voice-matching/scoring logic. If this
+// doesn't produce sound, the problem is the browser or the OS (no voices
+// installed, speech dispatcher unavailable, system output muted/wrong
+// device) -- not anything in this app's code, and no code change here can
+// fix it. This exists so that claim is provable in ten seconds instead of
+// asserted.
+function speakerSelfTest(){
+ var out=document.getElementById('speakerTestResult');
+ function report(msg,ok){if(out){out.textContent=msg;out.style.color=ok?'#4ade80':'#f87171';}toast(ok?'s':'e','Speaker Test',msg);}
+ if(!window.speechSynthesis){report('This browser has no speechSynthesis API at all -- try Chrome or Edge.',false);return;}
+ if(out){out.textContent='Playing a test phrase... you should hear it now.';out.style.color='#fbbf24';}
+ var allVoices=speechSynthesis.getVoices()||[];
+ try{speechSynthesis.cancel();}catch(e){}
+ var u=new SpeechSynthesisUtterance('Testing, one two three. If you can hear this, your speakers and browser speech are both working.');
+ var settled=false;
+ u.onstart=function(){};
+ u.onend=function(){if(settled)return;settled=true;report('Playback completed ('+allVoices.length+' voice(s) available on this device). If you heard nothing, check your system volume/output device -- the browser reported success.',true);};
+ u.onerror=function(e){if(settled)return;settled=true;report('Browser speech failed: "'+(e.error||'unknown error')+'" ('+allVoices.length+' voice(s) available). Try a different browser -- Edge has the most reliable built-in voices.',false);};
+ setTimeout(function(){if(settled)return;settled=true;report('No response from the browser after 5 seconds ('+allVoices.length+' voice(s) available) -- the speech engine appears stuck or unavailable in this browser/profile.',false);},5000);
+ try{speechSynthesis.speak(u);}catch(e){settled=true;report('speechSynthesis.speak() threw: '+e.message,false);}
+}
 function voiceDiagnostics(){
  if(!window.speechSynthesis)return{label:'Speech synthesis not supported in this browser',exact:false,usable:false};
  var v=getVoice();
@@ -1378,6 +1400,7 @@ document.addEventListener('click',function(e){
   else if(a==='send-text'){var inp=document.getElementById('vinput');if(inp&&inp.value.trim()){voiceUserSaid(inp.value.trim());inp.value='';}}
   else if(a==='scan-prom')scanPromises();
   else if(a==='test-voice'){var sampleC={customer:'Priya Sharma',amount:2499,category:{name:'Gateway Timeout'}};speakText(VOICE_BRAIN[S.voiceLang].greeting(sampleC));}
+  else if(a==='speaker-test')speakerSelfTest();
   else if(a==='audit-filter'){S.auditFilter=type;go('audit');}
   else if(a==='toggle-json'){var nodes=document.querySelectorAll('.tlev');nodes.forEach(function(n){if(n.dataset.id===id)n.classList.toggle('raw');});}
   else if(a==='verify-chain'){
