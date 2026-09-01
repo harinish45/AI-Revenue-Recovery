@@ -24,14 +24,14 @@ services:
       - key: DEMO_API_TOKEN
         sync: false
       # main.py refuses to boot with APP_ENV=production unless both of
-      # these are set -- without them the deploy would fail at startup,
-      # not at build. API_KEYS needs a value you actually know (to call
-      # the API with it), so set it yourself in the Render dashboard:
-      #   ["<a-long-random-string>:operator"]
+      # these are non-empty. Generate API_KEYS here so a first deploy cannot
+      # fail at startup because a required secret was left blank. Replace the
+      # generated value in Render with "<your-key>:operator" before using
+      # mutating API endpoints; the generated default is readonly.
+      - key: API_KEYS
+        generateValue: true
       # AUDIT_SIGNING_KEY just needs to be a stable secret nobody can
       # guess -- Render generates and stores one automatically.
-      - key: API_KEYS
-        sync: false
       - key: AUDIT_SIGNING_KEY
         generateValue: true
       - key: PYTHON_VERSION
