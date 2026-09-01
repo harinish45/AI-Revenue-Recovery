@@ -92,6 +92,12 @@ class Settings(BaseSettings):
     # chain. Left blank in dev/demo (a random per-process key is generated
     # instead); required when APP_ENV=production.
     AUDIT_SIGNING_KEY: str = ""
+    # Applies to every route via Content-Length, before the body is even
+    # read — not just webhooks (which have their own tighter
+    # WEBHOOK_MAX_BODY_BYTES). Bounds memory spent parsing an oversized
+    # payload on any endpoint, including ones Pydantic would otherwise only
+    # reject after the whole body was already read into memory.
+    MAX_REQUEST_BODY_BYTES: int = 524288
 
     # ---------------------------------------------------------------- #
     # Demo mode — synthetic data, reset, batch, and failure simulation.

@@ -7,7 +7,7 @@ from uuid import uuid4
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy import inspect, text
@@ -98,6 +98,53 @@ app.add_exception_handler(Exception, unhandled_exception_handler)
 
 
 @app.middleware("http")
+async def limit_request_body_size(request: Request, call_next):
+    """Reject an oversized body from Content-Length alone, before it's read.
+
+    Webhooks already enforce their own tighter WEBHOOK_MAX_BODY_BYTES after
+    reading the body; this covers every other route too, and rejects before
+    Starlette spends memory buffering a payload nobody was ever going to
+    accept.
+    """
+    content_length = request.headers.get("content-length")
+    if content_length is not None:
+        try:
+            declared_size = int(content_length)
+        except ValueError:
+            declared_size = None
+        if declared_size is not None and declared_size > settings.MAX_REQUEST_BODY_BYTES:
+            return JSONResponse(
+                status_code=413,
+                content={"error": {"message": "Request body exceeds the maximum allowed size"}},
+            )
+    return await call_next(request)
+
+
+# The standalone cockpit is a single self-contained HTML file with inline
+# <script>/<style> and no build step, so 'unsafe-inline' is a deliberate,
+# documented tradeoff rather than an oversight -- everything else CSP can
+# restrict here (no external origins, no framing, no plugins) still is.
+_CSP = (
+    "default-src 'self'; "
+    "script-src 'self' 'unsafe-inline'; "
+    "style-src 'self' 'unsafe-inline'; "
+    "img-src 'self' data:; "
+    "font-src 'self'; "
+    "connect-src 'self'; "
+    "frame-ancestors 'none'; "
+    "base-uri 'self'; "
+    "form-action 'self'; "
+    "object-src 'none'"
+)
+# Deny every browser capability this app doesn't use; the voice cockpit's
+# speech recognition/synthesis needs the microphone on this same origin.
+_PERMISSIONS_POLICY = (
+    "microphone=(self), camera=(), geolocation=(), payment=(), usb=(), "
+    "interest-cohort=(), browsing-topics=()"
+)
+
+
+@app.middleware("http")
 async def security_headers(request: Request, call_next):
     request_id = request.headers.get("X-Request-ID") or str(uuid4())
     started = perf_counter()
@@ -107,6 +154,15 @@ async def security_headers(request: Request, call_next):
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "no-referrer"
     response.headers["Cache-Control"] = "no-store"
+    response.headers["Content-Security-Policy"] = _CSP
+    response.headers["Permissions-Policy"] = _PERMISSIONS_POLICY
+    # Browsers only ever honor this over a real HTTPS connection, so setting
+    # it unconditionally over plain HTTP in local/demo mode is inert, not
+    # incorrect -- it activates automatically the moment this is deployed
+    # behind TLS, with no code change required.
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+    response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
     logger.info(
         json.dumps(
             {

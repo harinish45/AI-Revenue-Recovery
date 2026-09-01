@@ -285,9 +285,13 @@ The voice cockpit itself has its own browser-side regression suite (jsdom, run
 against the real page — not mocked-out logic): a fast double-submit can't
 create two agent replies for one customer turn; every agent line across all
 7 non-English languages is scanned for stray Latin words (0 leaks); a
-dropped/stuck TTS utterance recovers instead of freezing the call; and a
+dropped/stuck TTS utterance recovers instead of freezing the call; a
 customer disputing a charge produces a real `voice_dispute_raised` event,
-not a generic refusal.
+not a generic refusal; and a sentence that never literally appears in the
+pattern list ("I really don't have the money to pay right now") still
+correctly resolves to the right intent instead of falling to the generic
+fallback, because scoring gives partial credit for significant word overlap,
+not just exact phrase matches.
 
 ## 📊 Live Economic Intelligence
 
@@ -307,23 +311,26 @@ Audit seal:            AUD-88f2…c1a9   (chain verified)
 
 ## 🛡️ Security Posture — Defense in Depth
 
-Every request crosses seven independent layers before it can touch money or the audit
+Every request crosses eight independent layers before it can touch money or the audit
 record. No single layer is trusted alone — a bypass of one still hits the next.
 
 ```text
- L1  Transport & headers    CSP · Permissions-Policy · HSTS · COOP · CORP
-        │
- L2  Authentication         X-API-Key · readonly/operator roles · refuses to boot
+ L1  Transport & headers    CSP · Permissions-Policy · HSTS · COOP · CORP ·
+        │                   X-Frame-Options · X-Content-Type-Options — set on every
+        │                   response, not just claimed in a doc
+ L2  Request size ceiling   rejected from Content-Length alone, before the body is
+        │                   even read — bounds every route, not only webhooks
+ L3  Authentication         X-API-Key · readonly/operator roles · refuses to boot
         │                   in production without API_KEYS configured
- L3  Input validation       Pydantic schemas — language allowlists, transcript/intent
+ L4  Input validation       Pydantic schemas — language allowlists, transcript/intent
         │                   bounds, confidence range, pagination ceilings
- L4  Rate limiting          per-endpoint throttling on execute, demo, voice routes
+ L5  Rate limiting          per-endpoint throttling on execute, demo, voice routes
         │
- L5  Business policy gate   the 10-check safety contract (see above) — the one place
+ L6  Business policy gate   the 10-check safety contract (see above) — the one place
         │                   that decides whether an intervention is allowed to run
- L6  Idempotency ledger     Idempotency-Key request-hash separation; replay returns
+ L7  Idempotency ledger     Idempotency-Key request-hash separation; replay returns
         │                   the original result, cross-case reuse returns 409
- L7  Tamper-evident audit   HMAC-SHA256-sealed, hash-chained event log — forging a
+ L8  Tamper-evident audit   HMAC-SHA256-sealed, hash-chained event log — forging a
                             self-consistent chain needs AUDIT_SIGNING_KEY, not just DB access
 ```
 
