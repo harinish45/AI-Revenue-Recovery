@@ -4,7 +4,16 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     env_file:
-      - .env
+      # Optional: a root .env (see .env.example) overrides anything below --
+      # e.g. real Razorpay test keys. A fresh clone has no .env file yet,
+      # and that must never stop the container from starting.
+      - path: .env
+        required: false
+    environment:
+      # Safe, zero-config demo defaults so a fresh clone with no .env file
+      # still boots straight into a fully working, seedable demo.
+      DEMO_MODE: ${DEMO_MODE:-true}
+      APP_ENV: ${APP_ENV:-development}
     ports:
       - "8000:8000"
     networks:

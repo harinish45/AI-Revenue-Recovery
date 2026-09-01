@@ -133,10 +133,20 @@ structured the way a codebase meant to be extended, not just demoed, should be.
 
 **Live demo:** *[link pending]*
 
-**Run it locally — one command, same on Windows, macOS, and Linux:**
+**Paste one line into a terminal.** It clones the repo (if you don't already
+have it) and starts the whole app — nothing else to install first except
+Docker. Same result on Windows, macOS, and Linux.
+
+**macOS / Linux (Terminal):**
 
 ```bash
-docker compose up --build
+curl -fsSL https://raw.githubusercontent.com/harinish45/AI-Revenue-Recovery/main/bootstrap.sh | bash
+```
+
+**Windows (PowerShell):**
+
+```powershell
+irm https://raw.githubusercontent.com/harinish45/AI-Revenue-Recovery/main/bootstrap.ps1 | iex
 ```
 
 ### 👉 Open **http://localhost:8000**
@@ -144,8 +154,13 @@ docker compose up --build
 That's the whole cockpit — standalone dashboard, voice agent, everything. (The
 React dev dashboard, if you want it separately, is on http://localhost:3000.)
 Both containers run as a non-root user with a `HEALTHCHECK` — see
-[Security Posture](#️-security-posture--defense-in-depth). Nothing else needs
-to be pre-installed; Docker is the only prerequisite.
+[Security Posture](#️-security-posture--defense-in-depth). Stop it any time
+with `docker compose down` from inside the cloned folder.
+
+Already have the repo cloned? Skip the line above and just run
+`docker compose up --build` from inside it — same result. Verified end to end
+against a genuinely fresh clone with zero local config: builds, starts, and
+`/api/demo/seed` works immediately, no `.env` file required.
 
 <details>
 <summary><strong>Prefer running it without Docker?</strong></summary>
