@@ -10,12 +10,22 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
 ![Razorpay](https://img.shields.io/badge/Razorpay-Integrated-0C2451?logo=razorpay&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-43%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-44%20passing-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-blue)
+
+[![Backend CI](https://github.com/harinish45/AI-Revenue-Recovery/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/harinish45/AI-Revenue-Recovery/actions/workflows/backend-ci.yml)
+[![Frontend CI](https://github.com/harinish45/AI-Revenue-Recovery/actions/workflows/frontend-ci.yml/badge.svg)](https://github.com/harinish45/AI-Revenue-Recovery/actions/workflows/frontend-ci.yml)
+[![Secret Scan](https://github.com/harinish45/AI-Revenue-Recovery/actions/workflows/secret-scan.yml/badge.svg)](https://github.com/harinish45/AI-Revenue-Recovery/actions/workflows/secret-scan.yml)
 
 *RecoverAI does not let the model move money. The model recommends; deterministic policy decides; the provider confirms; only confirmed payment events count as recovered revenue; every decision is auditable and every unsafe path escalates.*
 
 </div>
+
+---
+
+### Contents
+
+[The Problem](#-the-problem) · [The Solution](#-the-solution) · [Architecture](#️-architecture) · [Project Structure](#-project-structure) · [Quickstart](#-quickstart) · [API Highlights](#-api-highlights) · [Test Matrix](#-adversarial-test-matrix) · [Security](#️-security-posture) · [Roadmap](#️-roadmap)
 
 ---
 
@@ -83,6 +93,35 @@ Every execution passes this gauntlet — **in this exact order**:
 - **Idempotent by contract** — `Idempotency-Key` returns the original response on retry; reusing a key for a different case returns `409`.
 - **Tamper-evident audit** — per-case monotonic sequence + chained SHA-256 hashes; `/api/audit/chain/verify` re-verifies the entire chain from the root forward.
 - **Fail-safe demo isolation** — `/api/demo/*` (seed, reset, simulate-failure) are triple-guarded: `DEMO_MODE=false` by default, hard-disabled when `APP_ENV=production`, optional `X-Demo-Token`.
+- **Multilingual voice cockpit** — the voice-recovery playbook negotiates promise-to-pay across 8 Indian languages (including code-switched Hinglish), with every promise gated behind explicit recorded consent.
+
+## 📁 Project Structure
+
+```text
+backend/app/
+├── routers/          cases · execution · webhooks · audit · demo · batch
+├── services/          recovery_executor · payment_confirmation · batch_executor
+│                       policy_engine · decision_engine · diagnosis_service
+│                       audit_service · razorpay_service · metrics_service
+├── security/           API-key auth boundary
+├── models.py · schemas.py · main.py
+└── tests/              44 tests — safety, adversarial, business logic, API
+
+frontend/src/
+├── components/         CasesTable · CaseDetailModal · AuditDrawer
+│                        BatchResultModal · MetricsRow · TopBar · ArchFlow …
+├── hooks/               useDashboardData · useCaseExecution · useBatchRecovery
+│                         useAuditTrail · useNotices · useShortcuts · useClipboard
+├── api.js · constants.js · utils/
+└── main.jsx             thin composition root — no business logic
+
+RecoverAI-standalone.html   zero-build, single-file parity dashboard
+```
+
+Routers stay thin, services own the logic, the policy engine is the single
+gate every execution passes through, and the React app is decomposed into
+single-purpose hooks and components rather than one monolithic file —
+structured the way a codebase meant to be extended, not just demoed, should be.
 
 ## 🚀 Quickstart
 
@@ -118,7 +157,7 @@ Prefer zero build tooling? Open **`RecoverAI-standalone.html`** — a self-conta
 
 ```bash
 cd backend
-python -m pytest tests/ -v      # 43 tests: safety, adversarial, business logic, API
+python -m pytest tests/ -v      # 44 tests: safety, adversarial, business logic, API
 ```
 
 ## 🔌 API Highlights
@@ -132,7 +171,7 @@ python -m pytest tests/ -v      # 43 tests: safety, adversarial, business logic,
 | `POST` | `/api/webhooks/razorpay` | Signature-verified, replay-protected provider events |
 | `GET` | `/api/audit/chain/verify` | Recursive tamper-evidence verification |
 | `GET` | `/api/audit/{id}/verify` | Verify a single sealed event |
-| `POST` | `/api/cases/{id}/voice-events` | Voice promises — rejected without explicit consent |
+| `POST` | `/api/cases/{id}/voice-events` | Voice promises across 8 languages — rejected without explicit consent |
 | `POST` | `/api/demo/*` | Seed · reset · batch · failure simulation (dev-only, token-gated) |
 
 ## 🧪 Adversarial Test Matrix
@@ -150,6 +189,7 @@ The suite doesn't just test the happy path — it attacks the system:
 - ✅ Audit tampering invalidates the complete chain
 - ✅ Webhooks: unsigned rejected, stale rejected, unknown event types rejected, missing provider ID rejected, oversized payloads rejected, exact duplicates ignored
 - ✅ Voice promise without explicit `consent_confirmed=true` is rejected
+- ✅ Voice events accept full BCP-47 tags (`hi-IN`, `mr-IN`, …) across all 8 supported languages
 - ✅ Transcripts, intents, languages, confidence values are schema-bounded
 - ✅ Demo control plane is disabled in production mode
 
@@ -165,7 +205,8 @@ Expected net value:    ₹1,074
 Decision:              PAYMENT LINK
 Stopping rules:        do not retry the card · escalate after link window
 Next permitted retry:  2026-08-28T14:32Z        (24h cooldown)
-Policy checks:         10/10 passed   → compliance score 100%
+Policy checks:         10/10 passed
+Audit seal:             AUD-88f2…c1a9   (chain verified)
 ```
 
 ## 🛡️ Security Posture
