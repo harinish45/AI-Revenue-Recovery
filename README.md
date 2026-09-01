@@ -186,27 +186,6 @@ DEMO_MODE=true
 
 </details>
 
-### Deploy to Render
-
-The repository includes a [Render Blueprint](render.yaml) for the single
-FastAPI service. It serves the full standalone cockpit at `/` and exposes the
-API under `/api/*`.
-
-1. Push `render.yaml` to GitHub and open the [Render Blueprint creation page](https://dashboard.render.com/blueprint/new?repo=https://github.com/harinish45/AI-Revenue-Recovery).
-2. Apply the Blueprint. Render installs `backend/requirements.txt`, starts
-   Uvicorn on Render's `$PORT`, and checks `/api/health`.
-3. Keep the generated `AUDIT_SIGNING_KEY`. Before using recovery execution,
-   replace the generated `API_KEYS` value in the Render dashboard with a
-   secret in the form `your-long-secret:operator`.
-
-The initial generated API key is deliberately readonly, so a successful
-deployment cannot accidentally expose mutation privileges. The standalone
-cockpit can be opened immediately, but authenticated API actions require the
-`X-API-Key` header; for local development, Docker Compose keeps the demo open
-and enables the synthetic demo controls. For a production client, provide the
-same operator key through the client's runtime configuration rather than
-committing it to the repository.
-
 ### Run the test suite
 
 ```bash
