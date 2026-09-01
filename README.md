@@ -25,7 +25,7 @@
 
 ### Contents
 
-[The Problem](#-the-problem) · [The Solution](#-the-solution) · [Architecture](#️-architecture) · [Project Structure](#-project-structure) · [Quickstart](#-quickstart) · [API Highlights](#-api-highlights) · [Test Matrix](#-adversarial-test-matrix) · [Security](#️-security-posture) · [Roadmap](#️-roadmap)
+[The Problem](#-the-problem) · [The Solution](#-the-solution) · [Architecture](#️-architecture) · [Project Structure](#-project-structure) · [Quickstart (any OS)](#-quickstart) · [API Highlights](#-api-highlights) · [End-to-End Workflow](#-real-end-to-end-workflow) · [Test Matrix](#-adversarial-test-matrix) · [Security Layers](#️-security-posture--defense-in-depth) · [Roadmap](#️-roadmap)
 
 ---
 
@@ -125,13 +125,51 @@ structured the way a codebase meant to be extended, not just demoed, should be.
 
 ## 🚀 Quickstart
 
-### Backend
+RecoverAI runs the same way on **Windows, macOS, and Linux** — pick whichever track fits how you like to work.
+
+### Option A — one command, any OS
+
+The launcher auto-detects a usable Python, creates the virtualenv, installs dependencies, and opens the app for you.
+
+| OS | Command |
+|---|---|
+| 🪟 Windows | double-click `start.bat`, or run it from cmd/PowerShell |
+| 🍎 macOS / 🐧 Linux | `./start.sh` |
+
+```text
+[1/3] Using Python: 3.11.x
+[2/3] Installing backend dependencies (skipped if already present)...
+[3/3] Starting RecoverAI on :8000 ...
+
+  RecoverAI is running!
+    App  : http://localhost:8000
+    Docs : http://localhost:8000/docs
+```
+
+### Option B — Docker Compose (identical container on every OS)
 
 ```bash
+docker compose up --build
+# backend → http://localhost:8000   ·   frontend → http://localhost:3000
+```
+
+Both images run as a non-root user with a `HEALTHCHECK` — see [Security Posture](#️-security-posture--defense-in-depth).
+
+### Option C — manual setup (most control)
+
+```bash
+# Backend
 cd backend
 pip install -r requirements.txt
 cp .env.example .env            # Razorpay test keys optional — simulation is on by default
 uvicorn app.main:app --reload   # http://localhost:8000/docs
+```
+
+```bash
+# Frontend (separate terminal)
+cd frontend
+npm install
+npm run dev                     # http://localhost:5173
 ```
 
 Local demo controls (seed / reset / batch / failure simulation) are enabled for development:
@@ -143,15 +181,7 @@ APP_ENV=development
 # DEMO_API_TOKEN=optional-shared-secret   → then send X-Demo-Token header
 ```
 
-### Frontend
-
-```bash
-cd frontend
-npm install
-npm run dev                     # http://localhost:5173
-```
-
-Prefer zero build tooling? Open **`RecoverAI-standalone.html`** — a self-contained, single-file dashboard with the same API contract and no `npm install` required. It's a parity snapshot of the React app for anyone reviewing without a dev environment; feature work happens in `frontend/src/` first.
+Prefer zero build tooling? Open **`RecoverAI-standalone.html`** — a self-contained, single-file dashboard with the same API contract and no `npm install` required, no server needed. It's a parity snapshot of the React app for anyone reviewing without a dev environment; feature work happens in `frontend/src/` first.
 
 ### Run the test suite
 
@@ -173,6 +203,55 @@ python -m pytest tests/ -v      # 44 tests: safety, adversarial, business logic,
 | `GET` | `/api/audit/{id}/verify` | Verify a single sealed event |
 | `POST` | `/api/cases/{id}/voice-events` | Voice promises across 8 languages — rejected without explicit consent |
 | `POST` | `/api/demo/*` | Seed · reset · batch · failure simulation (dev-only, token-gated) |
+
+## 🔄 Real End-to-End Workflow
+
+Not a mockup — this is an actual `curl` session against a running instance, captured verbatim. Six calls, five pipeline stages, one tamper-evident chain.
+
+```bash
+# 1. Detect — seed synthetic failed payments into tracked recovery cases
+$ curl -X POST localhost:8000/api/demo/seed
+{"created_records":100,"message":"Demo dataset seeded with 100 payments and 25 recovery cases."}
+
+# 2. Diagnose — the agent already classified root cause + recommended action
+$ curl localhost:8000/api/cases?limit=1
+{"id":"RC-IL_002","customer_name":"Deepika Rao","amount":23565.27,
+ "failure_category":"temporary_gateway_failure","recommended_action":"retry_payment", ...}
+
+# 3. Decide + Recover — policy gate runs, then the approved action executes
+$ curl -X POST localhost:8000/api/execution/execute \
+       -H "Idempotency-Key: demo-1" -d '{"case_id":"RC-IL_002"}'
+{"case_id":"RC-IL_002","status":"recovered","recovered_amount":23565.27,
+ "message":"Recovery succeeded (Simulated).","audit_event_id":"AUD-85CD6C9B"}
+
+# 4. Audit — every stage left its own sealed, hash-chained event
+$ curl localhost:8000/api/audit?case_id=RC-IL_002
+{"items":[
+  {"event_type":"recovery_succeeded",   "sequence":4, "event_hash":"c1ec7e…20e33"},
+  {"event_type":"razorpay_simulation",  "sequence":3, "event_hash":"b409b0…02b59"},
+  {"event_type":"analysis_completed",   "sequence":2, "event_hash":"9e8d80…86451d"},
+  {"event_type":"payment_failure_detected", "sequence":1, "event_hash":"5bdfbe…d8d9ed0"}
+], "total":4}
+
+# 5. Verify — recompute every hash in the chain from the root forward
+$ curl localhost:8000/api/audit/chain/verify
+{"valid":true,"events_checked":52, "events":[
+  {"audit_id":"AUD-B43D65F5","sequence":1,"valid":true,"hash_ok":true,"chain_link_ok":true},
+  {"audit_id":"AUD-85CD6C9B","sequence":4,"valid":true,"hash_ok":true,"chain_link_ok":true},
+  ...
+]}
+
+# 6. Replay the same idempotency key — no double execution, no double-count revenue
+$ curl -X POST localhost:8000/api/execution/execute \
+       -H "Idempotency-Key: demo-1" -d '{"case_id":"RC-IL_002"}'
+{"case_id":"RC-IL_002","status":"recovered", ...}   # identical response, not re-run
+```
+
+Each hash embeds the previous event's hash (`previous_hash` → next `event_hash`), so
+step 5 isn't a status flag — it's a real chain walk, recomputing every link from the
+root, that fails loudly the moment one byte of history is altered. Reproduce it
+yourself: run any Quickstart option above, then `POST /api/demo/seed` and follow the
+six calls.
 
 ## 🧪 Adversarial Test Matrix
 
@@ -206,22 +285,37 @@ Decision:              PAYMENT LINK
 Stopping rules:        do not retry the card · escalate after link window
 Next permitted retry:  2026-08-28T14:32Z        (24h cooldown)
 Policy checks:         10/10 passed
-Audit seal:             AUD-88f2…c1a9   (chain verified)
+Audit seal:            AUD-88f2…c1a9   (chain verified)
 ```
 
-## 🛡️ Security Posture
+## 🛡️ Security Posture — Defense in Depth
 
-- **API-key authorization** (`X-API-Key`, `readonly`/`operator` roles) on every core route — cases, execution, voice events, audit, dashboard, batch. Open outside production for zero-friction local dev; `APP_ENV=production` refuses to boot without `API_KEYS` configured.
-- **HMAC-signed, chained audit trail** — each event is sealed with `AUDIT_SIGNING_KEY`, so forging a self-consistent chain requires the signing secret, not just database write access.
-- HMAC-SHA256 webhook signature verification (timing-safe compare)
-- Webhook staleness window, event-type allowlist, provider-ID requirement, payload size cap
-- Idempotency with request-hash separation and `409` misuse response
-- Rate limiting on execute, demo and voice endpoints
-- Security headers: CSP, Permissions-Policy, HSTS, COOP, CORP
-- Strict Pydantic validation: language allowlists, transcript/intent bounds, confidence range, pagination ceilings
-- Demo routes triple-guarded and excluded from production
-- **CI security scanning**: `pip-audit` + `npm audit` (dependency CVEs), `bandit` (Python SAST), Gitleaks (secret scanning), Dependabot (pip/npm/Actions/Docker)
-- Both container images run as a non-root user with a `HEALTHCHECK`
+Every request crosses seven independent layers before it can touch money or the audit
+record. No single layer is trusted alone — a bypass of one still hits the next.
+
+```text
+ L1  Transport & headers    CSP · Permissions-Policy · HSTS · COOP · CORP
+        │
+ L2  Authentication         X-API-Key · readonly/operator roles · refuses to boot
+        │                   in production without API_KEYS configured
+ L3  Input validation       Pydantic schemas — language allowlists, transcript/intent
+        │                   bounds, confidence range, pagination ceilings
+ L4  Rate limiting          per-endpoint throttling on execute, demo, voice routes
+        │
+ L5  Business policy gate   the 10-check safety contract (see above) — the one place
+        │                   that decides whether an intervention is allowed to run
+ L6  Idempotency ledger     Idempotency-Key request-hash separation; replay returns
+        │                   the original result, cross-case reuse returns 409
+ L7  Tamper-evident audit   HMAC-SHA256-sealed, hash-chained event log — forging a
+                            self-consistent chain needs AUDIT_SIGNING_KEY, not just DB access
+```
+
+Plus, orthogonal to the request path:
+
+- **Webhook integrity** — HMAC-SHA256 signature verification (timing-safe compare), staleness window, event-type allowlist, provider-ID requirement, payload size cap
+- **CI security scanning on every push** — `pip-audit` + `npm audit` (dependency CVEs), `bandit` (Python SAST), Gitleaks (secret scanning), Dependabot (pip/npm/Actions/Docker)
+- **Container hardening** — both images run as a non-root user with a `HEALTHCHECK`
+- **Demo isolation** — `/api/demo/*` triple-guarded: off by default, hard-disabled in production, optional shared-token gate
 
 See [`docs/security.md`](docs/security.md) for the full control list and threat model.
 
