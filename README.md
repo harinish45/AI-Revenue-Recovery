@@ -10,7 +10,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
 ![Razorpay](https://img.shields.io/badge/Razorpay-Integrated-0C2451?logo=razorpay&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-44%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-46%20passing-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 [![Backend CI](https://github.com/harinish45/AI-Revenue-Recovery/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/harinish45/AI-Revenue-Recovery/actions/workflows/backend-ci.yml)
@@ -93,7 +93,8 @@ Every execution passes this gauntlet — **in this exact order**:
 - **Idempotent by contract** — `Idempotency-Key` returns the original response on retry; reusing a key for a different case returns `409`.
 - **Tamper-evident audit** — per-case monotonic sequence + chained SHA-256 hashes; `/api/audit/chain/verify` re-verifies the entire chain from the root forward.
 - **Fail-safe demo isolation** — `/api/demo/*` (seed, reset, simulate-failure) are triple-guarded: `DEMO_MODE=false` by default, hard-disabled when `APP_ENV=production`, optional `X-Demo-Token`.
-- **Multilingual voice cockpit** — the voice-recovery playbook negotiates promise-to-pay across 8 Indian languages, each spoken and recognized in its own native script (no English mixed into a non-English reply), with every promise gated behind explicit recorded consent.
+- **Multilingual voice cockpit** — the voice-recovery playbook negotiates promise-to-pay across 8 Indian languages, each spoken and recognized in its own native script (no English mixed into a non-English reply), with every promise gated behind explicit recorded consent. It also recognizes disputes ("I already paid this") as a distinct, audited outcome from a refusal — never silently retried — and is honest when a device has no matching voice installed: it shows text instead of playing mispronounced audio through a mismatched language engine.
+- **Evidence-weighted confidence, not a lookup table** — the agent's confidence score is a function of the customer's actual payment history (success rate, prior failures, history depth), not a fixed number per failure category. Two customers with the same failure reason and different track records get different confidence — and that number is what the policy engine's 0.70 gate actually reads.
 
 ## 📁 Project Structure
 
@@ -105,7 +106,7 @@ backend/app/
 │                       audit_service · razorpay_service · metrics_service
 ├── security/           API-key auth boundary
 ├── models.py · schemas.py · main.py
-└── tests/              44 tests — safety, adversarial, business logic, API
+└── tests/              46 tests — safety, adversarial, business logic, API
 
 frontend/src/
 ├── components/         CasesTable · CaseDetailModal · AuditDrawer
@@ -187,7 +188,7 @@ Prefer zero build tooling? Open **`RecoverAI-standalone.html`** — a self-conta
 
 ```bash
 cd backend
-python -m pytest tests/ -v      # 44 tests: safety, adversarial, business logic, API
+python -m pytest tests/ -v      # 46 tests: safety, adversarial, business logic, API
 ```
 
 ## 🔌 API Highlights
@@ -201,7 +202,7 @@ python -m pytest tests/ -v      # 44 tests: safety, adversarial, business logic,
 | `POST` | `/api/webhooks/razorpay` | Signature-verified, replay-protected provider events |
 | `GET` | `/api/audit/chain/verify` | Recursive tamper-evidence verification |
 | `GET` | `/api/audit/{id}/verify` | Verify a single sealed event |
-| `POST` | `/api/cases/{id}/voice-events` | Voice promises across 8 languages — rejected without explicit consent |
+| `POST` | `/api/cases/{id}/voice-events` | Voice promises, disputes, and call outcomes across 8 languages — a promise is rejected without explicit consent |
 | `POST` | `/api/demo/*` | Seed · reset · batch · failure simulation (dev-only, token-gated) |
 
 ## 🔄 Real End-to-End Workflow
@@ -271,6 +272,14 @@ The suite doesn't just test the happy path — it attacks the system:
 - ✅ Voice events accept full BCP-47 tags (`hi-IN`, `mr-IN`, …) across all 8 supported languages
 - ✅ Transcripts, intents, languages, confidence values are schema-bounded
 - ✅ Demo control plane is disabled in production mode
+
+The voice cockpit itself has its own browser-side regression suite (jsdom, run
+against the real page — not mocked-out logic): a fast double-submit can't
+create two agent replies for one customer turn; every agent line across all
+7 non-English languages is scanned for stray Latin words (0 leaks); a
+dropped/stuck TTS utterance recovers instead of freezing the call; and a
+customer disputing a charge produces a real `voice_dispute_raised` event,
+not a generic refusal.
 
 ## 📊 Live Economic Intelligence
 
