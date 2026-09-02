@@ -9,6 +9,7 @@
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--bg:#000;--p1:#0a0a0b;--p2:#101012;--p3:#161619;--ln:#1e1e23;--ln2:#2a2a31;--tx:#f4f4f5;--mut:#9d9da6;--dim:#63636c;--grn:#22c55e;--grn2:#4ade80;--red:#ef4444;--red2:#f87171;--amb:#f59e0b;--amb2:#fbbf24;--blu:#3b82f6;--blu2:#60a5fa;--vio:#8b5cf6;--vio2:#a78bfa;--pink:#ec4899;--fd:'Space Grotesk',sans-serif;--fb:'Manrope',sans-serif;--fm:'JetBrains Mono',monospace}
 html{color-scheme:dark}
+html.light{color-scheme:light}body.light{--bg:#f4f7fb;--p1:#fff;--p2:#f8fafc;--p3:#eef2f7;--ln:#dfe5ee;--ln2:#cbd5e1;--tx:#172033;--mut:#526174;--dim:#718096}body.light .side,body.light .top{background:rgba(255,255,255,.94)}body.light .tstrip{background:#fff8e6;border-color:#f2d38a}body.light .voice-hero-main{background:linear-gradient(135deg,#f5efff,#fff)}body.light .voice-active-top{background:linear-gradient(90deg,#fff0f8,#f4efff)}body.light ::-webkit-scrollbar-thumb{background:#cbd5e1;border-color:#f4f7fb}
 body{background:var(--bg);color:var(--tx);font-family:var(--fb);font-size:13.5px;line-height:1.55;overflow-x:hidden}
 ::selection{background:rgba(34,197,94,.25)}
 :focus-visible{outline:2px solid var(--grn);outline-offset:2px;border-radius:4px}
@@ -97,7 +98,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .rb,.sb{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:99px;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
 .rb i,.sb i{width:5px;height:5px;border-radius:50%;background:currentColor}
 .rb.low{background:rgba(34,197,94,.1);color:var(--grn2)}.rb.medium{background:rgba(245,158,11,.1);color:var(--amb2)}.rb.high{background:rgba(239,68,68,.1);color:var(--red2)}
-.sb.open{background:rgba(59,130,246,.1);color:var(--blu2)}.sb.recovered{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.escalated{background:rgba(239,68,68,.12);color:var(--red2)}.sb.skipped{background:rgba(245,158,11,.1);color:var(--amb2)}.sb.closed{background:rgba(255,255,255,.05);color:var(--mut)}.sb.pending{background:rgba(245,158,11,.1);color:var(--amb2)}.sb.fulfilled{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.broken{background:rgba(239,68,68,.1);color:var(--red2)}
+.sb.open{background:rgba(59,130,246,.1);color:var(--blu2)}.sb.awaiting{background:rgba(245,158,11,.1);color:var(--amb2)}.sb.recovered{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.escalated{background:rgba(239,68,68,.12);color:var(--red2)}.sb.skipped{background:rgba(139,92,246,.1);color:var(--vio2)}.sb.closed{background:rgba(255,255,255,.05);color:var(--mut)}.sb.pending{background:rgba(245,158,11,.1);color:var(--amb2)}.sb.fulfilled{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.broken{background:rgba(239,68,68,.1);color:var(--red2)}
 .toolbar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--ln);flex-wrap:wrap}
 .filter-group{display:flex;align-items:center;gap:6px}.filter-label{font-size:9px;color:var(--dim);font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-right:1px}.filter-select{display:flex;align-items:center;gap:6px}.filter-select select{min-width:106px;padding:7px 25px 7px 9px;border:1px solid var(--ln2);border-radius:8px;background:var(--p2);color:var(--tx);font-size:11px;font-weight:700;cursor:pointer}.filter-select select:focus{outline:2px solid var(--grn);outline-offset:1px}
 .srch{flex:1;max-width:280px;min-width:140px}
@@ -298,6 +299,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
       <div class="crumb"><b id="ptitle">Overview</b><br><span id="psub">Revenue at a glance</span></div>
       <div class="top-r">
         <button class="btn btn-g btn-sm" id="searchBtn" title="Command palette (Ctrl/⌘+K)">⌘K Search</button>
+        <button class="btn btn-g btn-sm" id="themeBtn" title="Switch theme">☼ Light</button>
         <button class="btn btn-g btn-sm" id="seedBtn">Seed Data</button>
       </div>
     </header>
@@ -316,7 +318,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
    S.cases / S.audit are always the real backend rows (normalized onto the
    field names the render*() functions below expect). Nothing here is
    client-generated — see Api + normalizeCase/normalizeAuditEntry. */
-var S={page:'overview',cases:[],audit:[],dashboard:null,live:false,loading:true,loadError:null,armed:false,running:false,filter:'all',statusFilter:'all',search:'',caseView:'table',
+var S={page:'overview',cases:[],audit:[],dashboard:null,live:false,loading:true,loadError:null,armed:false,running:false,filter:'all',statusFilter:'all',search:'',caseView:'table',theme:'dark',
 voiceCase:null,voiceSearch:'',voiceLang:'hi-IN',voiceActive:false,voiceEnding:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceBusy:false,voiceTimer:null,voiceStartTime:0,voiceConsent:false,voiceConfidence:0,voiceIntent:'DISCOVERY',voiceVoiceName:'Browser voice',voiceTurn:0,voiceUnclearStreak:0,voiceLastSpeechEndedAt:0,voiceLastAgentSpeech:'',voiceLastAgentSpeechAt:0,voiceListeningToken:0,
 auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,agentPaused:false,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
 /* Mirrors backend/app/config.py Settings exactly — not editable here, this
@@ -338,6 +340,16 @@ function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').repl
 function norm(s){return String(s).toLowerCase().replace(/[^\p{L}\p{N}\s']/gu,' ').replace(/\s+/g,' ').trim();}
 function pretty(s){return String(s||'').replace(/_/g,' ');}
 function nowTs(){return new Date().toTimeString().slice(0,8);}
+function applyTheme(theme){
+ S.theme=theme==='light'?'light':'dark';
+ document.documentElement.classList.toggle('light',S.theme==='light');
+ document.body.classList.toggle('light',S.theme==='light');
+ try{localStorage.setItem('recoverai-theme',S.theme);}catch(e){}
+ var btn=document.getElementById('themeBtn');if(btn)btn.textContent=S.theme==='light'?'☾ Dark':'☼ Light';
+}
+function toggleTheme(){applyTheme(S.theme==='light'?'dark':'light');}
+try{S.theme=localStorage.getItem('recoverai-theme')||'dark';}catch(e){}
+applyTheme(S.theme);
 function relTime(iso){if(!iso)return '—';var ms=Date.now()-new Date(iso).getTime();var h=Math.floor(ms/3600000);if(h<1)return 'just now';if(h<24)return h+'h ago';return Math.floor(h/24)+'d ago';}
 /* ═══ API CLIENT — every call below hits the real FastAPI backend ═══ */
 var API_BASE=window.RECOVERAI_API_BASE||'';
@@ -704,7 +716,7 @@ function renderCases(){
  var h='<div class="card"><div class="toolbar"><div class="srch"><input id="caseSearch" placeholder="Search cases..." value="'+esc(S.search)+'" aria-label="Search cases"></div><label class="filter-select"><span class="filter-label">Risk</span><select id="caseRiskFilter" aria-label="Filter by risk">';
  [['all','All risks'],['low','Low'],['medium','Medium'],['high','High']].forEach(function(r){h+='<option value="'+r[0]+'" '+(S.filter===r[0]?'selected':'')+'>'+r[1]+'</option>';});
  h+='</select></label><label class="filter-select"><span class="filter-label">Status</span><select id="caseStatusFilter" aria-label="Filter by status">';
- [['all','All statuses'],['open','Open'],['recovered','Recovered'],['escalated','Human review'],['skipped','Skipped']].forEach(function(s){h+='<option value="'+s[0]+'" '+(S.statusFilter===s[0]?'selected':'')+'>'+s[1]+'</option>';});
+ [['all','All statuses'],['open','Open'],['awaiting','Awaiting payment'],['recovered','Recovered'],['escalated','Human review'],['skipped','Skipped']].forEach(function(s){h+='<option value="'+s[0]+'" '+(S.statusFilter===s[0]?'selected':'')+'>'+s[1]+'</option>';});
  h+='</select></label>';
  h+='</div><div class="vtog" style="margin-left:auto"><button class="'+(S.caseView==='table'?'on':'')+'" data-act="set-view" data-view="table">Table</button><button class="'+(S.caseView==='kanban'?'on':'')+'" data-act="set-view" data-view="kanban">Board</button></div></div>';
  h+='<div id="caseBody"></div></div>';
@@ -732,7 +744,7 @@ function renderCaseBody(){
   h+='</tbody></table></div>';
  }else{
   h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px">';
-  [{n:'open',c:'#60a5fa'},{n:'recovered',c:'#4ade80'},{n:'escalated',c:'#f87171'},{n:'closed',c:'#9d9da6'}].forEach(function(col){
+  [{n:'open',c:'#60a5fa'},{n:'awaiting',c:'#fbbf24'},{n:'escalated',c:'#f87171'},{n:'recovered',c:'#4ade80'},{n:'skipped',c:'#a78bfa'}].forEach(function(col){
    var items=list.filter(function(c){return c.status===col.n;});
    h+='<div style="background:var(--p1);border:1px solid var(--ln);border-radius:12px;padding:10px;min-height:200px"><div style="font-size:10px;font-weight:800;text-transform:uppercase;color:'+col.c+';padding:4px 6px 10px">'+col.n+' · '+items.length+'</div>';
    items.forEach(function(c){
@@ -1433,6 +1445,7 @@ function renderPal(q){
 document.addEventListener('click',function(e){
  if(e.target.id==='palOvl'){closePal();return;}
  if(e.target.id==='execOvl'){closeExec();return;}
+ if(e.target.id==='themeBtn'){toggleTheme();return;}
  if(e.target.closest('button:disabled'))return;
  var navBtn=e.target.closest('.nav button[data-pg]');
  if(navBtn){go(navBtn.dataset.pg);return;}
