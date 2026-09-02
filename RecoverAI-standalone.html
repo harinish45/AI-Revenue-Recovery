@@ -774,7 +774,7 @@ function renderTransactions(){
  if(S.transactionTab==='payments')return h+renderCases(false);
  var labels={refunds:['Refunds','No sandbox refunds have been created yet.'],batch_refunds:['Batch Refunds','Upload and track batch refund files in Test Mode.'],orders:['Orders','Orders created by the recovery payment flow will appear here.'],disputes:['Disputes','No disputes have been raised. Human review cases will appear here.']};
  var x=labels[S.transactionTab]||labels.refunds;
- return h+'<div class="card workspace-empty"><div class="workspace-title"><div><span class="eyebrow">Transactions</span><h2>'+x[0]+'</h2><p>'+x[1]+'</p></div><button class="btn btn-g btn-sm" data-act="export-report">Export CSV</button></div><div class="filter-strip"><input placeholder="Search '+x[0].toLowerCase()+'..." aria-label="Search '+x[0]+'"><select aria-label="Status"><option>All statuses</option><option>Open</option><option>Processed</option><option>Failed</option></select><button class="btn btn-p btn-sm">Search</button><button class="btn btn-g btn-sm">Clear</button></div><div class="table-empty"><h3>No '+x[0].toLowerCase()+' found</h3><p>Test Mode data will appear here after the related workflow runs.</p></div></div>';
+ return h+'<div class="card workspace-empty"><div class="workspace-title"><div><span class="eyebrow">Transactions</span><h2>'+x[0]+'</h2><p>'+x[1]+'</p></div><button class="btn btn-g btn-sm" data-act="export-report">Export CSV</button></div><div class="filter-strip"><input placeholder="Search '+x[0].toLowerCase()+'..." aria-label="Search '+x[0]+'"><select aria-label="Status"><option>All statuses</option><option>Open</option><option>Processed</option><option>Failed</option></select><button class="btn btn-p btn-sm" data-act="transaction-search">Search</button><button class="btn btn-g btn-sm" data-act="clear-transaction-filter">Clear</button></div><div class="table-empty"><h3>No '+x[0].toLowerCase()+' found</h3><p>Test Mode data will appear here after the related workflow runs.</p></div></div>';
 }
 function renderCases(withTabs){
  var h=withTabs===false?'':tabBar('transactions',[['payments','Payments'],['refunds','Refunds'],['batch_refunds','Batch Refunds'],['orders','Orders'],['disputes','Disputes']],S.transactionTab);
@@ -1587,6 +1587,8 @@ document.addEventListener('click',function(e){
   else if(a==='add-webhook')toast('i','Webhook setup','Configure WEBHOOK_SECRET and a signed endpoint before enabling delivery.');
   else if(a==='copy-integration')safeCopy(location.origin+'/api');
   else if(a==='account-action')toast('i','Test Mode','Account changes are disabled in the sandbox demo.');
+  else if(a==='transaction-search')toast('i','Search complete','No matching '+(S.transactionTab==='refunds'?'refunds':S.transactionTab==='orders'?'orders':'records')+' in the sandbox dataset.');
+  else if(a==='clear-transaction-filter')go(S.page);
   else if(a==='copy-txn')safeCopy(act.dataset.text);
   else if(a==='seed')doSeed();
   else if(a==='reset')doReset();
