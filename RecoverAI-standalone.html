@@ -313,7 +313,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
    field names the render*() functions below expect). Nothing here is
    client-generated — see Api + normalizeCase/normalizeAuditEntry. */
 var S={page:'overview',cases:[],audit:[],dashboard:null,live:false,loading:true,loadError:null,armed:false,running:false,filter:'all',statusFilter:'all',search:'',caseView:'table',
-voiceCase:null,voiceLang:'hi-IN',voiceActive:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceBusy:false,voiceTimer:null,voiceStartTime:0,voiceConsent:false,voiceConfidence:0,voiceIntent:'DISCOVERY',voiceVoiceName:'Browser voice',voiceTurn:0,voiceUnclearStreak:0,
+voiceCase:null,voiceSearch:'',voiceLang:'hi-IN',voiceActive:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceBusy:false,voiceTimer:null,voiceStartTime:0,voiceConsent:false,voiceConfidence:0,voiceIntent:'DISCOVERY',voiceVoiceName:'Browser voice',voiceTurn:0,voiceUnclearStreak:0,
 auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,agentPaused:false,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
 /* Mirrors backend/app/config.py Settings exactly — not editable here, this
    panel just displays what the server actually enforces. */
@@ -776,10 +776,15 @@ function renderPlaybooks(){
  return h;
 }
 function renderVoice(){
- var open=S.cases.filter(function(c){return c.status==='open'||c.status==='escalated';});
+ var allVoiceCases=S.cases.filter(function(c){return c.status==='open'||c.status==='escalated';});
+ var query=(S.voiceSearch||'').trim().toLowerCase();
+ var open=allVoiceCases.filter(function(c){
+  if(!query)return true;
+  return [c.id,c.customer,c.category&&c.category.name,c.category&&c.category.code,c.status].join(' ').toLowerCase().indexOf(query)>-1;
+ });
  var activeCase=S.cases.find(function(c){return c.id===S.voiceCase;});
- var h='<div class="voice-hero"><div class="voice-hero-main"><div class="voice-eyebrow">Multilingual recovery cockpit</div><h2>Recover revenue with context, not pressure.</h2><p>Localized conversations, explicit promise confirmation and compliant escalation. Every meaningful outcome is written to the audit trail.</p><div class="voice-signal"><i></i><span>'+(S.voiceActive?'LIVE SESSION':'READY FOR SESSION')+'</span><span>·</span><span>Test Mode / bounded workflow</span></div></div><div class="voice-health"><div class="voice-metric"><span>Languages</span><b>'+Object.keys(VOICE_BRAIN).length+'</b><small>Indian + English packs</small></div><div class="voice-metric"><span>Speech input</span><b>'+(window.SpeechRecognition||window.webkitSpeechRecognition?'Ready':'Type fallback')+'</b><small>Browser capability</small></div><div class="voice-metric"><span>Voice output</span><b>'+(voiceDiagnostics().usable?'Ready':'Text fallback')+'</b><small>'+esc(voiceDiagnostics().label)+'</small></div><div class="voice-metric"><span>Guardrail</span><b>Bounded</b><small>Confirm before promise</small></div></div></div><div class="vgrid"><div class="card"><div class="chead"><h3>Select Case</h3><span class="hint">'+open.length+' eligible</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px">';
- if(open.length===0)h+='<div class="empty"><h4>No eligible cases</h4><p>Seed data first.</p></div>';
+ var h='<div class="voice-hero"><div class="voice-hero-main"><div class="voice-eyebrow">Multilingual recovery cockpit</div><h2>Recover revenue with context, not pressure.</h2><p>Localized conversations, explicit promise confirmation and compliant escalation. Every meaningful outcome is written to the audit trail.</p><div class="voice-signal"><i></i><span>'+(S.voiceActive?'LIVE SESSION':'READY FOR SESSION')+'</span><span>·</span><span>Test Mode / bounded workflow</span></div></div><div class="voice-health"><div class="voice-metric"><span>Languages</span><b>'+Object.keys(VOICE_BRAIN).length+'</b><small>Indian + English packs</small></div><div class="voice-metric"><span>Speech input</span><b>'+(window.SpeechRecognition||window.webkitSpeechRecognition?'Ready':'Type fallback')+'</b><small>Browser capability</small></div><div class="voice-metric"><span>Voice output</span><b>'+(voiceDiagnostics().usable?'Ready':'Text fallback')+'</b><small>'+esc(voiceDiagnostics().label)+'</small></div><div class="voice-metric"><span>Guardrail</span><b>Bounded</b><small>Confirm before promise</small></div></div></div><div class="vgrid"><div class="card"><div class="chead"><h3>Choose a case for voice</h3><span class="hint">'+open.length+' shown · '+allVoiceCases.filter(function(c){return c.status==='escalated';}).length+' human review</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px"><input id="voiceCaseSearch" aria-label="Search voice cases" placeholder="Search by case ID, customer, reason, or status…" value="'+esc(S.voiceSearch)+'" style="width:100%;margin-bottom:3px">';
+ if(open.length===0)h+='<div class="empty"><h4>'+(allVoiceCases.length?'No matching cases':'No cases ready for voice')+'</h4><p>'+(allVoiceCases.length?'Try another search. Human-review cases remain available here after a batch run.':'Run Seed Data first, or run a batch with a policy escalation to create a human-review case.')+'</p></div>';
  open.forEach(function(c){h+='<button class="swrow" data-act="sel-voice" data-id="'+c.id+'" style="'+(S.voiceCase===c.id?'border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.06)':'')+'"><div><b>'+esc(c.customer)+'</b><small>'+c.id+' - '+fmt(c.amount)+'</small></div><span class="rb '+c.risk+'">'+c.risk+'</span></button>';});
  h+='</div></div><div class="card" style="overflow:hidden"><div class="chead"><h3>Voice Agent</h3>'+(S.voiceActive?'<span class="vtimer" id="vtimer">00:00</span>':'<span class="hint">'+esc(VOICE_BRAIN[S.voiceLang].name)+'</span>')+'</div>';
  h+='<div class="vlang">';
@@ -1466,6 +1471,12 @@ document.addEventListener('keydown',function(e){
  }
 });
 document.getElementById('palInput').addEventListener('input',function(e){palIdx=0;renderPal(e.target.value);});
+document.addEventListener('input',function(e){
+ if(e.target.id==='voiceCaseSearch'){
+  S.voiceSearch=e.target.value;var cursor=e.target.selectionStart;softGo();
+  setTimeout(function(){var next=document.getElementById('voiceCaseSearch');if(next){next.focus();next.setSelectionRange(cursor,cursor);}},0);
+ }
+});
 document.addEventListener('change',function(e){if(e.target.id==='setLang'){S.voiceLang=e.target.value;toast('i','Language',VOICE_BRAIN[S.voiceLang].name);if(S.page==='settings')go('settings');}if(e.target.id==='voiceConsent'){S.voiceConsent=e.target.checked;toast(S.voiceConsent?'s':'w','Consent gate',S.voiceConsent?'Consent recorded for this test call.':'Consent cleared — call start is locked.');softGo();}if(e.target.id==='caseRiskFilter'){S.filter=e.target.value;renderCaseBody();}if(e.target.id==='caseStatusFilter'){S.statusFilter=e.target.value;renderCaseBody();}});
 /* ═══ INIT ══ */
 loadInitialData();
