@@ -327,7 +327,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
    S.cases / S.audit are always the real backend rows (normalized onto the
    field names the render*() functions below expect). Nothing here is
    client-generated — see Api + normalizeCase/normalizeAuditEntry. */
-var S={page:'overview',cases:[],audit:[],dashboard:null,live:false,loading:true,loadError:null,armed:false,running:false,filter:'all',statusFilter:'all',search:'',caseView:'table',theme:'dark',
+var S={page:'overview',cases:[],audit:[],dashboard:null,live:false,loading:true,loadError:null,armed:false,running:false,filter:'all',statusFilter:'all',search:'',caseView:'table',theme:'dark',navKey:'Home',
 voiceCase:null,voiceSearch:'',voiceLang:'hi-IN',voiceActive:false,voiceEnding:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceBusy:false,voiceTimer:null,voiceStartTime:0,voiceConsent:false,voiceConfidence:0,voiceIntent:'DISCOVERY',voiceVoiceName:'Browser voice',voiceTurn:0,voiceUnclearStreak:0,voiceLastSpeechEndedAt:0,voiceLastAgentSpeech:'',voiceLastAgentSpeechAt:0,voiceListeningToken:0,
 auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,agentPaused:false,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
 /* Mirrors backend/app/config.py Settings exactly — not editable here, this
@@ -658,8 +658,11 @@ function go(page){
  if(S.page==='voice'&&page!=='voice'&&S.voiceActive){endCall('NAV_AWAY');}
  S.page=page;
  var btns=document.querySelectorAll('.nav button[data-pg]');
- for(var i=0;i<btns.length;i++){btns[i].classList.toggle('on',btns[i].dataset.pg===page);}
- var m=META[page]||['RecoverAI',''];
+ var defaultNav={overview:'Home',cases:'Transactions',settlements:'Settlements',batch:'Batch Run',playbooks:'Subscriptions',voice:'Smart Collect',promises:'Promises',audit:'Audit Trail',settings:'Account & Settings'};
+ if(!S.navKey||(!Array.prototype.some.call(btns,function(b){return b.title===S.navKey;})))S.navKey=defaultNav[page]||page;
+ for(var i=0;i<btns.length;i++){btns[i].classList.toggle('on',btns[i].title===S.navKey);}
+ var navMeta={Home:['Home','Payments and recovery at a glance'],Transactions:['Transactions','Search, filter, execute'],Settlements:['Settlements','Recovered revenue and settlement status'],Invoices:['Invoices','Payment records and recovery status'], 'Payment Links':['Payment Links','Recovery links and payment actions'], 'Payment Pages':['Payment Pages','Hosted recovery experiences'],Route:['Route','Recovery routing rules'],Subscriptions:['Subscriptions','Playbook subscriptions'], 'Smart Collect':['Smart Collect','AI voice recovery'],Customers:['Customers','Customer recovery profiles'],Offers:['Offers','Recovery offers'], 'Batch Run':['Batch Run','Pipeline execution'],Reports:['Reports','Operational reporting'], 'Audit Trail':['Audit Trail','Transaction-linked decision log'], 'Account & Settings':['Account & Settings','Configuration and policy']};
+ var m=navMeta[S.navKey]||META[page]||['RecoverAI',''];
  document.getElementById('ptitle').textContent=m[0];
  document.getElementById('psub').textContent=m[1];
  if(!S.live){renderShell();return;}
@@ -1469,7 +1472,7 @@ document.addEventListener('click',function(e){
  if(!e.target.closest('.mode-wrap')){var openMode=document.getElementById('modeMenu');if(openMode)openMode.classList.remove('show');}
  if(e.target.closest('button:disabled'))return;
  var navBtn=e.target.closest('.nav button[data-pg]');
- if(navBtn){go(navBtn.dataset.pg);return;}
+ if(navBtn){S.navKey=navBtn.title;go(navBtn.dataset.pg);return;}
  var act=e.target.closest('[data-act]');
  if(act){
   var a=act.dataset.act,id=act.dataset.id,pg=act.dataset.pg,risk=act.dataset.risk,lang=act.dataset.lang,txt=act.dataset.text,view=act.dataset.view,type=act.dataset.type;
