@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Path, Request
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -31,7 +31,7 @@ def _execute_case(db: Session, case_id: str, idempotency_key: Optional[str]) -> 
 @limiter.limit(settings.RATE_LIMIT_EXECUTE)
 def execute_case_path(
     request: Request,
-    case_id: str,
+    case_id: str = Path(..., min_length=1, max_length=64, pattern=r"^RC-[A-Za-z0-9_-]+$"),
     db: Session = Depends(get_db),
     idempotency_key: Optional[str] = Header(default=None, alias="Idempotency-Key"),
 ):
@@ -53,7 +53,7 @@ def execute_case_body(
 @limiter.limit(settings.RATE_LIMIT_EXECUTE)
 def confirm_payment(
     request: Request,
-    case_id: str,
+    case_id: str = Path(..., min_length=1, max_length=64, pattern=r"^RC-[A-Za-z0-9_-]+$"),
     db: Session = Depends(get_db),
 ):
     """Operator/provider-confirmed payment: the ONLY way an awaiting_payment

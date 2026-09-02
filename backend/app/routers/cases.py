@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Path, Query
 from sqlalchemy.orm import Session
 
 from ..database import get_db
@@ -16,7 +16,7 @@ router = APIRouter(dependencies=[Depends(require_readonly)])
 def get_cases(
     status: Optional[str] = None,
     risk_level: Optional[str] = None,
-    search: Optional[str] = None,
+    search: Optional[str] = Query(default=None, max_length=100),
     page: int = Query(1, ge=1, le=10000),
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -70,7 +70,10 @@ def get_cases(
 
 
 @router.get("/cases/{case_id}", response_model=CaseDetailResponse)
-def get_case(case_id: str, db: Session = Depends(get_db)):
+def get_case(
+    case_id: str = Path(..., min_length=1, max_length=64, pattern=r"^RC-[A-Za-z0-9_-]+$"),
+    db: Session = Depends(get_db),
+):
     case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")

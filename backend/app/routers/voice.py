@@ -5,7 +5,7 @@ A recorded payment promise is only accepted with EXPLICIT consent
 bounded by the request schema.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Request
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -23,7 +23,10 @@ router = APIRouter(dependencies=[Depends(require_operator)])
 @router.post("/cases/{case_id}/voice-events", response_model=VoiceEventResponse)
 @limiter.limit(settings.RATE_LIMIT_DEMO)
 def record_voice_event(
-    request: Request, case_id: str, body: VoiceEventRequest, db: Session = Depends(get_db)
+    request: Request,
+    case_id: str = Path(..., min_length=1, max_length=64, pattern=r"^RC-[A-Za-z0-9_-]+$"),
+    body: VoiceEventRequest = ...,
+    db: Session = Depends(get_db),
 ):
     case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).first()
     if not case:
