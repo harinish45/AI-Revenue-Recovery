@@ -48,6 +48,8 @@ input,select{font-family:inherit;color:var(--tx)}
 .mode-wrap{position:relative}.mode-chip{font-size:11px;font-weight:700;color:#86efac;padding:6px 10px;border-radius:99px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.22);white-space:nowrap}.mode-chip:first-letter{color:#22c55e}.mode-chevron{margin-left:4px;color:var(--mut);font-size:13px}.mode-menu{display:none;position:absolute;right:0;top:38px;z-index:80;width:210px;padding:6px;background:var(--p1);border:1px solid var(--ln2);border-radius:9px;box-shadow:0 16px 40px rgba(0,0,0,.35)}.mode-menu.show{display:block}.mode-menu button{display:flex;flex-direction:column;align-items:flex-start;width:100%;padding:9px 10px;border-radius:6px;text-align:left;font-size:11px;font-weight:700}.mode-menu button small{margin-top:2px;color:var(--dim);font-size:9px;font-weight:500}.mode-selected{color:var(--grn2);background:rgba(34,197,94,.08)}.mode-disabled{color:var(--dim);cursor:not-allowed}
 .product-hero{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px 28px;background:linear-gradient(110deg,var(--p1),rgba(59,130,246,.09));border-left:3px solid var(--blu2)}.product-hero h2{font-family:var(--fd);font-size:25px;letter-spacing:-.04em;margin:5px 0}.product-hero p{color:var(--mut);font-size:13px}.product-hero small{display:block;color:var(--dim);font-size:11px;margin-top:5px}.eyebrow{font-family:var(--fm);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--blu2)}.product-hero-actions{display:flex;align-items:center;gap:8px;flex:none}.product-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.product-tile{display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding:16px;text-align:left;background:var(--p2);border:1px solid var(--ln2);border-radius:9px;min-height:105px}.product-tile:hover{border-color:var(--blu2);transform:translateY(-1px)}.product-tile b{font-family:var(--fd);font-size:13px}.product-tile small{color:var(--mut);font-size:11px;line-height:1.5}.product-tile .btn{margin-top:auto}
 .product-tile-index{font:700 10px var(--fm);color:var(--blu2);padding:3px 6px;border-radius:5px;background:rgba(96,165,250,.1)}
+.subtabs{display:flex;align-items:center;gap:4px;margin-bottom:12px;padding:0 4px;border-bottom:1px solid var(--ln)}.subtab{padding:10px 14px;color:var(--mut);font-size:12px;font-weight:700;border-bottom:2px solid transparent}.subtab:hover{color:var(--tx)}.subtab.on{color:var(--blu2);border-bottom-color:var(--blu2)}.workspace-empty{overflow:hidden}.workspace-title{display:flex;justify-content:space-between;align-items:flex-start;gap:15px;padding:22px 24px;border-bottom:1px solid var(--ln);background:linear-gradient(110deg,var(--p1),rgba(37,99,235,.06))}.workspace-title h2{font:700 22px var(--fd);margin:5px 0}.workspace-title p{color:var(--mut);font-size:12px}.filter-strip{display:flex;gap:8px;align-items:center;padding:14px 20px;background:var(--p2);border-bottom:1px solid var(--ln);flex-wrap:wrap}.filter-strip input,.filter-strip select{min-height:32px;padding:7px 10px;border:1px solid var(--ln2);border-radius:7px;background:var(--p1);color:var(--tx);font-size:11px}.table-empty{text-align:center;padding:65px 20px;color:var(--mut)}.table-empty h3{color:var(--tx);font:700 15px var(--fd);margin-bottom:6px}.table-empty p{font-size:11px}
+.account-stat{display:flex;flex-direction:column;gap:4px;padding:25px 24px;border-bottom:1px solid var(--ln)}.account-stat b{font:700 28px var(--fd);color:var(--grn2)}.account-stat span{font-size:11px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em}.detail-list{display:flex;flex-direction:column;gap:0}.detail-list>div{display:flex;justify-content:space-between;gap:20px;padding:12px 0;border-bottom:1px solid var(--ln)}.detail-list span{color:var(--mut);font-size:11px}.detail-list b{font-size:11px}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:700;border:1px solid transparent;transition:.12s;min-height:34px;white-space:nowrap;cursor:pointer}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .btn-p{background:var(--grn);color:#04150c}.btn-p:hover:not(:disabled){background:var(--grn2)}
@@ -332,7 +334,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
    client-generated — see Api + normalizeCase/normalizeAuditEntry. */
 var S={page:'overview',cases:[],audit:[],dashboard:null,live:false,loading:true,loadError:null,armed:false,running:false,filter:'all',statusFilter:'all',search:'',caseView:'table',theme:'dark',navKey:'Home',
 voiceCase:null,voiceSearch:'',voiceLang:'hi-IN',voiceActive:false,voiceEnding:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceBusy:false,voiceTimer:null,voiceStartTime:0,voiceConsent:false,voiceConfidence:0,voiceIntent:'DISCOVERY',voiceVoiceName:'Browser voice',voiceTurn:0,voiceUnclearStreak:0,voiceLastSpeechEndedAt:0,voiceLastAgentSpeech:'',voiceLastAgentSpeechAt:0,voiceListeningToken:0,
-auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,agentPaused:false,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
+auditFilter:'all',auditSearch:'',transactionTab:'payments',reportsTab:'overview',settingsTab:'configuration',accountTab:'profile',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,agentPaused:false,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
 /* Mirrors backend/app/config.py Settings exactly — not editable here, this
    panel just displays what the server actually enforces. */
 var POLICY={maxAmount:50000,maxRetries:2,rateExecute:'20/minute',rateDemo:'10/minute'};
@@ -675,14 +677,15 @@ function go(page){
  var html='';
  try{
   if(page==='overview')html=renderOverview();
-  else if(page==='cases')html=(S.navKey==='Invoices'||S.navKey==='Customers')?renderProductSection(S.navKey):renderCases();
+  else if(page==='cases')html=(S.navKey==='Invoices'||S.navKey==='Customers')?renderProductSection(S.navKey):renderTransactions();
   else if(page==='settlements')html=renderSettlements();
   else if(page==='batch')html=renderBatch();
   else if(page==='playbooks')html=(S.navKey&&S.navKey!=='Subscriptions')?renderProductSection(S.navKey):renderPlaybooks();
   else if(page==='voice')html=renderVoice();
   else if(page==='promises')html=renderPromises();
-  else if(page==='audit')html=S.navKey==='Reports'?renderProductSection('Reports'):renderAudit();
+  else if(page==='audit')html=S.navKey==='Reports'?renderReports():renderAudit();
   else if(page==='settings')html=renderSettings();
+  else if(page==='account')html=renderAccount();
  }catch(err){html='<div class="card"><div class="cbody"><b style="color:#f87171">Render error:</b> '+esc(err.message)+'</div></div>';}
  document.getElementById('content').innerHTML=html;
  var badge=document.getElementById('qBadge');if(badge)badge.textContent=openCount();
@@ -764,8 +767,18 @@ function renderGovernance(){
  var paused=S.agentPaused;
  return '<div class="card" style="border-color:'+(paused?'rgba(245,158,11,.35)':'rgba(34,197,94,.22)')+'"><div class="chead"><h3>Agent Control Plane</h3><span class="hint">operator safety boundary</span></div><div class="cbody" style="display:grid;grid-template-columns:1.3fr 1fr;gap:12px;align-items:center"><div><b style="color:'+(paused?'#fbbf24':'#4ade80')+'">'+(paused?'PAUSED · no new autonomous actions':'ARMED · bounded autonomous mode')+'</b><p style="font-size:11px;color:var(--mut);margin-top:3px">'+(paused?'Resume only after an operator reviews the queue.':'Every action remains policy-gated, idempotent, rate-limited and auditable.')+'</p></div><div style="display:flex;justify-content:flex-end;gap:7px;flex-wrap:wrap"><button class="btn '+(paused?'btn-p':'btn-r')+' btn-sm" data-act="toggle-pause">'+(paused?'Resume Agent':'Pause Agent')+'</button><button class="btn btn-g btn-sm" data-act="go" data-pg="settings">Readiness</button></div></div></div>';
 }
-function renderCases(){
- var h='<div class="card"><div class="toolbar"><div class="srch"><input id="caseSearch" placeholder="Search cases..." value="'+esc(S.search)+'" aria-label="Search cases"></div><label class="filter-select"><span class="filter-label">Risk</span><select id="caseRiskFilter" aria-label="Filter by risk">';
+function tabBar(group,items,active){return '<div class="subtabs" role="tablist">'+items.map(function(x){return '<button class="subtab '+(active===x[0]?'on':'')+'" data-act="set-tab" data-tab-group="'+group+'" data-tab="'+x[0]+'">'+x[1]+'</button>';}).join('')+'</div>';}
+function renderTransactions(){
+ var tabs=[['payments','Payments'],['refunds','Refunds'],['batch_refunds','Batch Refunds'],['orders','Orders'],['disputes','Disputes']];
+ var h=tabBar('transactions',tabs,S.transactionTab);
+ if(S.transactionTab==='payments')return h+renderCases(false);
+ var labels={refunds:['Refunds','No sandbox refunds have been created yet.'],batch_refunds:['Batch Refunds','Upload and track batch refund files in Test Mode.'],orders:['Orders','Orders created by the recovery payment flow will appear here.'],disputes:['Disputes','No disputes have been raised. Human review cases will appear here.']};
+ var x=labels[S.transactionTab]||labels.refunds;
+ return h+'<div class="card workspace-empty"><div class="workspace-title"><div><span class="eyebrow">Transactions</span><h2>'+x[0]+'</h2><p>'+x[1]+'</p></div><button class="btn btn-g btn-sm" data-act="export-report">Export CSV</button></div><div class="filter-strip"><input placeholder="Search '+x[0].toLowerCase()+'..." aria-label="Search '+x[0]+'"><select aria-label="Status"><option>All statuses</option><option>Open</option><option>Processed</option><option>Failed</option></select><button class="btn btn-p btn-sm">Search</button><button class="btn btn-g btn-sm">Clear</button></div><div class="table-empty"><h3>No '+x[0].toLowerCase()+' found</h3><p>Test Mode data will appear here after the related workflow runs.</p></div></div>';
+}
+function renderCases(withTabs){
+ var h=withTabs===false?'':tabBar('transactions',[['payments','Payments'],['refunds','Refunds'],['batch_refunds','Batch Refunds'],['orders','Orders'],['disputes','Disputes']],S.transactionTab);
+ h+='<div class="card"><div class="toolbar"><div class="srch"><input id="caseSearch" placeholder="Search payments or cases..." value="'+esc(S.search)+'" aria-label="Search payments or cases"></div><label class="filter-select"><span class="filter-label">Risk</span><select id="caseRiskFilter" aria-label="Filter by risk">';
  [['all','All risks'],['low','Low'],['medium','Medium'],['high','High']].forEach(function(r){h+='<option value="'+r[0]+'" '+(S.filter===r[0]?'selected':'')+'>'+r[1]+'</option>';});
  h+='</select></label><label class="filter-select"><span class="filter-label">Status</span><select id="caseStatusFilter" aria-label="Filter by status">';
  [['all','All statuses'],['open','Open'],['awaiting','Awaiting payment'],['recovered','Recovered'],['escalated','Human review'],['skipped','Skipped']].forEach(function(s){h+='<option value="'+s[0]+'" '+(S.statusFilter===s[0]?'selected':'')+'>'+s[1]+'</option>';});
@@ -901,6 +914,12 @@ function renderPromises(){
  h+='</tbody></table></div></div>';
  return h;
 }
+function renderReports(){
+ var h=tabBar('reports',[['overview','Overview'],['downloads','Downloads'],['schedules','Schedules']],S.reportsTab);
+ if(S.reportsTab==='overview')return h+'<div class="product-hero card"><div><span class="eyebrow">Reports centre</span><h2>Generate reports for every recovery workflow</h2><p>Review payments, settlements, subscriptions and recovery outcomes from one place.</p></div><div class="product-hero-actions"><button class="btn btn-p" data-act="export-report">Download report</button><button class="btn btn-g" data-act="schedule-report">Schedule report</button></div></div><div class="product-grid"><div class="product-tile"><span class="product-tile-index">01</span><b>Recovery overview</b><small>Cases processed, recovered, awaiting payment, skipped and escalated.</small><button class="btn btn-g btn-sm" data-act="export-report">Download CSV</button></div><div class="product-tile"><span class="product-tile-index">02</span><b>Settlement report</b><small>Recovered value linked to settlement-ready transactions.</small><button class="btn btn-g btn-sm" data-act="go" data-pg="settlements">Open Settlements</button></div><div class="product-tile"><span class="product-tile-index">03</span><b>Audit report</b><small>Sealed decision history for operator and compliance review.</small><button class="btn btn-g btn-sm" data-act="go" data-pg="audit">Open Audit Trail</button></div></div>';
+ if(S.reportsTab==='downloads')return h+'<div class="card"><div class="chead"><h3>Downloads</h3><span class="hint">generated in this session</span></div><div class="table-empty"><h3>No reports downloaded yet</h3><p>Choose a report from Overview to create a sandbox CSV export.</p><button class="btn btn-p btn-sm" data-act="export-report">Download recovery report</button></div></div>';
+ return h+'<div class="card"><div class="chead"><h3>Schedules</h3><button class="btn btn-p btn-sm" data-act="schedule-report">Create schedule</button></div><div class="table-empty"><h3>No scheduled reports</h3><p>Schedule reports when you connect a production notification provider.</p></div></div>';
+}
 function renderAudit(){
  var types=['all','DETECTION','DIAGNOSIS','DECISION','EXECUTION','ESCALATION','VOICE'];
  var h='<div class="card"><div class="toolbar"><div class="srch"><input id="auditSearch" placeholder="Search audit..." value="'+esc(S.auditSearch)+'" aria-label="Search audit"></div><div style="display:flex;gap:5px;flex-wrap:wrap">';
@@ -927,7 +946,12 @@ function hookAudit(){
  var inp=document.getElementById('auditSearch');if(inp)inp.addEventListener('input',function(){S.auditSearch=inp.value;renderAuditBody();});
 }
 function renderSettings(){
- var h='<div class="card"><div class="chead"><h3>Configuration</h3></div><div class="cbody" style="display:flex;flex-direction:column;gap:8px">';
+ var h=tabBar('settings',[['configuration','Configuration'],['integration','Integration'],['webhooks','Webhooks']],S.settingsTab);
+ if(S.settingsTab==='integration')return h+'<div class="card"><div class="workspace-title"><div><span class="eyebrow">Developer tools</span><h2>Easy integration</h2><p>Connect payment events, recovery actions, and your CRM through documented API seams.</p></div><span class="mode-chip">● Test mode</span></div><div class="cbody product-grid"><div class="product-tile"><span class="product-tile-index">01</span><b>API endpoints</b><small>Cases, execution, dashboard, audit and voice-event endpoints are ready for integration.</small><button class="btn btn-g btn-sm" data-act="copy-integration">Copy base URL</button></div><div class="product-tile"><span class="product-tile-index">02</span><b>Authentication</b><small>Use X-API-Key for production roles and Idempotency-Key for execution requests.</small><button class="btn btn-g btn-sm" data-act="go" data-pg="settings">View configuration</button></div><div class="product-tile"><span class="product-tile-index">03</span><b>Event contract</b><small>Webhook signatures, bounded payloads, rate limits, and audit seals protect the integration.</small><button class="btn btn-g btn-sm" data-act="go" data-pg="audit">View audit trail</button></div></div></div>';
+ if(S.settingsTab==='webhooks')return h+'<div class="card"><div class="workspace-title"><div><span class="eyebrow">Events</span><h2>Webhooks</h2><p>Receive signed payment events and keep recovery state synchronized.</p></div><button class="btn btn-p btn-sm" data-act="add-webhook">Add webhook</button></div><div class="table-empty"><h3>No webhooks configured</h3><p>Test Mode accepts signed Razorpay-style events after a webhook secret is configured.</p></div></div>';
+ h+=tabBar('account',[['profile','Profile'],['balance','Balance'],['credits','Credits'],['team','Manage Team'],['support','Support Tickets']],S.accountTab);
+ if(S.accountTab!=='profile')return h+renderAccountSection(S.accountTab);
+ h+='<div class="card"><div class="chead"><h3>Configuration</h3><span class="hint">safe defaults · sandbox</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:8px">';
  h+='<div class="swrow"><b>Voice Language</b><div style="display:flex;gap:6px;align-items:center"><select id="setLang" style="background:var(--p1);border:1px solid var(--ln2);border-radius:8px;padding:6px 8px;color:var(--tx)">';
  Object.keys(VOICE_BRAIN).forEach(function(code){h+='<option value="'+code+'" '+(S.voiceLang===code?'selected':'')+'>'+VOICE_BRAIN[code].name+'</option>';});
  h+='</select><button class="btn btn-g btn-sm" data-act="test-voice">▶ Test</button></div></div>';
@@ -943,6 +967,10 @@ function renderSettings(){
  h+='<div class="card"><div class="chead"><h3>System</h3></div><div class="cbody" style="display:flex;flex-direction:column;gap:6px"><div class="swrow"><b>Version</b><span class="mono">v5.2</span></div><div class="swrow"><b>Track</b><span class="mono">03 - AI Revenue Recovery</span></div><div class="swrow"><b>Backend</b><span class="mono">'+(S.live?'Connected':'Unavailable')+'</span></div></div></div>';
  h+='<div class="card"><div class="chead"><h3>Live Mode Readiness</h3><span class="hint">explicit upgrade path</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px">'+[['NEXT','Signed Razorpay webhooks','Validate, deduplicate, and enqueue events'],['NEXT','Durable event queue','Move worker seam to Celery, RQ, or managed queues'],['OPTIONAL','LLM diagnosis adapter','Enable only with privacy, cost, and eval review'],['NEXT','Live payment data','Replace synthetic seed data with tenant-scoped reads'],['READY','Consent management','Voice gate, promise confirmation, and opt-out stop'],['NEXT','Real provider adapters','Razorpay Test Mode, Exotel/Twilio, CRM'],['NEXT','Persistent scheduler','Store retry windows and execute through a worker']].map(function(x){return '<div class="swrow"><div><b style="color:'+(x[0]==='READY'?'#4ade80':'#fbbf24')+'">'+x[1]+'</b><small>'+x[2]+'</small></div><span class="mono" style="font-size:10px;color:'+(x[0]==='READY'?'#4ade80':'#fbbf24')+'">'+x[0]+'</span></div>';}).join('')+'</div></div>';
  return h;
+}
+function renderAccountSection(section){
+ var data={balance:['Balance','₹0.00','Sandbox balance','No real money moves. Provider settlement balance becomes available only after a production integration.'],credits:['Credits','₹0.00','Available credits','No promotional or provider credits are configured in Test Mode.'],team:['Manage Team','1 member','Workspace access','Invite operators after production authentication is enabled.'],support:['Support Tickets','No open tickets','Support centre','Create a ticket when an integration, webhook, or recovery workflow needs review.']}[section];
+ return '<div class="card account-panel"><div class="workspace-title"><div><span class="eyebrow">Account</span><h2>'+data[0]+'</h2><p>'+data[3]+'</p></div><button class="btn btn-g btn-sm" data-act="account-action">'+(section==='support'?'Create ticket':'Manage')+'</button></div><div class="account-stat"><b>'+data[1]+'</b><span>'+data[2]+'</span></div><div class="cbody"><div class="detail-list"><div><span>Environment</span><b>Test Mode · Razorpay Sandbox</b></div><div><span>Access</span><b>RecoverAI operator workspace</b></div><div><span>Audit</span><b>All changes remain auditable</b></div></div></div></div>';
 }
 /* ═══ ACTIONS — every one below hits the real backend ═══ */
 function toggleArm(){
@@ -1521,6 +1549,7 @@ document.addEventListener('click',function(e){
  if(act){
   var a=act.dataset.act,id=act.dataset.id,pg=act.dataset.pg,risk=act.dataset.risk,lang=act.dataset.lang,txt=act.dataset.text,view=act.dataset.view,type=act.dataset.type;
   if(a==='go'){S.navKey=null;go(pg);}
+  else if(a==='set-tab'){var group=act.dataset.tabGroup,tab=act.dataset.tab;if(group==='transactions')S.transactionTab=tab;else if(group==='reports')S.reportsTab=tab;else if(group==='settings')S.settingsTab=tab;else if(group==='account')S.accountTab=tab;go(S.page);}
   else if(a==='run-batch')runBatch();
   else if(a==='toggle-pause')togglePause();
   else if(a==='toggle-arm')toggleArm();
@@ -1554,6 +1583,10 @@ document.addEventListener('click',function(e){
   }
   else if(a==='export-audit')exportAudit();
   else if(a==='export-report')exportReport();
+  else if(a==='schedule-report')toast('i','Schedule reports','Connect a production notification provider to enable scheduled delivery.');
+  else if(a==='add-webhook')toast('i','Webhook setup','Configure WEBHOOK_SECRET and a signed endpoint before enabling delivery.');
+  else if(a==='copy-integration')safeCopy(location.origin+'/api');
+  else if(a==='account-action')toast('i','Test Mode','Account changes are disabled in the sandbox demo.');
   else if(a==='copy-txn')safeCopy(act.dataset.text);
   else if(a==='seed')doSeed();
   else if(a==='reset')doReset();
