@@ -47,6 +47,15 @@ def record_voice_event(
             detail="A payment promise requires explicit consent (consent_confirmed=true)",
         )
 
+    # A completed operator conversation becomes a closed CRM case. Escalation
+    # and dispute outcomes remain in human review so they are not falsely
+    # presented as resolved.
+    if body.event_type == "voice_call_ended":
+        if body.intent in {"REQUEST_HUMAN", "DISPUTE_RAISED"}:
+            case.recovery_status = "needs_human_review"
+        elif recovery_status not in {"recovered", "skipped"}:
+            case.recovery_status = "closed"
+
     decision = body.intent or "VOICE_INTERACTION"
     metadata = []
     if body.language:

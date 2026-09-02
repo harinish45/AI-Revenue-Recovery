@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#000;--p1:#0a0a0b;--p2:#101012;--p3:#161619;--ln:#1e1e23;--ln2:#2a2a31;--tx:#f4f4f5;--mut:#9d9da6;--dim:#63636c;--grn:#22c55e;--grn2:#4ade80;--red:#ef4444;--red2:#f87171;--amb:#f59e0b;--amb2:#fbbf24;--blu:#3b82f6;--blu2:#60a5fa;--vio:#8b5cf6;--vio2:#a78bfa;--pink:#ec4899;--fd:'Space Grotesk',sans-serif;--fb:'Manrope',sans-serif;--fm:'JetBrains Mono',monospace}
+:root{--bg:#0b1024;--p1:#111936;--p2:#171f43;--p3:#202a52;--ln:#293456;--ln2:#3a4770;--tx:#f6f8ff;--mut:#aab4d0;--dim:#7783a8;--grn:#22c55e;--grn2:#4ade80;--red:#ef4444;--red2:#f87171;--amb:#f59e0b;--amb2:#fbbf24;--blu:#3b82f6;--blu2:#70a4ff;--vio:#8b5cf6;--vio2:#b8a4ff;--pink:#ec4899;--fd:'Space Grotesk',sans-serif;--fb:'Manrope',sans-serif;--fm:'JetBrains Mono',monospace}
 html{color-scheme:dark}
 html.light{color-scheme:light}body.light{--bg:#f4f7fb;--p1:#fff;--p2:#f8fafc;--p3:#eef2f7;--ln:#dfe5ee;--ln2:#cbd5e1;--tx:#172033;--mut:#526174;--dim:#718096}body.light .side,body.light .top{background:rgba(255,255,255,.94)}body.light .tstrip{background:#fff8e6;border-color:#f2d38a}body.light .voice-hero-main{background:linear-gradient(135deg,#f5efff,#fff)}body.light .voice-active-top{background:linear-gradient(90deg,#fff0f8,#f4efff)}body.light ::-webkit-scrollbar-thumb{background:#cbd5e1;border-color:#f4f7fb}
 body{background:var(--bg);color:var(--tx);font-family:var(--fb);font-size:13.5px;line-height:1.55;overflow-x:hidden}
@@ -20,8 +20,8 @@ input,select{font-family:inherit;color:var(--tx)}
 .tstrip{display:flex;align-items:center;justify-content:center;gap:8px;padding:6px;font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--amb2);background:#0c0a04;border-bottom:1px solid #26200a}
 .tstrip i{width:6px;height:6px;border-radius:50%;background:var(--amb);animation:blk 2s infinite}
 @keyframes blk{50%{opacity:.4}}
-.shell{display:grid;grid-template-columns:230px 1fr;min-height:calc(100vh - 28px)}
-.side{border-right:1px solid var(--ln);padding:14px 12px;display:flex;flex-direction:column;position:sticky;top:0;height:calc(100vh - 28px);overflow-y:auto;background:var(--bg)}
+.shell{display:grid;grid-template-columns:248px 1fr;min-height:calc(100vh - 28px)}
+.side{border-right:1px solid var(--ln);padding:18px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:calc(100vh - 28px);overflow-y:auto;background:#151b36}
 .brand{display:flex;gap:11px;align-items:center;padding:2px 8px 14px}
 .brand b{font-family:var(--fd);font-size:15px;font-weight:700;letter-spacing:-.01em}
 .brand b em{font-style:normal;color:var(--grn)}
@@ -41,10 +41,11 @@ input,select{font-family:inherit;color:var(--tx)}
 .conn i{width:7px;height:7px;border-radius:50%;background:currentColor;animation:blk 2s infinite}
 .side-foot small{color:var(--dim);font-size:10px}
 .mainwrap{min-width:0;display:flex;flex-direction:column}
-.top{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;padding:10px 20px;background:rgba(0,0,0,.92);backdrop-filter:blur(12px);border-bottom:1px solid var(--ln)}
+.top{position:sticky;top:0;z-index:40;display:flex;align-items:center;gap:12px;padding:14px 26px;background:rgba(11,16,36,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--ln)}
 .crumb b{font-size:15px;font-weight:700;font-family:var(--fd)}
 .crumb span{font-size:11px;color:var(--dim);font-family:var(--fm)}
 .top-r{margin-left:auto;display:flex;align-items:center;gap:6px}
+.mode-chip{font-size:11px;font-weight:700;color:#86efac;padding:6px 10px;border-radius:99px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.22);white-space:nowrap}.mode-chip:first-letter{color:#22c55e}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:700;border:1px solid transparent;transition:.12s;min-height:34px;white-space:nowrap;cursor:pointer}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .btn-p{background:var(--grn);color:#04150c}.btn-p:hover:not(:disabled){background:var(--grn2)}
@@ -55,7 +56,7 @@ input,select{font-family:inherit;color:var(--tx)}
 main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .page{display:flex;flex-direction:column;gap:14px;animation:fin .2s ease}
 @keyframes fin{from{opacity:0;transform:translateY(4px)}}
-.card{background:var(--p1);border:1px solid var(--ln);border-radius:12px}
+.card{background:var(--p1);border:1px solid var(--ln);border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,.12)}
 .chead{display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid var(--ln)}
 .chead h3{font-size:12px;font-weight:600;font-family:var(--fd)}
 .chead .hint{margin-left:auto;font-family:var(--fm);font-size:10px;color:var(--dim)}
@@ -98,7 +99,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .rb,.sb{display:inline-flex;align-items:center;gap:5px;padding:2px 8px;border-radius:99px;font-size:9.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;white-space:nowrap}
 .rb i,.sb i{width:5px;height:5px;border-radius:50%;background:currentColor}
 .rb.low{background:rgba(34,197,94,.1);color:var(--grn2)}.rb.medium{background:rgba(245,158,11,.1);color:var(--amb2)}.rb.high{background:rgba(239,68,68,.1);color:var(--red2)}
-.sb.open{background:rgba(59,130,246,.1);color:var(--blu2)}.sb.awaiting{background:rgba(245,158,11,.1);color:var(--amb2)}.sb.recovered{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.escalated{background:rgba(239,68,68,.12);color:var(--red2)}.sb.skipped{background:rgba(139,92,246,.1);color:var(--vio2)}.sb.closed{background:rgba(255,255,255,.05);color:var(--mut)}.sb.pending{background:rgba(245,158,11,.1);color:var(--amb2)}.sb.fulfilled{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.broken{background:rgba(239,68,68,.1);color:var(--red2)}
+.sb.open{background:rgba(59,130,246,.1);color:var(--blu2)}.sb.awaiting{background:rgba(245,158,11,.1);color:var(--amb2)}.sb.recovered{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.escalated{background:rgba(239,68,68,.12);color:var(--red2)}.sb.skipped{background:rgba(139,92,246,.1);color:var(--vio2)}.sb.closed{background:rgba(148,163,184,.12);color:#cbd5e1}.sb.pending{background:rgba(245,158,11,.1);color:var(--amb2)}.sb.fulfilled{background:rgba(34,197,94,.1);color:var(--grn2)}.sb.broken{background:rgba(239,68,68,.1);color:var(--red2)}
 .toolbar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:1px solid var(--ln);flex-wrap:wrap}
 .filter-group{display:flex;align-items:center;gap:6px}.filter-label{font-size:9px;color:var(--dim);font-weight:800;letter-spacing:.08em;text-transform:uppercase;margin-right:1px}.filter-select{display:flex;align-items:center;gap:6px}.filter-select select{min-width:106px;padding:7px 25px 7px 9px;border:1px solid var(--ln2);border-radius:8px;background:var(--p2);color:var(--tx);font-size:11px;font-weight:700;cursor:pointer}.filter-select select:focus{outline:2px solid var(--grn);outline-offset:1px}
 .srch{flex:1;max-width:280px;min-width:140px}
@@ -298,6 +299,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
     <header class="top">
       <div class="crumb"><b id="ptitle">Overview</b><br><span id="psub">Revenue at a glance</span></div>
       <div class="top-r">
+        <span class="mode-chip">● Test mode</span>
         <button class="btn btn-g btn-sm" id="searchBtn" title="Command palette (Ctrl/⌘+K)">⌘K Search</button>
         <button class="btn btn-g btn-sm" id="themeBtn" title="Switch theme">☼ Light</button>
         <button class="btn btn-g btn-sm" id="seedBtn">Seed Data</button>
@@ -324,7 +326,7 @@ auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],bat
 /* Mirrors backend/app/config.py Settings exactly — not editable here, this
    panel just displays what the server actually enforces. */
 var POLICY={maxAmount:50000,maxRetries:2,rateExecute:'20/minute',rateDemo:'10/minute'};
-var TERMINAL_STATES=['recovered','blocked','needs_human_review','skipped'];
+var TERMINAL_STATES=['recovered','blocked','needs_human_review','skipped','awaiting_payment','closed'];
 function isTerminalCase(c){return !!c&&TERMINAL_STATES.indexOf(String(c.recovery_status||c.status||'').toLowerCase())!==-1;}
 // The Unicode rupee sign renders identically (and reads correctly aloud via
 // TTS) in every script -- unlike the Latin abbreviation "Rs.", which used to
@@ -386,7 +388,7 @@ var CATEGORY_META={
  bank_rejection:{code:'BANK_DECLINE',name:'Bank Rejection'},
  user_abandonment:{code:'ABANDON',name:'Checkout Abandoned'}
 };
-var STATUS_MAP={pending:'open',failed:'open',recovered:'recovered',awaiting_payment:'awaiting',needs_human_review:'escalated',blocked:'escalated',skipped:'skipped'};
+var STATUS_MAP={pending:'open',failed:'open',recovered:'recovered',awaiting_payment:'awaiting',needs_human_review:'escalated',blocked:'escalated',skipped:'skipped',closed:'closed'};
 function normalizeCase(item){
  var cm=CATEGORY_META[item.failure_category]||{code:'UNKNOWN',name:pretty(item.failure_category||'unknown')};
  var risk=(item.risk_level||'medium').toLowerCase();
@@ -744,8 +746,8 @@ function renderCaseBody(){
   h+='</tbody></table></div>';
  }else{
   h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px">';
-  [{n:'open',c:'#60a5fa'},{n:'awaiting',c:'#fbbf24'},{n:'escalated',c:'#f87171'},{n:'recovered',c:'#4ade80'},{n:'skipped',c:'#a78bfa'}].forEach(function(col){
-   var items=list.filter(function(c){return c.status===col.n;});
+  [{n:'open',c:'#60a5fa'},{n:'recovered',c:'#4ade80'},{n:'escalated',c:'#f87171'},{n:'closed',c:'#cbd5e1'}].forEach(function(col){
+   var items=list.filter(function(c){return col.n==='open'?(c.status==='open'||c.status==='awaiting'||c.status==='skipped'):c.status===col.n;});
    h+='<div style="background:var(--p1);border:1px solid var(--ln);border-radius:12px;padding:10px;min-height:200px"><div style="font-size:10px;font-weight:800;text-transform:uppercase;color:'+col.c+';padding:4px 6px 10px">'+col.n+' · '+items.length+'</div>';
    items.forEach(function(c){
     var isTerm=['recovered','blocked','needs_human_review','skipped'].indexOf(c.status)>-1||['recovered','blocked','needs_human_review','skipped'].indexOf(c.recovery_status)>-1;

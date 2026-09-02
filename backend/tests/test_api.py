@@ -227,9 +227,12 @@ def test_voice_follow_up_is_saved_for_human_review_case(client: TestClient):
     assert response.status_code == 200
     assert response.json()["status"] == "needs_human_review"
 
-    for event_type in ("voice_call_started", "voice_call_ended"):
+    for event_type, intent in (("voice_call_started", "DISCOVERY"), ("voice_call_ended", "MANUAL_END")):
         response = client.post(
             f"/api/cases/{case_id}/voice-events",
-            json={"event_type": event_type, "intent": "REQUEST_HUMAN", "language": "kn-IN"},
+                json={"event_type": event_type, "intent": intent, "language": "kn-IN"},
         )
         assert response.status_code == 200, response.json()
+
+    case = next(item for item in client.get("/api/cases", params={"limit": 100}).json()["items"] if item["id"] == case_id)
+    assert case["recovery_status"] == "closed"
