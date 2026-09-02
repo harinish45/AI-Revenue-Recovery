@@ -45,7 +45,7 @@ input,select{font-family:inherit;color:var(--tx)}
 .crumb b{font-size:15px;font-weight:700;font-family:var(--fd)}
 .crumb span{font-size:11px;color:var(--dim);font-family:var(--fm)}
 .top-r{margin-left:auto;display:flex;align-items:center;gap:6px}
-.mode-chip{font-size:11px;font-weight:700;color:#86efac;padding:6px 10px;border-radius:99px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.22);white-space:nowrap}.mode-chip:first-letter{color:#22c55e}
+.mode-wrap{position:relative}.mode-chip{font-size:11px;font-weight:700;color:#86efac;padding:6px 10px;border-radius:99px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.22);white-space:nowrap}.mode-chip:first-letter{color:#22c55e}.mode-chevron{margin-left:4px;color:var(--mut);font-size:13px}.mode-menu{display:none;position:absolute;right:0;top:38px;z-index:80;width:210px;padding:6px;background:var(--p1);border:1px solid var(--ln2);border-radius:9px;box-shadow:0 16px 40px rgba(0,0,0,.35)}.mode-menu.show{display:block}.mode-menu button{display:flex;flex-direction:column;align-items:flex-start;width:100%;padding:9px 10px;border-radius:6px;text-align:left;font-size:11px;font-weight:700}.mode-menu button small{margin-top:2px;color:var(--dim);font-size:9px;font-weight:500}.mode-selected{color:var(--grn2);background:rgba(34,197,94,.08)}.mode-disabled{color:var(--dim);cursor:not-allowed}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:700;border:1px solid transparent;transition:.12s;min-height:34px;white-space:nowrap;cursor:pointer}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .btn-p{background:var(--grn);color:#04150c}.btn-p:hover:not(:disabled){background:var(--grn2)}
@@ -278,17 +278,24 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
   <aside class="side">
     <div class="brand"><div><b>Recover<em>AI</em></b><br><span>Revenue Agent</span></div></div>
     <nav class="nav" id="nav" aria-label="Primary">
-      <span class="ncap">Main</span>
-      <button class="on" data-pg="overview" title="Overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg><span class="nl">Overview</span></button>
-      <button data-pg="cases" title="Cases"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg><span class="nl">Cases</span><span class="nbadge" id="qBadge">0</span></button>
-      <button data-pg="batch" title="Batch Run"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span class="nl">Batch Run</span></button>
-      <span class="ncap">Growth Suite</span>
-      <button data-pg="playbooks" title="Playbooks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l3 7h7l-5.5 4.5L18 21l-6-4-6 4 1.5-7.5L2 9h7z"/></svg><span class="nl">Playbooks</span></button>
-      <button data-pg="voice" title="Voice Agent"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v4"/><path d="M8 23h8"/></svg><span class="nl">Voice Agent</span></button>
-      <button data-pg="promises" title="Promises"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg><span class="nl">Promises</span></button>
-      <span class="ncap">System</span>
+      <span class="ncap">Payments</span>
+      <button class="on" data-pg="overview" title="Home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10M9 20v-6h6v6"/></svg><span class="nl">Home</span></button>
+      <button data-pg="cases" title="Transactions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16v14H4zM8 9h8M8 13h5"/></svg><span class="nl">Transactions</span><span class="nbadge" id="qBadge">0</span></button>
+      <button data-pg="settlements" title="Settlements"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7h18M5 4h14v16H5z"/><path d="M8 12h8M8 16h5"/></svg><span class="nl">Settlements</span></button>
+      <button data-pg="cases" title="Invoices"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span class="nl">Invoices</span></button>
+      <button data-pg="playbooks" title="Payment Links"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"/><path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1"/></svg><span class="nl">Payment Links</span></button>
+      <span class="ncap">Products</span>
+      <button data-pg="playbooks" title="Payment Pages"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 5h16v14H4zM8 9h8M8 13h4"/></svg><span class="nl">Payment Pages</span></button>
+      <button data-pg="playbooks" title="Route"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="6" cy="18" r="2"/><circle cx="18" cy="6" r="2"/><path d="M8 18h4a4 4 0 0 0 4-4V8"/></svg><span class="nl">Route</span></button>
+      <button data-pg="playbooks" title="Subscriptions"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/><circle cx="18" cy="17" r="3"/></svg><span class="nl">Subscriptions</span></button>
+      <button data-pg="voice" title="Smart Collect"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16v12H4zM8 10h8M8 14h5"/></svg><span class="nl">Smart Collect</span><span class="nbadge" style="color:#f472b6">AI</span></button>
+      <button data-pg="cases" title="Customers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3"/><path d="M5 20a7 7 0 0 1 14 0"/></svg><span class="nl">Customers</span></button>
+      <button data-pg="playbooks" title="Offers"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m20 13-7 7-9-9V4h7z"/><circle cx="7.5" cy="7.5" r="1"/></svg><span class="nl">Offers</span></button>
+      <span class="ncap">Manage</span>
+      <button data-pg="batch" title="Batch Run"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h10"/></svg><span class="nl">Batch Run</span></button>
+      <button data-pg="audit" title="Reports"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 19V5M4 19h16M8 15l3-4 3 2 4-6"/></svg><span class="nl">Reports</span></button>
       <button data-pg="audit" title="Audit Trail"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span class="nl">Audit Trail</span></button>
-      <button data-pg="settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg><span class="nl">Settings</span></button>
+      <button data-pg="settings" title="Account & Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="3"/><path d="M5 20a7 7 0 0 1 14 0M12 3v2M12 19v2"/></svg><span class="nl">Account & Settings</span></button>
     </nav>
     <div class="side-foot">
       <span class="conn demo" id="connWrap"><i></i><span id="connTxt">Probing…</span></span>
@@ -299,7 +306,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
     <header class="top">
       <div class="crumb"><b id="ptitle">Overview</b><br><span id="psub">Revenue at a glance</span></div>
       <div class="top-r">
-        <span class="mode-chip">● Test mode</span>
+        <div class="mode-wrap"><button class="mode-chip" id="modeBtn" aria-haspopup="menu" aria-expanded="false">● Test mode <span class="mode-chevron">⌄</span></button><div class="mode-menu" id="modeMenu" role="menu"><button class="mode-selected" id="modeTest" role="menuitem">✓ Test mode <small>Sandbox · no real money</small></button><button class="mode-disabled" disabled role="menuitem">Live mode <small>Unavailable in demo</small></button></div></div>
         <button class="btn btn-g btn-sm" id="searchBtn" title="Command palette (Ctrl/⌘+K)">⌘K Search</button>
         <button class="btn btn-g btn-sm" id="themeBtn" title="Switch theme">☼ Light</button>
         <button class="btn btn-g btn-sm" id="seedBtn">Seed Data</button>
@@ -646,7 +653,7 @@ function spark(data,color){
 function safeCopy(text){if(navigator.clipboard&&window.isSecureContext&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(function(){toast('s','Copied',text);},function(){fbCopy(text);});}else fbCopy(text);}
 function fbCopy(text){var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.top='0';ta.style.left='0';ta.style.opacity='0';ta.setAttribute('readonly','');document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,99999);try{var ok=document.execCommand('copy');if(ok)toast('s','Copied',text);else toast('w','Copy failed','');}catch(e){toast('w','Copy failed','');}document.body.removeChild(ta);}
 /* ═══ ROUTING ═══ */
-var META={overview:['Overview','Revenue at a glance'],cases:['Cases','Search, filter, execute'],batch:['Batch Run','Pipeline execution'],playbooks:['Playbooks','Autonomous strategies'],voice:['Voice Agent','Multi-language recovery'],promises:['Promises','Commitment tracking'],audit:['Audit Trail','Decision log'],settings:['Settings','Configuration']};
+var META={overview:['Home','Payments and recovery at a glance'],cases:['Transactions','Search, filter, execute'],settlements:['Settlements','Recovered revenue and settlement status'],batch:['Batch Run','Pipeline execution'],playbooks:['Playbooks','Autonomous strategies'],voice:['Smart Collect','AI voice recovery'],promises:['Promises','Commitment tracking'],audit:['Audit Trail','Transaction-linked decision log'],settings:['Account & Settings','Configuration and policy']};
 function go(page){
  if(S.page==='voice'&&page!=='voice'&&S.voiceActive){endCall('NAV_AWAY');}
  S.page=page;
@@ -660,6 +667,7 @@ function go(page){
  try{
   if(page==='overview')html=renderOverview();
   else if(page==='cases')html=renderCases();
+  else if(page==='settlements')html=renderSettlements();
   else if(page==='batch')html=renderBatch();
   else if(page==='playbooks')html=renderPlaybooks();
   else if(page==='voice')html=renderVoice();
@@ -675,6 +683,15 @@ function go(page){
 }
 function softGo(){if(S.page==='voice'&&S.voiceActive){renderVoiceChat();updateVoiceUI();return;}go(S.page);}
 /* ═══ RENDERERS ═══ */
+function renderSettlements(){
+ var recovered=S.cases.filter(function(c){return c.status==='recovered';});
+ var total=recovered.reduce(function(s,c){return s+c.recovered_amount;},0);
+ var h='<div class="kpis"><div class="kpi"><div class="kl">Settled cases</div><div class="kv" style="color:#4ade80">'+recovered.length+'</div><div class="ks">confirmed recovery</div></div><div class="kpi"><div class="kl">Settlement value</div><div class="kv" style="color:#4ade80">'+fmt(total)+'</div><div class="ks">sandbox estimate</div></div><div class="kpi"><div class="kl">Pending confirmation</div><div class="kv" style="color:#fbbf24">'+S.cases.filter(function(c){return c.status==='awaiting';}).length+'</div><div class="ks">provider callback pending</div></div><div class="kpi"><div class="kl">Environment</div><div class="kv" style="color:#60a5fa">TEST</div><div class="ks">no real money moves</div></div></div>';
+ h+='<div class="card"><div class="toolbar"><div class="srch"><input placeholder="Search settlements..." aria-label="Search settlements"></div><span class="hint" style="margin-left:auto">All settlement activity is linked to its transaction</span></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Settlement ID</th><th>Case</th><th>Customer</th><th>Amount</th><th>Status</th><th>Created</th></tr></thead><tbody>';
+ if(!recovered.length)h+='<tr><td colspan="6"><div class="empty"><h4>No settlements yet</h4><p>Recovered cases will appear here after a successful sandbox run.</p></div></td></tr>';
+ recovered.forEach(function(c){h+='<tr data-act="case-detail" data-id="'+c.id+'"><td class="mono" style="color:#60a5fa">stl_'+c.id.toLowerCase().replace(/[^a-z0-9]/g,'')+'</td><td class="mono">'+c.id+'</td><td>'+esc(c.customer)+'</td><td class="amt">'+fmt(c.recovered_amount)+'</td><td><span class="sb recovered"><i></i>Settled</span></td><td>'+esc(c.created)+'</td></tr>';});
+ h+='</tbody></table></div></div><div class="card"><div class="chead"><h3>Settlement controls</h3><span class="hint">sandbox only</span></div><div class="cbody" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-g" data-act="export-report">Export report</button><button class="btn btn-g" data-act="go" data-pg="audit">View transaction audit</button></div></div>';return h;
+}
 function renderOverview(){
  var open=S.cases.filter(function(c){return c.status==='open';});
  var atRisk=S.dashboard?S.dashboard.revenue_at_risk:open.reduce(function(s,c){return s+c.amount;},0);
@@ -1448,6 +1465,8 @@ document.addEventListener('click',function(e){
  if(e.target.id==='palOvl'){closePal();return;}
  if(e.target.id==='execOvl'){closeExec();return;}
  if(e.target.id==='themeBtn'){toggleTheme();return;}
+ if(e.target.id==='modeBtn'){var mm=document.getElementById('modeMenu');if(mm)mm.classList.toggle('show');e.target.setAttribute('aria-expanded',mm&&mm.classList.contains('show'));return;}
+ if(!e.target.closest('.mode-wrap')){var openMode=document.getElementById('modeMenu');if(openMode)openMode.classList.remove('show');}
  if(e.target.closest('button:disabled'))return;
  var navBtn=e.target.closest('.nav button[data-pg]');
  if(navBtn){go(navBtn.dataset.pg);return;}
