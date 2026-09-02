@@ -46,6 +46,7 @@ input,select{font-family:inherit;color:var(--tx)}
 .crumb span{font-size:11px;color:var(--dim);font-family:var(--fm)}
 .top-r{margin-left:auto;display:flex;align-items:center;gap:6px}
 .mode-wrap{position:relative}.mode-chip{font-size:11px;font-weight:700;color:#86efac;padding:6px 10px;border-radius:99px;background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.22);white-space:nowrap}.mode-chip:first-letter{color:#22c55e}.mode-chevron{margin-left:4px;color:var(--mut);font-size:13px}.mode-menu{display:none;position:absolute;right:0;top:38px;z-index:80;width:210px;padding:6px;background:var(--p1);border:1px solid var(--ln2);border-radius:9px;box-shadow:0 16px 40px rgba(0,0,0,.35)}.mode-menu.show{display:block}.mode-menu button{display:flex;flex-direction:column;align-items:flex-start;width:100%;padding:9px 10px;border-radius:6px;text-align:left;font-size:11px;font-weight:700}.mode-menu button small{margin-top:2px;color:var(--dim);font-size:9px;font-weight:500}.mode-selected{color:var(--grn2);background:rgba(34,197,94,.08)}.mode-disabled{color:var(--dim);cursor:not-allowed}
+.product-hero{display:flex;align-items:center;justify-content:space-between;gap:20px;padding:24px 28px;background:linear-gradient(110deg,var(--p1),rgba(59,130,246,.09));border-left:3px solid var(--blu2)}.product-hero h2{font-family:var(--fd);font-size:25px;letter-spacing:-.04em;margin:5px 0}.product-hero p{color:var(--mut);font-size:13px}.product-hero small{display:block;color:var(--dim);font-size:11px;margin-top:5px}.eyebrow{font-family:var(--fm);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--blu2)}.product-hero-actions{display:flex;align-items:center;gap:8px;flex:none}.product-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}.product-tile{display:flex;flex-direction:column;align-items:flex-start;gap:7px;padding:16px;text-align:left;background:var(--p2);border:1px solid var(--ln2);border-radius:9px;min-height:105px}.product-tile:hover{border-color:var(--blu2);transform:translateY(-1px)}.product-tile b{font-family:var(--fd);font-size:13px}.product-tile small{color:var(--mut);font-size:11px;line-height:1.5}.product-tile .btn{margin-top:auto}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:8px 14px;border-radius:8px;font-size:12.5px;font-weight:700;border:1px solid transparent;transition:.12s;min-height:34px;white-space:nowrap;cursor:pointer}
 .btn:disabled{opacity:.4;cursor:not-allowed}
 .btn-p{background:var(--grn);color:#04150c}.btn-p:hover:not(:disabled){background:var(--grn2)}
@@ -669,13 +670,13 @@ function go(page){
  var html='';
  try{
   if(page==='overview')html=renderOverview();
-  else if(page==='cases')html=renderCases();
+  else if(page==='cases')html=(S.navKey==='Invoices'||S.navKey==='Customers')?renderProductSection(S.navKey):renderCases();
   else if(page==='settlements')html=renderSettlements();
   else if(page==='batch')html=renderBatch();
-  else if(page==='playbooks')html=renderPlaybooks();
+  else if(page==='playbooks')html=(S.navKey&&S.navKey!=='Subscriptions')?renderProductSection(S.navKey):renderPlaybooks();
   else if(page==='voice')html=renderVoice();
   else if(page==='promises')html=renderPromises();
-  else if(page==='audit')html=renderAudit();
+  else if(page==='audit')html=S.navKey==='Reports'?renderProductSection('Reports'):renderAudit();
   else if(page==='settings')html=renderSettings();
  }catch(err){html='<div class="card"><div class="cbody"><b style="color:#f87171">Render error:</b> '+esc(err.message)+'</div></div>';}
  document.getElementById('content').innerHTML=html;
@@ -686,6 +687,23 @@ function go(page){
 }
 function softGo(){if(S.page==='voice'&&S.voiceActive){renderVoiceChat();updateVoiceUI();return;}go(S.page);}
 /* ═══ RENDERERS ═══ */
+function renderProductSection(section){
+ var open=S.cases.filter(function(c){return c.status==='open'||c.status==='awaiting';}), recovered=S.cases.filter(function(c){return c.status==='recovered';});
+ var copy={Invoices:['Invoices','Track recovery-linked invoices and payment outcomes.','Invoice records are derived from the real recovery case ledger.'],Customers:['Customers','Customer profiles connected to payment recovery cases.','Open a customer to inspect risk, diagnosis, and the full audit history.'],Reports:['Reports','Operational reporting across payments, recovery, and settlements.','Export the current audit trail or inspect the batch performance view.'],'Payment Links':['Payment Links','Create and manage recovery payment paths.','Use the recovery playbooks to send a safe payment link after policy checks.'],'Payment Pages':['Payment Pages','Hosted payment experiences for recovery journeys.','Open Playbooks to configure the next customer-facing recovery action.'],Route:['Route','Route recovery cases to the right intervention path.','Policy rules decide whether a case is recovered, skipped, or escalated.'],Subscriptions:['Subscriptions','Recurring recovery playbooks and scheduled follow-ups.','Configure bounded retry and voice strategies from Playbooks.'],Offers:['Offers','Offer a lower-friction recovery option without bypassing policy.','Every offer remains sandbox-only and is recorded in the audit trail.']}[section]||[section,'RecoverAI product workspace','All actions remain sandboxed, policy-gated, and auditable.'];
+ var h='<div class="product-hero card"><div><span class="eyebrow">Razorpay-style workspace · RecoverAI</span><h2>'+copy[0]+'</h2><p>'+copy[1]+'</p><small>'+copy[2]+'</small></div><div class="product-hero-actions"><span class="mode-chip">● Test mode</span><button class="btn btn-p" data-act="go" data-pg="'+(section==='Customers'||section==='Invoices'?'cases':section==='Reports'?'audit':'playbooks')+'">Open workspace</button></div></div>';
+ h+='<div class="kpis"><div class="kpi"><div class="kl">Open pipeline</div><div class="kv" style="color:#60a5fa">'+open.length+'</div><div class="ks">eligible and awaiting</div></div><div class="kpi"><div class="kl">Recovered</div><div class="kv" style="color:#4ade80">'+recovered.length+'</div><div class="ks">measured outcomes</div></div><div class="kpi"><div class="kl">Human review</div><div class="kv" style="color:#f87171">'+S.cases.filter(function(c){return c.status==='escalated';}).length+'</div><div class="ks">operator queue</div></div><div class="kpi"><div class="kl">Audit events</div><div class="kv" style="color:#a78bfa">'+S.audit.length+'</div><div class="ks">sealed records</div></div></div>';
+ if(section==='Customers'||section==='Invoices'){
+  var rows=section==='Customers'?S.cases.filter(function(c,i,a){return a.findIndex(function(x){return x.customer===c.customer;})===i;}):S.cases;
+  h+='<div class="card"><div class="toolbar"><div class="srch"><input placeholder="Search '+section.toLowerCase()+'..." aria-label="Search '+section+'"></div><span class="hint" style="margin-left:auto">'+rows.length+' records</span></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>'+ (section==='Customers'?'Customer':'Invoice ID')+'</th><th>Case</th><th>Amount</th><th>Risk</th><th>Status</th><th></th></tr></thead><tbody>';
+  rows.slice(0,100).forEach(function(c){h+='<tr data-act="case-detail" data-id="'+c.id+'"><td><div class="cust"><div class="ava">'+esc(c.customer.split(' ').map(function(w){return w[0];}).join(''))+'</div><div><b>'+esc(section==='Customers'?c.customer:'INV-'+c.id)+'</b><span>'+esc(c.customer)+'</span></div></div></td><td class="mono">'+c.id+'</td><td class="amt">'+fmt(c.amount)+'</td><td><span class="rb '+c.risk+'"><i></i>'+c.risk+'</span></td><td><span class="sb '+c.status+'"><i></i>'+pretty(c.status)+'</span></td><td><button class="btn btn-g btn-sm" data-act="case-detail" data-id="'+c.id+'">View</button></td></tr>';});
+  h+='</tbody></table></div></div>';
+ }else if(section==='Reports'){
+  h+='<div class="card"><div class="chead"><h3>Report center</h3><span class="hint">sandbox data only</span></div><div class="cbody" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><button class="product-tile" data-act="go" data-pg="batch"><b>Batch performance</b><small>Recovered, awaiting, skipped and escalated cases</small></button><button class="product-tile" data-act="go" data-pg="audit"><b>Audit export</b><small>Download the sealed transaction decision trail</small></button><button class="product-tile" data-act="go" data-pg="settlements"><b>Settlement report</b><small>Recovered value linked back to cases</small></button></div></div>';
+ }else{
+  h+='<div class="card"><div class="chead"><h3>'+copy[0]+' controls</h3><span class="hint">policy-gated actions</span></div><div class="cbody product-grid"><div class="product-tile"><b>Ready to configure</b><small>Sandbox workflows are enabled. No real payment is created.</small><button class="btn btn-p btn-sm" data-act="go" data-pg="playbooks">Open Playbooks</button></div><div class="product-tile"><b>Customer context</b><small>Review cases and select a customer before taking an action.</small><button class="btn btn-g btn-sm" data-act="go" data-pg="cases">Open Transactions</button></div><div class="product-tile"><b>Audit by default</b><small>Every meaningful action is sealed to the transaction audit trail.</small><button class="btn btn-g btn-sm" data-act="go" data-pg="audit">View Audit Trail</button></div></div></div>';
+ }
+ return h;
+}
 function renderSettlements(){
  var recovered=S.cases.filter(function(c){return c.status==='recovered';});
  var total=recovered.reduce(function(s,c){return s+c.recovered_amount;},0);
@@ -1476,7 +1494,7 @@ document.addEventListener('click',function(e){
  var act=e.target.closest('[data-act]');
  if(act){
   var a=act.dataset.act,id=act.dataset.id,pg=act.dataset.pg,risk=act.dataset.risk,lang=act.dataset.lang,txt=act.dataset.text,view=act.dataset.view,type=act.dataset.type;
-  if(a==='go')go(pg);
+  if(a==='go'){S.navKey=null;go(pg);}
   else if(a==='run-batch')runBatch();
   else if(a==='toggle-pause')togglePause();
   else if(a==='toggle-arm')toggleArm();
