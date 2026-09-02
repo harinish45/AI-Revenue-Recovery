@@ -316,7 +316,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
    field names the render*() functions below expect). Nothing here is
    client-generated — see Api + normalizeCase/normalizeAuditEntry. */
 var S={page:'overview',cases:[],audit:[],dashboard:null,live:false,loading:true,loadError:null,armed:false,running:false,filter:'all',statusFilter:'all',search:'',caseView:'table',
-voiceCase:null,voiceSearch:'',voiceLang:'hi-IN',voiceActive:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceBusy:false,voiceTimer:null,voiceStartTime:0,voiceConsent:false,voiceConfidence:0,voiceIntent:'DISCOVERY',voiceVoiceName:'Browser voice',voiceTurn:0,voiceUnclearStreak:0,voiceLastSpeechEndedAt:0,voiceLastAgentSpeech:'',voiceLastAgentSpeechAt:0,
+voiceCase:null,voiceSearch:'',voiceLang:'hi-IN',voiceActive:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceBusy:false,voiceTimer:null,voiceStartTime:0,voiceConsent:false,voiceConfidence:0,voiceIntent:'DISCOVERY',voiceVoiceName:'Browser voice',voiceTurn:0,voiceUnclearStreak:0,voiceLastSpeechEndedAt:0,voiceLastAgentSpeech:'',voiceLastAgentSpeechAt:0,voiceListeningToken:0,
 auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,agentPaused:false,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
 /* Mirrors backend/app/config.py Settings exactly — not editable here, this
    panel just displays what the server actually enforces. */
@@ -1138,6 +1138,7 @@ function voiceDiagnostics(){
  return {label:v.name+' ('+v.lang+')'+(v.lang===S.voiceLang?'':' — closest available match'),exact:v.lang===S.voiceLang,usable:true};
 }
 function speakText(text,cb){
+ stopListening();
  if(!window.speechSynthesis){if(cb)cb();return;}
  var done=false;
  function finish(){if(done)return;done=true;S.voiceSpeaking=false;S.voiceLastSpeechEndedAt=Date.now();updateVoiceUI();if(cb)cb();}
@@ -1200,22 +1201,33 @@ function startListening(languageAttempt){
  if(settleMs>0){setTimeout(function(){if(S.voiceActive&&!S.voiceBusy)startListening(languageAttempt);},settleMs);return;}
  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!SR){toast('w','No STT','Use Chrome or type below');return;}
- if(recog){try{recog.stop();}catch(e){}}
+ stopListening();
  // Some Edge speech services accept the primary language subtag more
  // reliably than the regional BCP-47 tag. Try the regional tag first, then
  // retry once with the primary tag when the service explicitly rejects it.
  var fullLang=S.voiceLang,primaryLang=S.voiceLang.split('-')[0];
  var recognitionLang=languageAttempt||fullLang;
+ var listeningToken=++S.voiceListeningToken;
  recog=new SR();recog.lang=recognitionLang;recog.interimResults=true;recog.continuous=false;
- recog.onstart=function(){S.voiceListening=true;updateVoiceUI();};
+ recog.onstart=function(){if(listeningToken!==S.voiceListeningToken)return;S.voiceListening=true;updateVoiceUI();};
  recog.onresult=function(e){
- var t='';for(var i=0;i<e.results.length;i++){t+=e.results[i][0].transcript;}
+  if(listeningToken!==S.voiceListeningToken)return;
+  var t='';for(var i=0;i<e.results.length;i++){t+=e.results[i][0].transcript;}
   var el=document.getElementById('vinterim');
   var isFinal=e.results[e.results.length-1].isFinal;
   if(el&&!isFinal)el.textContent='"'+t+'"';
   // Discard a final result if the agent has started talking again or is
   // already processing a turn -- otherwise this is the self-answering bug.
-  if(isFinal){S.voiceListening=false;updateVoiceUI();if(Date.now()-S.voiceLastSpeechEndedAt<1200||S.voiceSpeaking||S.voiceBusy)return;if(t.trim())voiceUserSaid(t);}
+  if(isFinal){
+   // Invalidate this recognizer before handling the phrase. The browser can
+   // otherwise deliver a late result after TTS starts, which makes the agent
+   // hear its own sentence and append it to the customer transcript.
+   S.voiceListeningToken++;S.voiceListening=false;
+   try{recog.stop();}catch(err){}
+   updateVoiceUI();
+   if(Date.now()-S.voiceLastSpeechEndedAt<1200||S.voiceSpeaking||S.voiceBusy)return;
+   if(t.trim())voiceUserSaid(t);
+  }
  };
  recog.onerror=function(e){
   S.voiceListening=false;updateVoiceUI();
@@ -1291,6 +1303,7 @@ function voiceUserSaid(text){
  // recognition result arriving mid-turn would each schedule their own
  // agent reply, so the transcript visibly repeats and answers itself.
  if(!S.voiceActive||S.voiceBusy||!text||!text.trim())return;
+ stopListening();
  // Do not treat a transcript that matches the agent's immediately preceding
  // utterance as customer input. This protects against Edge returning the
  // agent's final TTS audio as a late recognition result.
@@ -1376,7 +1389,8 @@ function endCall(outcome,lastUtterance){
   toast(isPromise?'s':(outcome==='SOFT_REFUSAL'||isDispute)?'w':'i','Call Ended',oc[outcome]||outcome.replace(/_/g,' '));
  }
 }
-function cleanupVoice(){if(window.speechSynthesis){try{speechSynthesis.cancel();}catch(e){}}if(recog){try{recog.stop();}catch(e){}}if(S.voiceTimer){clearInterval(S.voiceTimer);S.voiceTimer=null;}}
+function stopListening(){S.voiceListeningToken++;S.voiceListening=false;if(recog){recog.onresult=null;recog.onerror=null;try{recog.stop();}catch(e){}recog=null;}updateVoiceUI();}
+function cleanupVoice(){if(window.speechSynthesis){try{speechSynthesis.cancel();}catch(e){}}stopListening();if(S.voiceTimer){clearInterval(S.voiceTimer);S.voiceTimer=null;}}
 /* ═══ PALETTE ═══ */
 var palIdx=0;
 function buildCmds(){
