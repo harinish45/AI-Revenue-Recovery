@@ -316,7 +316,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
    field names the render*() functions below expect). Nothing here is
    client-generated — see Api + normalizeCase/normalizeAuditEntry. */
 var S={page:'overview',cases:[],audit:[],dashboard:null,live:false,loading:true,loadError:null,armed:false,running:false,filter:'all',statusFilter:'all',search:'',caseView:'table',
-voiceCase:null,voiceSearch:'',voiceLang:'hi-IN',voiceActive:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceBusy:false,voiceTimer:null,voiceStartTime:0,voiceConsent:false,voiceConfidence:0,voiceIntent:'DISCOVERY',voiceVoiceName:'Browser voice',voiceTurn:0,voiceUnclearStreak:0,voiceLastSpeechEndedAt:0,voiceLastAgentSpeech:'',voiceLastAgentSpeechAt:0,voiceListeningToken:0,
+voiceCase:null,voiceSearch:'',voiceLang:'hi-IN',voiceActive:false,voiceEnding:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceBusy:false,voiceTimer:null,voiceStartTime:0,voiceConsent:false,voiceConfidence:0,voiceIntent:'DISCOVERY',voiceVoiceName:'Browser voice',voiceTurn:0,voiceUnclearStreak:0,voiceLastSpeechEndedAt:0,voiceLastAgentSpeech:'',voiceLastAgentSpeechAt:0,voiceListeningToken:0,
 auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,agentPaused:false,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
 /* Mirrors backend/app/config.py Settings exactly — not editable here, this
    panel just displays what the server actually enforces. */
@@ -1350,7 +1350,7 @@ function startVoiceCall(){
  var c=S.cases.find(function(x){return x.id===S.voiceCase;});
  if(!c){toast('w','Select Case','Choose a case first');return;}
  if(!S.voiceConsent){toast('w','Consent required','Confirm the simulated-call disclosure before starting.');return;}
- cleanupVoice();S.voiceActive=true;S.voiceBusy=false;S.voiceMsgs=[];S.voiceStage='greeting';S.voiceIntent='DISCOVERY';S.voiceConfidence=.9;S.voiceTurn=0;S.voiceUnclearStreak=0;S.voiceStartTime=Date.now();
+ cleanupVoice();S.voiceActive=true;S.voiceEnding=false;S.voiceBusy=false;S.voiceMsgs=[];S.voiceStage='greeting';S.voiceIntent='DISCOVERY';S.voiceConfidence=.9;S.voiceTurn=0;S.voiceUnclearStreak=0;S.voiceStartTime=Date.now();
  go('voice');
  Api.recordVoiceEvent(c.id,{event_type:'voice_call_started',language:S.voiceLang,confidence:S.voiceConfidence,consent_confirmed:S.voiceConsent}).catch(function(err){console.warn('voice_call_started not recorded',err);});
  setTimeout(function(){
@@ -1370,7 +1370,7 @@ function startVoiceTimer(){
  },1000);
 }
 function endCall(outcome,lastUtterance){
- if(!S.voiceActive)return;cleanupVoice();S.voiceActive=false;S.voiceListening=false;S.voiceSpeaking=false;S.voiceBusy=false;
+ if(!S.voiceActive||S.voiceEnding)return;S.voiceEnding=true;cleanupVoice();S.voiceActive=false;S.voiceListening=false;S.voiceSpeaking=false;S.voiceBusy=false;
  var c=S.cases.find(function(x){return x.id===S.voiceCase;});
  if(c){
   var oc={PROMISE_TO_PAY:'Payment committed',PARTIAL_PAYMENT:'Partial payment committed',REQUEST_HUMAN:'Escalated to human agent',LINK_SENT:'Link sent',CALLBACK_SCHEDULED:'Callback scheduled',CALLBACK_LATER:'Callback requested',SOFT_REFUSAL:'Customer refused',CONSENT_DECLINED:'Customer did not consent',DISPUTE_RAISED:'Dispute raised for review',COMPLETED:'Call completed',NAV_AWAY:'Ended (navigation)',MANUAL_END:'Ended by operator'};
@@ -1381,13 +1381,16 @@ function endCall(outcome,lastUtterance){
   // materially different, audit-worthy outcome from a generic "call ended",
   // so it gets routed to its own event type instead of being lumped in.
   var eventType=isPromise?'voice_promise_captured':(isDispute?'voice_dispute_raised':'voice_call_ended');
+  // Leave the active call screen immediately. Audit persistence is a
+  // follow-up and must never trap the operator in an ended call.
+  softGo();
   Api.recordVoiceEvent(c.id,{event_type:eventType,intent:outcome,language:S.voiceLang,confidence:S.voiceConfidence,consent_confirmed:S.voiceConsent,transcript:lastUtterance||oc[outcome]||outcome}).then(function(){
    return refreshCasesAndAudit();
   }).then(function(){
-   refreshDashboard();softGo();
-  }).catch(function(err){console.warn('voice event not recorded',err);toast('e','Call not saved','The call ended, but its outcome could not be written to the audit trail.');});
+   refreshDashboard();softGo();S.voiceEnding=false;
+  }).catch(function(err){console.warn('voice event not recorded',err);S.voiceEnding=false;toast('e','Call not saved','The call ended, but its outcome could not be written to the audit trail.');});
   toast(isPromise?'s':(outcome==='SOFT_REFUSAL'||isDispute)?'w':'i','Call Ended',oc[outcome]||outcome.replace(/_/g,' '));
- }
+ } else {S.voiceEnding=false;softGo();}
 }
 function stopListening(){S.voiceListeningToken++;S.voiceListening=false;if(recog){recog.onresult=null;recog.onerror=null;try{recog.stop();}catch(e){}recog=null;}updateVoiceUI();}
 function cleanupVoice(){if(window.speechSynthesis){try{speechSynthesis.cancel();}catch(e){}}stopListening();if(S.voiceTimer){clearInterval(S.voiceTimer);S.voiceTimer=null;}}

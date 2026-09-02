@@ -29,7 +29,12 @@ def record_voice_event(
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
 
-    if str(case.recovery_status or "").lower() in TERMINAL_STATES:
+    recovery_status = str(case.recovery_status or "").lower()
+    # Human-review and blocked cases are intentionally available in the
+    # cockpit for a compliant operator follow-up.  They are terminal for the
+    # automated recovery policy, but not terminal for audit-only voice work.
+    voice_follow_up_states = {"needs_human_review", "blocked"}
+    if recovery_status in TERMINAL_STATES and recovery_status not in voice_follow_up_states:
         raise HTTPException(
             status_code=409,
             detail=f"Case is already {case.recovery_status}",

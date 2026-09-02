@@ -210,3 +210,26 @@ def test_voice_event_rejected_on_terminal_case(client: TestClient):
     body = response.json()
     msg = body.get("error", {}).get("message", "") or body.get("detail", "")
     assert "already" in msg.lower()
+
+
+def test_voice_follow_up_is_saved_for_human_review_case(client: TestClient):
+    """Review cases remain callable so the operator can complete the audit trail."""
+    client.post("/api/demo/seed")
+    response = client.post("/api/demo/simulate-failure")
+    assert response.status_code == 200
+    case_id = response.json()["case_id"]
+    assert response.json()["status"] == "armed"
+    response = client.post(
+        "/api/execution/execute",
+        json={"case_id": case_id},
+        headers={"Idempotency-Key": f"qa-voice-review-{case_id}"},
+    )
+    assert response.status_code == 200
+    assert response.json()["status"] == "needs_human_review"
+
+    for event_type in ("voice_call_started", "voice_call_ended"):
+        response = client.post(
+            f"/api/cases/{case_id}/voice-events",
+            json={"event_type": event_type, "intent": "REQUEST_HUMAN", "language": "kn-IN"},
+        )
+        assert response.status_code == 200, response.json()
