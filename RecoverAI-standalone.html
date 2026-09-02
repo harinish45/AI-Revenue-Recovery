@@ -316,7 +316,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
    field names the render*() functions below expect). Nothing here is
    client-generated — see Api + normalizeCase/normalizeAuditEntry. */
 var S={page:'overview',cases:[],audit:[],dashboard:null,live:false,loading:true,loadError:null,armed:false,running:false,filter:'all',statusFilter:'all',search:'',caseView:'table',
-voiceCase:null,voiceSearch:'',voiceLang:'hi-IN',voiceActive:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceBusy:false,voiceTimer:null,voiceStartTime:0,voiceConsent:false,voiceConfidence:0,voiceIntent:'DISCOVERY',voiceVoiceName:'Browser voice',voiceTurn:0,voiceUnclearStreak:0,
+voiceCase:null,voiceSearch:'',voiceLang:'hi-IN',voiceActive:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceBusy:false,voiceTimer:null,voiceStartTime:0,voiceConsent:false,voiceConfidence:0,voiceIntent:'DISCOVERY',voiceVoiceName:'Browser voice',voiceTurn:0,voiceUnclearStreak:0,voiceLastSpeechEndedAt:0,voiceLastAgentSpeech:'',voiceLastAgentSpeechAt:0,
 auditFilter:'all',auditSearch:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,agentPaused:false,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
 /* Mirrors backend/app/config.py Settings exactly — not editable here, this
    panel just displays what the server actually enforces. */
@@ -541,7 +541,7 @@ var VOICE_BRAIN={
   quickReplies:['ஆம், சொல்லுங்கள்','பணம் இல்லை','பாதி இப்போது தருவேன்','மனிதரிடம் பேச வேண்டும்','பின்னர் அழையுங்கள்','இணைப்பு அனுப்புங்கள்','ஏற்கனவே கட்டிவிட்டேன்']},
  'kn-IN':{label:'Kannada',name:'Kannada',
   greeting:function(c){return 'ನಮಸ್ಕಾರ '+c.customer.split(' ')[0]+', ನಾನು RecoverAI ತಂಡದಿಂದ ಮಾತನಾಡುತ್ತಿದ್ದೇನೆ. ನಿಮ್ಮ ಬಾಕಿ ಪಾವತಿ ಬಗ್ಗೆ ಮಾತನಾಡಲು ಎರಡು ನಿಮಿಷ ಇದೆಯಾ?';},
-  context:function(c){return 'ಸರ್, ನಿಮ್ಮ '+fmtINR(c.amount)+' ಪಾವತಿ ಆಗಲಿಲ್ಲ, ಕಾರಣ '+reasonLabel('kn-IN',c.category.name)+'.';},
+  context:function(c){return 'ಸರ್, ನಿಮ್ಮ '+fmtINR(c.amount)+' ಪಾವತಿ ಆಗಲಿಲ್ಲ. ಕಾರಣ: '+reasonLabel('kn-IN',c.category.name)+'.';},
   patterns:[
    {m:['ಹೌದು','ಸರಿ','ಖಂಡಿತ','haudu','sari','ok','madtini'],r:function(){return{say:'ಧನ್ಯವಾದ! ನಾನು ಈಗ ಸುರಕ್ಷಿತ ಪಾವತಿ ಲಿಂಕ್ ಅನ್ನು ನಿಮ್ಮ ಫೋನ್‌ಗೆ ಕಳುಹಿಸುತ್ತಿದ್ದೇನೆ.',stage:'link_sent',outcome:'PROMISE_TO_PAY'};}},
    {m:['ಅರ್ಧ','ಕಂತುಗಳಲ್ಲಿ','ardha hana','partial','installment'],r:function(){return{say:'ಖಂಡಿತ ಸರ್, ನೀವು ಈಗ ಅರ್ಧ ಮತ್ತು ಉಳಿದದ್ದು ನಂತರ ಕೊಡಬಹುದು. ನಾನು ಭಾಗಶಃ ಪಾವತಿ ಲಿಂಕ್ ಕಳುಹಿಸುತ್ತೇನೆ.',stage:'closed',outcome:'PARTIAL_PAYMENT'};}},
@@ -1140,7 +1140,7 @@ function voiceDiagnostics(){
 function speakText(text,cb){
  if(!window.speechSynthesis){if(cb)cb();return;}
  var done=false;
- function finish(){if(done)return;done=true;S.voiceSpeaking=false;updateVoiceUI();if(cb)cb();}
+ function finish(){if(done)return;done=true;S.voiceSpeaking=false;S.voiceLastSpeechEndedAt=Date.now();updateVoiceUI();if(cb)cb();}
  try{speechSynthesis.cancel();}catch(e){}
  // Commit to "speaking" immediately, not just inside onstart: Chrome can
  // silently drop an utterance queued in the same tick as cancel(), and the
@@ -1192,6 +1192,12 @@ function startListening(languageAttempt){
  // mic pick up the agent's own TTS output (or a stray late result) and feed
  // it straight back in as if the customer said it -- the self-answering loop.
  if(S.voiceSpeaking||S.voiceBusy)return;
+ // Let the microphone settle after TTS ends. Edge can deliver a final
+ // recognition event for the agent's own last words a moment after audio
+ // playback finishes; opening immediately can turn that into a fake customer
+ // reply and make the agent answer itself.
+ var settleMs=1200-(Date.now()-S.voiceLastSpeechEndedAt);
+ if(settleMs>0){setTimeout(function(){if(S.voiceActive&&!S.voiceBusy)startListening(languageAttempt);},settleMs);return;}
  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
  if(!SR){toast('w','No STT','Use Chrome or type below');return;}
  if(recog){try{recog.stop();}catch(e){}}
@@ -1203,13 +1209,13 @@ function startListening(languageAttempt){
  recog=new SR();recog.lang=recognitionLang;recog.interimResults=true;recog.continuous=false;
  recog.onstart=function(){S.voiceListening=true;updateVoiceUI();};
  recog.onresult=function(e){
-  var t='';for(var i=0;i<e.results.length;i++){t+=e.results[i][0].transcript;}
+ var t='';for(var i=0;i<e.results.length;i++){t+=e.results[i][0].transcript;}
   var el=document.getElementById('vinterim');
   var isFinal=e.results[e.results.length-1].isFinal;
   if(el&&!isFinal)el.textContent='"'+t+'"';
   // Discard a final result if the agent has started talking again or is
   // already processing a turn -- otherwise this is the self-answering bug.
-  if(isFinal){S.voiceListening=false;updateVoiceUI();if(!S.voiceSpeaking&&!S.voiceBusy)voiceUserSaid(t);}
+  if(isFinal){S.voiceListening=false;updateVoiceUI();if(Date.now()-S.voiceLastSpeechEndedAt<1200||S.voiceSpeaking||S.voiceBusy)return;if(t.trim())voiceUserSaid(t);}
  };
  recog.onerror=function(e){
   S.voiceListening=false;updateVoiceUI();
@@ -1285,6 +1291,10 @@ function voiceUserSaid(text){
  // recognition result arriving mid-turn would each schedule their own
  // agent reply, so the transcript visibly repeats and answers itself.
  if(!S.voiceActive||S.voiceBusy||!text||!text.trim())return;
+ // Do not treat a transcript that matches the agent's immediately preceding
+ // utterance as customer input. This protects against Edge returning the
+ // agent's final TTS audio as a late recognition result.
+ if(S.voiceLastAgentSpeech&&Date.now()-S.voiceLastAgentSpeechAt<12000&&norm(text)===norm(S.voiceLastAgentSpeech))return;
  S.voiceBusy=true;updateVoiceUI();
  S.voiceMsgs.push({role:'user',text:text});S.voiceTurn++;renderVoiceChat();
  var inter=document.getElementById('vinterim');if(inter)inter.textContent='';
@@ -1318,7 +1328,7 @@ function voiceUserSaid(text){
  }
  setTimeout(function(){
   if(!S.voiceActive){S.voiceBusy=false;return;}
-  S.voiceBusy=false;S.voiceMsgs.push({role:'agent',text:resp.say});S.voiceStage=resp.stage||'objection';renderVoiceChat();
+  S.voiceBusy=false;S.voiceMsgs.push({role:'agent',text:resp.say});S.voiceStage=resp.stage||'objection';S.voiceLastAgentSpeech=resp.say;S.voiceLastAgentSpeechAt=Date.now();renderVoiceChat();
   if(resp.stage==='closed'){speakText(resp.say,function(){setTimeout(function(){endCall(resp.outcome||'COMPLETED',text);},800);});}
   else{speakText(resp.say,function(){if(S.voiceActive&&!S.voiceBusy)setTimeout(startListening,600);});}
  },500);
@@ -1333,7 +1343,7 @@ function startVoiceCall(){
  setTimeout(function(){
   if(!S.voiceActive)return;
   var brain=VOICE_BRAIN[S.voiceLang];var resp={say:brain.greeting(c),stage:'context'};
-  S.voiceMsgs.push({role:'agent',text:resp.say});S.voiceStage='permission';renderVoiceChat();
+  S.voiceMsgs.push({role:'agent',text:resp.say});S.voiceStage='permission';S.voiceLastAgentSpeech=resp.say;S.voiceLastAgentSpeechAt=Date.now();renderVoiceChat();
   speakText(resp.say,function(){if(S.voiceActive)setTimeout(startListening,600);});
  },100);
  toast('i','Call Started',VOICE_BRAIN[S.voiceLang].name+' agent active');startVoiceTimer();
