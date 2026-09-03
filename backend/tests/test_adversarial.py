@@ -228,6 +228,41 @@ def test_payment_link_does_not_claim_revenue_until_confirmed(client: TestClient,
     assert confirmed.json()["recovered_amount"] == case.amount_at_risk
 
 
+def test_real_razorpay_webhook_shape_confirms_payment(client: TestClient, db_session):
+    """A real Razorpay payment_link.paid delivery nests the payment id under
+    payload.payment.entity.id and carries its event id in the
+    X-Razorpay-Event-Id header -- not payload.payment.id / payload.id, which
+    is this app's own simplified demo/test shape. Both must work; this proves
+    the real shape actually confirms revenue, not just the demo shortcut."""
+    items = _seed(client)
+    case_id = next(c["id"] for c in items if c["recommended_action"] == "payment_link")
+    payment_id = next(c["payment_id"] for c in items if c["id"] == case_id)
+    assert _execute(client, case_id, "adv-real-webhook").json()["status"] == "awaiting_payment"
+
+    response = client.post(
+        "/api/webhooks/razorpay",
+        json={
+            "entity": "event",
+            "account_id": "acc_test123",
+            "event": "payment_link.paid",
+            "contains": ["payment_link", "payment"],
+            "payload": {
+                "payment_link": {"entity": {"id": "plink_test123", "status": "paid"}},
+                "payment": {"entity": {"id": payment_id, "status": "captured"}},
+            },
+            "created_at": int(utcnow().timestamp()),
+        },
+        headers={"X-Razorpay-Event-Id": "evt_real_shape_1"},
+    )
+    assert response.status_code == 200
+    assert response.json()["accepted"] is True
+
+    db_session.expire_all()
+    case = db_session.query(RecoveryCase).filter(RecoveryCase.id == case_id).one()
+    assert case.recovery_status == "recovered"
+    assert case.recovered_amount == case.amount_at_risk
+
+
 def test_awaiting_payment_case_cannot_execute_again(client: TestClient):
     items = _seed(client)
     case_id = next(c["id"] for c in items if c["recommended_action"] == "payment_link")

@@ -39,6 +39,7 @@ async def ingest_razorpay_webhook(
     request: Request,
     db: Session = Depends(get_db),
     x_razorpay_signature: str | None = Header(default=None),
+    x_razorpay_event_id: str | None = Header(default=None),
 ):
     raw = await request.body()
 
@@ -72,15 +73,27 @@ async def ingest_razorpay_webhook(
             status_code=400, detail=f"Unsupported webhook event type: {event_type or '<missing>'}"
         )
 
-    # Guard 5: a provider event id is required so replays deduplicate.
-    event_id = str(payload.get("id") or "")
+    # Guard 5: a provider event id is required so replays deduplicate. Real
+    # Razorpay webhook deliveries carry this in the X-Razorpay-Event-Id
+    # header, not the JSON body (the body has no top-level "id" field at
+    # all for an event -- that shape only exists on the *webhook config*
+    # object returned by the management API, a different thing entirely).
+    # The body-level "id" fallback exists only for this app's own demo/test
+    # payloads, which predate this fix and use a simplified shape.
+    event_id = str(x_razorpay_event_id or payload.get("id") or "")
     if not event_id:
         raise HTTPException(
             status_code=400, detail="Webhook payload must include a provider event id"
         )
 
-    # Guard 6: reject stale events (replay protection).
-    event_ts = payload.get("timestamp") or request.headers.get("X-Razorpay-Event-Timestamp")
+    # Guard 6: reject stale events (replay protection). Real Razorpay
+    # webhooks carry this as a top-level "created_at" unix-epoch-seconds
+    # field, sibling to "event"/"payload" -- not "timestamp", which was
+    # never a real Razorpay field and silently disabled this guard for
+    # every real webhook (event_ts always resolved to None, so the whole
+    # staleness check below was skipped). "timestamp" is kept as a
+    # fallback only for this app's own demo/test payloads.
+    event_ts = payload.get("created_at") or payload.get("timestamp")
     if event_ts is not None:
         try:
             event_time = datetime_from_epoch_or_iso(event_ts)
@@ -109,8 +122,19 @@ async def ingest_razorpay_webhook(
     # Provider-confirmed recovery: the only path that counts revenue for an
     # intervention that merely *requested* money.
     if event_type in CONFIRMATION_EVENTS:
+        # Real Razorpay webhooks nest the payment under payload.payment.entity
+        # (a snapshot of the Payment entity), not payload.payment directly --
+        # e.g. {"payload": {"payment": {"entity": {"id": "pay_...", ...}}}}.
+        # payment_link.paid carries the same payment.entity alongside
+        # payload.payment_link.entity for the link itself. Verified against
+        # Razorpay's official webhook payload docs. The shallower
+        # payload.payment.id / top-level payment_id forms are kept as
+        # fallbacks only for this app's own demo/test payloads, which
+        # predate this fix and use a simplified, non-Razorpay-accurate shape.
+        payment_payload = (payload.get("payload") or {}).get("payment") or {}
         provider_payment_id = str(
-            (payload.get("payload") or {}).get("payment", {}).get("id")
+            (payment_payload.get("entity") or {}).get("id")
+            or payment_payload.get("id")
             or payload.get("payment_id")
             or ""
         )
@@ -138,9 +162,9 @@ def datetime_from_epoch_or_iso(value):
     from datetime import datetime, timezone
 
     if isinstance(value, (int, float)):
-        result = datetime.utcfromtimestamp(float(value))
+        result = datetime.fromtimestamp(float(value), tz=timezone.utc).replace(tzinfo=None)
     elif isinstance(value, str) and value.isdigit():
-        result = datetime.utcfromtimestamp(float(value))
+        result = datetime.fromtimestamp(float(value), tz=timezone.utc).replace(tzinfo=None)
     else:
         result = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
         if result.tzinfo is not None:
