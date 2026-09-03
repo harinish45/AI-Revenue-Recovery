@@ -852,7 +852,7 @@ function renderCaseBody(){
   h+='<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Case ID</th><th>Customer</th><th>Amount</th><th>Diagnosis</th><th>Risk</th><th>Status</th><th></th></tr></thead><tbody>';
   if(list.length===0){h+='<tr><td colspan="8"><div class="empty"><h4>No cases found</h4><p>Adjust filters or seed data.</p></div></td></tr>';}
   else{list.forEach(function(c){
-   var isTerm=['recovered','blocked','needs_human_review','skipped'].indexOf(c.status)>-1||['recovered','blocked','needs_human_review','skipped'].indexOf(c.recovery_status)>-1;
+   var isTerm=isTerminalCase(c);
    h+='<tr data-act="case-detail" data-id="'+esc(c.id)+'"><td class="mono" style="color:#4ade80">'+esc(c.id)+'</td>';
    h+='<td><div class="cust"><div class="ava">'+esc(c.customer.split(' ').map(function(w){return w[0];}).join(''))+'</div><div><b>'+esc(c.customer)+'</b><span>'+esc(c.created)+' · '+esc(c.category.code)+'</span></div></div></td>';
    h+='<td class="amt">'+fmt(c.amount)+'</td><td style="color:#9d9da6;font-size:11px">'+esc(c.category.name)+'</td>';
@@ -866,7 +866,7 @@ function renderCaseBody(){
    var items=list.filter(function(c){return col.n==='open'?(c.status==='open'||c.status==='awaiting'||c.status==='skipped'):c.status===col.n;});
    h+='<div style="background:var(--p1);border:1px solid var(--ln);border-radius:12px;padding:10px;min-height:200px"><div style="font-size:10px;font-weight:800;text-transform:uppercase;color:'+col.c+';padding:4px 6px 10px">'+col.n+' · '+items.length+'</div>';
    items.forEach(function(c){
-    var isTerm=['recovered','blocked','needs_human_review','skipped'].indexOf(c.status)>-1||['recovered','blocked','needs_human_review','skipped'].indexOf(c.recovery_status)>-1;
+    var isTerm=isTerminalCase(c);
     h+='<div data-act="case-detail" data-id="'+esc(c.id)+'" style="background:var(--p2);border:1px solid var(--ln2);border-radius:8px;padding:11px;margin-bottom:9px;cursor:pointer"><div style="display:flex;justify-content:space-between"><span class="mono" style="font-size:10px;color:#4ade80">'+esc(c.id)+'</span><span class="rb '+esc(c.risk)+'">'+esc(c.risk)+'</span></div><p style="font-size:11px;color:var(--mut);margin:3px 0 8px">'+esc(c.customer)+'</p><div style="display:flex;justify-content:space-between;align-items:center"><span class="amt">'+fmt(c.amount)+'</span>'+(isTerm?'<button class="btn btn-g btn-sm" disabled style="opacity:.35;cursor:not-allowed;">Done</button>':c.status==='open'?'<button class="btn btn-p btn-sm" data-act="exec-case" data-id="'+esc(c.id)+'">Exec</button>':'')+'</div></div>';});
    if(items.length===0)h+='<div style="text-align:center;color:#5c5c66;font-size:11px;padding:20px">No cases</div>';
    h+='</div>';});
@@ -981,7 +981,7 @@ function renderPromises(){
   var daysLeft=Math.ceil((p.dueAt-Date.now())/86400000);var dueCol=daysLeft<=0?'#f87171':daysLeft<=1?'#fbbf24':'#9d9da6';
   h+='<tr data-act="case-detail" data-id="'+esc(p.caseId)+'"><td class="mono" style="color:#4ade80">'+esc(p.id)+'</td>';
   h+='<td><div style="min-width:0"><b style="display:block">'+esc(p.customer)+'</b>'+(p.transcript?'<span title="'+esc(p.transcript)+'" style="display:block;font-size:10px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px">"'+esc(p.transcript.length>34?p.transcript.slice(0,34)+'…':p.transcript)+'"</span>':'')+'</div></td>';
-  h+='<td class="amt">'+fmt(p.amount)+'</td><td style="color:#9d9da6">'+relTime(new Date(p.capturedAt).toISOString())+'</td><td style="color:'+dueCol+'">'+(daysLeft<=0?'due':'in '+daysLeft+'d')+'</td><td><span class="rb low" style="background:rgba(255,255,255,.05);color:#9d9da6">'+p.source+'</span></td><td><span class="sb '+p.status+'"><i></i>'+p.status+'</span></td></tr>';});
+  h+='<td class="amt">'+fmt(p.amount)+'</td><td style="color:#9d9da6">'+relTime(new Date(p.capturedAt).toISOString())+'</td><td style="color:'+dueCol+'">'+(daysLeft<=0?'due':'in '+daysLeft+'d')+'</td><td><span class="rb low" style="background:rgba(255,255,255,.05);color:#9d9da6">'+esc(p.source)+'</span></td><td><span class="sb '+esc(p.status)+'"><i></i>'+esc(p.status)+'</span></td></tr>';});
  h+='</tbody></table></div></div>';
  return h;
 }
@@ -1131,8 +1131,7 @@ function openExec(title,apiPromiseFactory,onResult){
 function closeExec(){execSeq++;document.getElementById('execOvl').classList.remove('show');}
 function execCase(id){
  var c=S.cases.find(function(x){return x.id===id;});if(!c)return;
- var terminalStates=['recovered','blocked','needs_human_review','skipped'];
- if(terminalStates.indexOf(String(c.status||'').toLowerCase())>-1||terminalStates.indexOf(String(c.recovery_status||'').toLowerCase())>-1){
+ if(isTerminalCase(c)){
   toast('w','Already Processed','Case '+id+' is already '+(c.status||c.recovery_status)+'.');
   return;
  }
@@ -1252,7 +1251,7 @@ function openCaseDetail(id){
   else{h+='<div class="polnote">Max Rs.'+POLICY.maxAmount.toLocaleString('en-IN')+' - '+POLICY.maxRetries+' retries - policy is evaluated live when executed</div>';}
   if(evs.length){h+='<div style="margin-top:12px"><div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:800;letter-spacing:.1em;margin-bottom:5px">Recent activity</div>'+evs.map(function(e){return '<div class="actrow" style="padding:7px 4px"><span class="lt">'+e.ts+'</span><span class="tag b">'+e.type+'</span><span class="ax">'+esc(e.desc)+'</span>'+(e.eventHash?'<span class="sealed-tag" title="Sealed with a tamper-evident HMAC chain">Sealed</span>':'')+'</div>';}).join('')+'</div>';}
   h+='<div class="case-detail-actions">';
-  var isDetailTerm=['recovered','blocked','needs_human_review','skipped'].indexOf(c.status)>-1||['recovered','blocked','needs_human_review','skipped'].indexOf(c.recovery_status)>-1;
+  var isDetailTerm=isTerminalCase(c);
   if(c.status==='open'&&!isDetailTerm){h+='<button class="btn btn-p" data-act="exec-case" data-id="'+esc(c.id)+'">Execute</button>';h+='<button class="btn btn-v" data-act="start-voice-from" data-id="'+esc(c.id)+'">Voice Call</button>';}
   else if(isDetailTerm){h+='<button class="btn btn-g btn-sm" disabled style="opacity:.35;cursor:not-allowed;">Already '+pretty(c.status)+'</button>';}
   h+='<button class="btn btn-g" data-act="close-exec">Close details</button></div></div>';
