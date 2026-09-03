@@ -147,10 +147,33 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .voice-case-card-meta span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .voice-case-card .btn{margin-top:auto;width:100%;justify-content:center;pointer-events:none}
 .voice-console{overflow:hidden}
-.ghost-back{padding:10px 14px 0;font-size:11px;font-weight:700;color:var(--mut);cursor:pointer;text-align:left;background:none;border:none}
-.ghost-back:hover{color:var(--tx)}
-.voice-precall{max-width:480px;margin:6px auto 28px;padding:0 20px;text-align:center}
-.voice-precall-customer h3{font-size:19px;letter-spacing:-.03em;margin-top:2px}
+.voice-crumbs{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;padding:11px 16px;margin-bottom:10px;border-radius:12px;background:var(--p1);border:1px solid var(--ln)}
+.voice-crumb-back{display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;border:1px solid var(--ln2);background:var(--p2);color:var(--tx);font-size:11.5px;font-weight:700;cursor:pointer;transition:.14s}
+.voice-crumb-back:hover{border-color:#ec4899;color:#ec4899}
+.voice-crumb-spacer{width:1px}
+.voice-crumb-steps{display:flex;align-items:center;gap:0;list-style:none;margin:0;padding:0;font-family:var(--fm);font-size:10.5px;color:var(--dim);font-weight:700}
+.voice-crumb-step{display:flex;align-items:center;gap:6px;white-space:nowrap;padding:0 10px}
+.voice-crumb-step+.voice-crumb-step{border-left:1px solid var(--ln);margin-left:2px}
+.voice-crumb-dot{display:grid;place-items:center;width:17px;height:17px;flex:none;border-radius:50%;background:var(--p3);border:1px solid var(--ln2);font-size:9px;color:var(--dim)}
+.voice-crumb-step.done{color:var(--tx)}
+.voice-crumb-step.done .voice-crumb-dot{background:rgba(74,222,128,.15);border-color:rgba(74,222,128,.4);color:#4ade80}
+.voice-crumb-step.active{color:#ec4899}
+.voice-crumb-step.active .voice-crumb-dot{background:rgba(236,72,153,.14);border-color:#ec4899;color:#ec4899}
+.voice-crumb-step[data-act]{cursor:pointer}
+.voice-crumb-step[data-act]:hover{color:#ec4899}
+.voice-setup-grid{display:grid;grid-template-columns:210px 1fr}
+.voice-setup-case{padding:26px 22px;border-right:1px solid var(--ln);display:flex;flex-direction:column;align-items:flex-start;gap:14px;background:var(--p2)}
+.voice-setup-case .voice-avatar{width:46px;height:46px;font-size:18px}
+.voice-setup-case h3{font-size:16px;letter-spacing:-.02em;margin:0}
+.voice-setup-facts{display:flex;flex-direction:column;gap:11px;width:100%;margin:0}
+.voice-setup-facts>div{display:flex;flex-direction:column;gap:2px}
+.voice-setup-facts dt{font-family:var(--fm);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);font-weight:800;margin:0}
+.voice-setup-facts dd{margin:0;font-size:12.5px;font-weight:600}
+.voice-setup-panel{padding:24px 26px 26px;display:flex;flex-direction:column;align-items:flex-start;gap:16px}
+.voice-ready-badge{display:inline-flex;align-items:center;gap:7px;padding:6px 12px;border-radius:999px;background:rgba(236,72,153,.1);border:1px solid rgba(236,72,153,.3);color:#f472b6;font-size:11px;font-weight:700}
+.voice-setup-field{width:100%}
+.voice-setup-field label{display:block;font-family:var(--fm);font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);font-weight:800;margin-bottom:8px}
+.voice-setup-field .vlang{padding:0;border:none;gap:6px}
 .voice-call-header{display:flex;align-items:center;gap:11px;flex-wrap:wrap;padding:15px 16px;background:linear-gradient(90deg,rgba(236,72,153,.08),rgba(139,92,246,.06));border-bottom:1px solid var(--ln)}
 .voice-call-header .voice-active-id{flex:1}
 .voice-stage{display:flex;align-items:center;flex-wrap:wrap;row-gap:4px;gap:5px 8px;padding:10px 14px;border-bottom:1px solid var(--ln);font-family:var(--fm);font-size:10px;color:var(--dim)}.voice-stage i{width:7px;height:7px;border-radius:50%;background:#9ca3af}.voice-stage i.live{background:#ec4899;box-shadow:0 0 12px #ec4899}.voice-stage b{color:var(--tx);font-weight:700;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom;display:inline-block}
@@ -210,7 +233,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .voice-fallback-notice b{color:#fbbf24}
 .voice-case-search-wrap{position:relative;margin-bottom:5px}.voice-case-search-wrap::before{content:'⌕';position:absolute;left:13px;top:50%;transform:translateY(-52%);color:#a78bfa;font-size:20px;z-index:1}.voice-case-search{width:100%;box-sizing:border-box;padding:12px 40px 12px 38px!important;border:1px solid rgba(139,92,246,.28)!important;border-radius:11px!important;background:linear-gradient(110deg,rgba(139,92,246,.09),rgba(236,72,153,.04),rgba(139,92,246,.09));background-size:220% 100%;color:var(--tx);outline:none;transition:border-color .2s,box-shadow .2s;animation:searchGlow 5s ease-in-out infinite}.voice-case-search::placeholder{color:var(--dim)}.voice-case-search:focus{border-color:#a78bfa!important;box-shadow:0 0 0 3px rgba(139,92,246,.14),0 0 22px rgba(236,72,153,.16);animation:none}.voice-case-search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--dim);cursor:pointer;font-size:18px;padding:4px}.voice-case-search-clear:hover{color:var(--tx)}
 @keyframes searchGlow{0%,100%{background-position:0% 50%;box-shadow:0 0 0 rgba(139,92,246,0)}50%{background-position:100% 50%;box-shadow:0 0 18px rgba(139,92,246,.1)}}
-.voice-setup{padding:34px 28px 30px;text-align:center}.voice-setup-icon{width:52px;height:52px;margin:0 auto 16px;border:1px solid rgba(236,72,153,.45);border-radius:18px;display:grid;place-items:center;color:#f472b6;font-size:28px;background:rgba(236,72,153,.08);box-shadow:0 0 26px rgba(236,72,153,.12)}.voice-setup h4{font-size:20px;letter-spacing:-.03em;margin:0 0 9px}.voice-setup-copy{max-width:430px;margin:0 auto 22px;color:var(--mut);font-size:12px;line-height:1.65}.voice-consent{display:flex;align-items:flex-start;gap:12px;max-width:520px;margin:0 auto 20px;padding:14px 16px;text-align:left;border:1px solid rgba(245,158,11,.3);border-radius:12px;background:linear-gradient(100deg,rgba(245,158,11,.1),rgba(245,158,11,.035));cursor:pointer}.voice-consent input{appearance:none;width:20px;height:20px;flex:none;margin:1px 0 0;border:1px solid #9ca3af;border-radius:6px;background:#11131b;cursor:pointer;position:relative}.voice-consent input:checked{border-color:#ec4899;background:#ec4899;box-shadow:0 0 12px rgba(236,72,153,.35)}.voice-consent input:checked::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;color:white;font-size:14px;font-weight:800}.voice-consent strong{display:block;color:#fbbf24;font-size:12px;margin-bottom:4px}.voice-consent span{color:var(--mut);font-size:11px;line-height:1.45}.voice-start{min-width:220px;padding:12px 20px!important;font-size:13px!important;box-shadow:0 0 0 rgba(236,72,153,0);transition:transform .2s,box-shadow .2s}.voice-start:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(236,72,153,.2)}
+.voice-setup-copy{max-width:520px;width:100%;margin:0;color:var(--mut);font-size:12px;line-height:1.65}.voice-consent{display:flex;align-items:flex-start;gap:12px;max-width:560px;width:100%;margin:0;padding:14px 16px;text-align:left;border:1px solid rgba(245,158,11,.3);border-radius:12px;background:linear-gradient(100deg,rgba(245,158,11,.1),rgba(245,158,11,.035));cursor:pointer}.voice-consent input{appearance:none;width:20px;height:20px;flex:none;margin:1px 0 0;border:1px solid #9ca3af;border-radius:6px;background:#11131b;cursor:pointer;position:relative}.voice-consent input:checked{border-color:#ec4899;background:#ec4899;box-shadow:0 0 12px rgba(236,72,153,.35)}.voice-consent input:checked::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;color:white;font-size:14px;font-weight:800}.voice-consent strong{display:block;color:#fbbf24;font-size:12px;margin-bottom:4px}.voice-consent span{color:var(--mut);font-size:11px;line-height:1.45}.voice-start{min-width:220px;padding:12px 20px!important;font-size:13px!important;box-shadow:0 0 0 rgba(236,72,153,0);transition:transform .2s,box-shadow .2s}.voice-start:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(236,72,153,.2)}
 .vtimer{font-family:var(--fm);font-size:11px;color:var(--vio2);font-weight:600}
 .tl{position:relative;padding-left:18px}
 .tl::before{content:"";position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:var(--ln)}
@@ -296,7 +319,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .toast.w{border-left-color:var(--amb)}.toast.w .tic{background:rgba(245,158,16,.12);color:var(--amb2)}
 .toast.i .tic{background:rgba(59,130,246,.12);color:var(--blu2)}
 @media(max-width:1150px){.kpis{grid-template-columns:repeat(3,1fr)}.ovgrid{grid-template-columns:1fr}.pbgrid{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
-@media(max-width:900px){.shell{grid-template-columns:56px 1fr}.brand div,.nav .nl,.nav .nbadge,.ncap,.side-foot small,.conn span{display:none}.brand{justify-content:center}.nav button{justify-content:center}.kpis{grid-template-columns:1fr 1fr}.vchat{max-height:220px;min-height:170px}.voice-call-header{padding:10px 12px}.voice-transcript-title{padding:8px 12px 0}.vcontrols{padding:10px 12px}.vquick{padding:0 12px 10px}.vbub{font-size:12px;padding:8px 12px}}
+@media(max-width:900px){.shell{grid-template-columns:56px 1fr}.brand div,.nav .nl,.nav .nbadge,.ncap,.side-foot small,.conn span{display:none}.brand{justify-content:center}.nav button{justify-content:center}.kpis{grid-template-columns:1fr 1fr}.vchat{max-height:220px;min-height:170px}.voice-call-header{padding:10px 12px}.voice-transcript-title{padding:8px 12px 0}.vcontrols{padding:10px 12px}.vquick{padding:0 12px 10px}.vbub{font-size:12px;padding:8px 12px}.voice-setup-grid{grid-template-columns:1fr}.voice-setup-case{border-right:none;border-bottom:1px solid var(--ln);flex-direction:row;align-items:center;gap:12px}.voice-setup-facts{flex-direction:row;flex-wrap:wrap;gap:14px}.voice-crumb-steps{gap:0}.voice-crumb-step{padding:0 6px}}
 @media(max-width:620px){.shell{grid-template-columns:1fr}.side{position:fixed;bottom:0;left:0;right:0;top:auto;height:56px;flex-direction:row;align-items:center;z-index:80;background:#000;border-top:1px solid var(--ln);overflow-y:hidden}.brand,.side-foot{display:none}.nav{flex-direction:row;flex:1;gap:2px;overflow-x:auto;padding:0 6px}.nav button{flex:none;min-width:48px;justify-content:center;padding:6px}main{padding-bottom:76px}.kpis{grid-template-columns:1fr}.pbgrid{grid-template-columns:1fr}.bmrow{grid-template-columns:repeat(2,1fr)}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
@@ -1002,6 +1025,21 @@ function renderPlaybookDetail(id){
  }
  return h;
 }
+function voiceCrumbs(step){
+ // step 1=browse, 2=setup, 3=live. Shared across all 3 modes so the operator
+ // always sees where they are and has one obvious way back, instead of a
+ // single easy-to-miss text link buried in the previous layout.
+ var labels=['Choose case','Setup call','Live call'];
+ var h='<div class="voice-crumbs">';
+ h+=step>1?'<button class="voice-crumb-back" data-act="back-to-voice-list">&larr; Back to cases</button>':'<span class="voice-crumb-spacer"></span>';
+ h+='<ol class="voice-crumb-steps">';
+ labels.forEach(function(label,i){
+  var n=i+1,cls=n<step?'done':n===step?'active':'',clickable=n===1&&step>1;
+  h+='<li class="voice-crumb-step '+cls+'"'+(clickable?' data-act="back-to-voice-list"':'')+'><span class="voice-crumb-dot">'+(n<step?'&check;':n)+'</span>'+label+'</li>';
+ });
+ h+='</ol></div>';
+ return h;
+}
 function renderVoice(){
  var allVoiceCases=S.cases.filter(function(c){return c.status==='open'||c.status==='escalated';});
  var query=(S.voiceSearch||'').trim().toLowerCase();
@@ -1021,6 +1059,7 @@ function renderVoice(){
 
  if(!S.voiceCase){
   // ═══ Mode 1: BROWSE — full-width searchable card grid, no side panel ═══
+  h+=voiceCrumbs(1);
   h+='<div class="card"><div class="chead"><div><h3>Choose a case to call</h3><small style="display:block;color:var(--dim);font-size:10px;margin-top:3px">Open cases and human-review follow-ups</small></div><span class="hint">'+open.length+' shown · '+allVoiceCases.filter(function(c){return c.status==='escalated';}).length+' human review</span></div>';
   h+='<div class="cbody"><div class="voice-browse-toolbar"><div class="voice-case-search-wrap"><input id="voiceCaseSearch" class="voice-case-search" aria-label="Search voice cases" placeholder="Search by case ID, customer, reason, or status…" value="'+esc(S.voiceSearch)+'">'+(S.voiceSearch?'<button class="voice-case-search-clear" data-act="clear-voice-search" aria-label="Clear case search">×</button>':'')+'</div><div class="vlang" style="border:none;padding:0">'+Object.keys(VOICE_BRAIN).map(function(code){return '<button class="'+(S.voiceLang===code?'on':'')+'" data-act="set-vlang" data-lang="'+code+'">'+VOICE_BRAIN[code].label+'</button>';}).join('')+'</div></div>';
   if(open.length===0){h+='<div class="empty"><h4>'+(allVoiceCases.length?'No matching cases':'No cases ready for voice')+'</h4><p>'+(allVoiceCases.length?'Try another search. Human-review cases remain available here after a batch run.':'Run Seed Data first, or run a batch with a policy escalation to create a human-review case.')+'</p></div>';}
@@ -1037,16 +1076,27 @@ function renderVoice(){
  }
 
  if(!S.voiceActive){
-  // ═══ Mode 2: PRE-CALL — centered setup card, full width available ═══
-  h+='<div class="card voice-console"><div class="voice-precall-head"><button class="ghost-back" data-act="back-to-voice-list" aria-label="Choose a different case">← Choose a different case</button></div><div class="voice-precall">';
-  h+='<div class="voice-precall-customer"><div class="voice-avatar" style="width:52px;height:52px;font-size:20px;margin:0 auto 12px">'+(activeCase?esc(activeCase.customer.charAt(0)):'R')+'</div><h3>'+(activeCase?esc(activeCase.customer):'Customer')+'</h3><p class="mono" style="color:var(--dim);font-size:11px;margin-top:3px">'+(activeCase?activeCase.id+' · '+fmt(activeCase.amount)+' at risk · '+esc(activeCase.category.name):'')+'</p></div>';
-  h+='<div class="vlang" style="justify-content:center;border:none;padding:14px 0">'+Object.keys(VOICE_BRAIN).map(function(code){return '<button class="'+(S.voiceLang===code?'on':'')+'" data-act="set-vlang" data-lang="'+code+'">'+VOICE_BRAIN[code].label+'</button>';}).join('')+'</div>';
-  h+='<div class="voice-setup"><div class="voice-setup-icon">⌁</div><h4>Ready for a '+esc(VOICE_BRAIN[S.voiceLang].name)+' session</h4><p class="voice-setup-copy">The agent explains the purpose, listens for intent, and asks for confirmation before recording a promise. It stops safely on refusal or uncertainty.</p><label class="voice-consent"><input type="checkbox" id="voiceConsent" '+(S.voiceConsent?'checked':'')+'><span><strong>Operator consent gate</strong><span> This is a simulated test-mode call. The customer-facing disclosure will always be respected.</span></span></label><button class="btn btn-v voice-start" data-act="start-call" '+(!S.voiceCase||!S.voiceConsent?'disabled':'')+'>Start '+esc(VOICE_BRAIN[S.voiceLang].label)+' Voice Call</button></div>';
-  h+='</div></div>';
+  // ═══ Mode 2: PRE-CALL — two-column setup form (case facts | language +
+  // consent + start), not a single centered empty-state stack ═══
+  h+=voiceCrumbs(2);
+  h+='<div class="card voice-console"><div class="voice-setup-grid">';
+  h+='<div class="voice-setup-case"><div class="voice-avatar">'+(activeCase?esc(activeCase.customer.charAt(0)):'R')+'</div><h3>'+(activeCase?esc(activeCase.customer):'Customer')+'</h3><dl class="voice-setup-facts">'+
+   '<div><dt>Case</dt><dd class="mono">'+(activeCase?esc(activeCase.id):'—')+'</dd></div>'+
+   '<div><dt>At risk</dt><dd>'+(activeCase?fmt(activeCase.amount):'—')+'</dd></div>'+
+   '<div><dt>Reason</dt><dd>'+(activeCase?esc(activeCase.category.name):'—')+'</dd></div>'+
+   '</dl></div>';
+  h+='<div class="voice-setup-panel">';
+  h+='<span class="voice-ready-badge">⌁ Ready for a '+esc(VOICE_BRAIN[S.voiceLang].name)+' session</span>';
+  h+='<div class="voice-setup-field"><label>Call language</label><div class="vlang">'+Object.keys(VOICE_BRAIN).map(function(code){return '<button class="'+(S.voiceLang===code?'on':'')+'" data-act="set-vlang" data-lang="'+code+'">'+VOICE_BRAIN[code].label+'</button>';}).join('')+'</div></div>';
+  h+='<p class="voice-setup-copy">The agent explains the purpose, listens for intent, and asks for confirmation before recording a promise. It stops safely on refusal or uncertainty.</p>';
+  h+='<label class="voice-consent"><input type="checkbox" id="voiceConsent" '+(S.voiceConsent?'checked':'')+'><span><strong>Operator consent gate</strong><span> This is a simulated test-mode call. The customer-facing disclosure will always be respected.</span></span></label>';
+  h+='<button class="btn btn-v voice-start" data-act="start-call" '+(!S.voiceCase||!S.voiceConsent?'disabled':'')+'>Start '+esc(VOICE_BRAIN[S.voiceLang].label)+' Voice Call →</button>';
+  h+='</div></div></div>';
   return h;
  }
 
  // ═══ Mode 3: LIVE CALL — full-width immersive console ═══
+ h+=voiceCrumbs(3);
  h+='<div class="card voice-console" style="overflow:hidden"><div class="voice-call-header"><div class="voice-avatar">'+(activeCase?esc(activeCase.customer.charAt(0)):'R')+'</div><div class="voice-active-id"><span>LIVE · '+esc(VOICE_BRAIN[S.voiceLang].name)+'</span><strong>'+(activeCase?esc(activeCase.customer):'Customer')+'</strong><small>'+(activeCase?activeCase.id+' · '+fmt(activeCase.amount)+' at risk':'Recovery case')+'</small></div><span class="vtimer" id="vtimer">00:00</span><div class="voice-eq"><i></i><i></i><i></i><i></i><i></i></div><button class="btn btn-r btn-sm" data-act="end-call">End call</button></div>';
  if(!vinfo.usable)h+='<div class="voice-fallback-notice"><b>No '+esc((VOICE_BRAIN[S.voiceLang]||{}).name||S.voiceLang)+' voice on this device.</b> Showing text only so nothing garbled plays. For real pronunciation: open this in <b>Microsoft Edge</b> (built-in neural voices for all 8 languages, zero setup), or add the language in Windows Settings &rarr; Time &amp; Language &rarr; Language &amp; region &rarr; Add a language &rarr; download its speech pack.</div>';
  h+='<div class="voice-stage"><i class="live"></i><span>Stage</span><b>'+esc(pretty(S.voiceStage))+'</b><span>· intent</span><b>'+esc(pretty(S.voiceIntent))+'</b><span style="margin-left:auto">confidence '+Math.round(S.voiceConfidence*100)+'%</span></div>';
