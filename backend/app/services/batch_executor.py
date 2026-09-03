@@ -17,21 +17,41 @@ from ..services.recovery_executor import execute_recovery
 
 
 def run_batch_recovery(db: Session) -> dict:
-    pending_cases = (
-        db.query(RecoveryCase)
+    candidate_ids = [
+        c.id
+        for c in db.query(RecoveryCase.id)
         .filter(RecoveryCase.recovery_status.in_(["pending", "failed"]))
         .filter(RecoveryCase.action_status == "eligible")
         .all()
-    )
+    ]
 
     batch_id = f"BATCH-{uuid.uuid4().hex[:8].upper()}"
-    total_cases = len(pending_cases)
-    amount_at_risk = sum(c.amount_at_risk for c in pending_cases)
+    amount_at_risk = 0.0
 
     attempted, successful, failed, escalated, skipped, awaiting, errored = 0, 0, 0, 0, 0, 0, 0
     amount_recovered = 0.0
+    total_cases = 0
 
-    for case in pending_cases:
+    for case_id in candidate_ids:
+        # Re-lock (and re-check eligibility) per case, right before executing
+        # it, rather than locking the whole candidate set up front: each
+        # execute_recovery() call below commits its own transaction, which
+        # would release every lock acquired earlier in this loop anyway.
+        # skip_locked=True means a case already claimed by a concurrent
+        # execute/batch is silently skipped here instead of blocked on --
+        # two overlapping batch triggers split the work instead of racing.
+        case = (
+            db.query(RecoveryCase)
+            .filter(RecoveryCase.id == case_id)
+            .filter(RecoveryCase.recovery_status.in_(["pending", "failed"]))
+            .filter(RecoveryCase.action_status == "eligible")
+            .with_for_update(skip_locked=True)
+            .first()
+        )
+        if case is None:
+            continue
+        total_cases += 1
+        amount_at_risk += case.amount_at_risk or 0.0
         try:
             result = execute_recovery(db, case)
         except Exception:

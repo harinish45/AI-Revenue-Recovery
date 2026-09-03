@@ -115,6 +115,9 @@ async def ingest_razorpay_webhook(
             or ""
         )
         if provider_payment_id:
+            # confirm_provider_payment() re-fetches and locks the case row
+            # itself, so a provider retry racing an operator's manual
+            # confirm-payment call still can't double-count revenue.
             case = (
                 db.query(RecoveryCase)
                 .filter(RecoveryCase.payment_id == provider_payment_id)

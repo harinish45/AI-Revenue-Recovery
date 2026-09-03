@@ -24,7 +24,7 @@ import uuid
 from sqlalchemy.orm import Session
 
 from ..config import settings
-from ..models import AuditLog, AuditSeal
+from ..models import AuditLog, AuditSeal, RecoveryCase
 from ..utils.time import utcnow
 
 _FALLBACK_SIGNING_KEY = secrets.token_hex(32)
@@ -39,14 +39,18 @@ def _compute_event_hash(payload: dict) -> str:
     return hmac.new(_signing_key(), body, hashlib.sha256).hexdigest()
 
 
-def _next_sequence(db: Session, case_id: str | None) -> int:
-    last = (
+def _last_seal(db: Session, case_id: str | None) -> AuditSeal | None:
+    # Locked so two concurrent log_event() calls for the same case can never
+    # compute the same next sequence number from the same "last" row -- the
+    # second call blocks here until the first commits, then sees the fresh
+    # tail. A no-op on SQLite, a real lock on Postgres.
+    return (
         db.query(AuditSeal)
         .filter(AuditSeal.case_id == case_id)
         .order_by(AuditSeal.sequence.desc())
+        .with_for_update()
         .first()
     )
-    return (last.sequence or 0) + 1 if last else 1
 
 
 def log_event(
@@ -67,13 +71,8 @@ def log_event(
     # a normalized UTC value so the sealed payload can be reproduced exactly.
     timestamp = utcnow().replace(tzinfo=None)
     event_id = f"AUD-{uuid.uuid4().hex[:8].upper()}"
-    sequence = _next_sequence(db, case_id)
-    previous = (
-        db.query(AuditSeal)
-        .filter(AuditSeal.case_id == case_id)
-        .order_by(AuditSeal.sequence.desc())
-        .first()
-    )
+    previous = _last_seal(db, case_id)
+    sequence = (previous.sequence or 0) + 1 if previous else 1
     payload = {
         "id": event_id,
         "case_id": case_id,
@@ -110,6 +109,17 @@ def log_event(
             created_at=timestamp,
         )
     )
+    # Anchor the new tail onto the case row itself, outside the audit_seals
+    # table entirely. Pure hash-linking only ever points backward, so
+    # deleting the most recent seal (and its log row) leaves every
+    # *remaining* seal internally consistent -- verify_chain would report
+    # 100% valid. This anchor is what lets verify_chain notice the case
+    # remembers a later sequence/hash than the seal table can still produce.
+    if case_id:
+        case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).with_for_update().first()
+        if case is not None:
+            case.last_audit_sequence = sequence
+            case.last_audit_hash = event_hash
     return log
 
 
@@ -131,6 +141,7 @@ def verify_chain(db: Session, case_id: str | None = None) -> dict:
 
     events = []
     previous_hash_by_case: dict = {}
+    last_seen_by_case: dict = {}
     all_valid = True
     for seal in seals:
         log = logs_by_id.get(seal.audit_id)
@@ -170,5 +181,34 @@ def verify_chain(db: Session, case_id: str | None = None) -> dict:
             }
         )
         previous_hash_by_case[seal.case_id] = seal.event_hash
+        last_seen_by_case[seal.case_id] = (seal.sequence, seal.event_hash)
 
-    return {"valid": all_valid, "events_checked": len(events), "events": events}
+    # Anchor check: every remaining seal can be internally perfectly
+    # consistent even after the newest seal (or every seal) for a case was
+    # deleted outright, because hash-linking only ever points backward. This
+    # compares what we can still see in audit_seals against each case's own
+    # record of its last-written sequence/hash (set outside this table, in
+    # the same transaction as the write) to catch exactly that.
+    case_query = db.query(RecoveryCase).filter(RecoveryCase.last_audit_sequence.isnot(None))
+    if case_id:
+        case_query = case_query.filter(RecoveryCase.id == case_id)
+    anchor_mismatches = []
+    for case in case_query.all():
+        seen_sequence, seen_hash = last_seen_by_case.get(case.id, (None, None))
+        if seen_sequence != case.last_audit_sequence or seen_hash != case.last_audit_hash:
+            all_valid = False
+            anchor_mismatches.append(
+                {
+                    "case_id": case.id,
+                    "reason": "audit chain tail is missing or was truncated",
+                    "case_records_sequence": case.last_audit_sequence,
+                    "seals_found_up_to_sequence": seen_sequence,
+                }
+            )
+
+    return {
+        "valid": all_valid,
+        "events_checked": len(events),
+        "events": events,
+        "anchor_mismatches": anchor_mismatches,
+    }

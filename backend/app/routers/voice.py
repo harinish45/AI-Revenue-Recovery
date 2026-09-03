@@ -25,7 +25,10 @@ router = APIRouter(dependencies=[Depends(require_operator)])
 def record_voice_event(
     request: Request, case_id: str, body: VoiceEventRequest, db: Session = Depends(get_db)
 ):
-    case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).first()
+    # Locked for the same reason as execution.py: this writes an audit event
+    # (and terminal-state voice_promise_captured events can race a concurrent
+    # execute/confirm on the same case) so it must serialize with them.
+    case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).with_for_update().first()
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
 

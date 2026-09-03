@@ -51,6 +51,21 @@ def execute_recovery(db: Session, case: RecoveryCase, idempotency_key: str = Non
             return cached.response
 
     try:
+        # Re-fetch under a row lock before doing anything else: without this,
+        # two concurrent requests for the same case (a UI double-click, or a
+        # retry that reused a different idempotency key) both read the same
+        # "pending" status, both pass the policy engine, and both call the
+        # payment provider before either commit is visible to the other. The
+        # lock makes the second request block until the first commits, so it
+        # then sees the now-terminal status and the policy engine's own
+        # terminal_state_check correctly blocks it. A no-op on SQLite (single
+        # writer already), a real lock on Postgres in production.
+        locked_case = (
+            db.query(RecoveryCase).filter(RecoveryCase.id == case.id).with_for_update().first()
+        )
+        if locked_case is None:
+            raise HTTPException(status_code=404, detail="Case not found")
+        case = locked_case
         result = _run_recovery(db, case)
         if idempotency_key:
             db.add(IdempotencyKey(key=idempotency_key, endpoint="execute", response=result))

@@ -21,6 +21,10 @@ def _execute_case(db: Session, case_id: str, idempotency_key: Optional[str]) -> 
     idempotency_key = idempotency_key.strip()
     if len(idempotency_key) > 200:
         raise HTTPException(status_code=400, detail="Idempotency-Key is too long")
+    # execute_recovery() re-fetches and locks the case row itself before
+    # doing anything else, so a plain read here is enough -- see its
+    # docstring in recovery_executor.py for why the lock lives there and
+    # not at every call site.
     case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
@@ -58,6 +62,8 @@ def confirm_payment(
 ):
     """Operator/provider-confirmed payment: the ONLY way an awaiting_payment
     case becomes counted revenue."""
+    # confirm_provider_payment() re-fetches and locks the case row itself --
+    # see its docstring in payment_confirmation.py.
     case = db.query(RecoveryCase).filter(RecoveryCase.id == case_id).first()
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")

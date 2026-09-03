@@ -51,6 +51,12 @@ def _enforce_production_secrets():
         missing.append("API_KEYS")
     if not settings.AUDIT_SIGNING_KEY:
         missing.append("AUDIT_SIGNING_KEY")
+    # Without this, webhooks.py's own guard only rejects unsigned payloads
+    # when RAZORPAY_SIMULATE is false -- a production deploy that leaves
+    # RAZORPAY_SIMULATE=true (or flips it later) would otherwise boot fine
+    # and accept unauthenticated "payment confirmed" webhook events.
+    if not settings.WEBHOOK_SECRET:
+        missing.append("WEBHOOK_SECRET")
     if missing:
         raise RuntimeError(
             "APP_ENV=production requires the following settings to be configured: "
@@ -59,7 +65,16 @@ def _enforce_production_secrets():
 
 
 def _ensure_sqlite_compatibility():
-    """Apply additive fixes for demo databases created by an older checkout."""
+    """Apply additive fixes for demo databases created by an older checkout.
+
+    SQLite never runs the Alembic migrations (the fast demo path only calls
+    ``Base.metadata.create_all``, which creates missing *tables* but never
+    alters existing ones), so a pre-existing ``recoverai.db`` file needs
+    these columns added by hand. The new UNIQUE constraint on
+    ``audit_seals(case_id, sequence)`` is deliberately NOT retrofitted here —
+    SQLite can't add a constraint to an existing table without rebuilding
+    it — a fresh demo database still gets it via ``create_all``.
+    """
     if engine.dialect.name != "sqlite":
         return
     inspector = inspect(engine)
@@ -71,6 +86,18 @@ def _ensure_sqlite_compatibility():
         if "sequence" not in columns:
             with engine.begin() as connection:
                 connection.execute(text("ALTER TABLE audit_seals ADD COLUMN sequence INTEGER"))
+    if "recovery_cases" in inspector.get_table_names():
+        columns = {column["name"] for column in inspector.get_columns("recovery_cases")}
+        if "last_audit_sequence" not in columns:
+            with engine.begin() as connection:
+                connection.execute(
+                    text("ALTER TABLE recovery_cases ADD COLUMN last_audit_sequence INTEGER")
+                )
+        if "last_audit_hash" not in columns:
+            with engine.begin() as connection:
+                connection.execute(
+                    text("ALTER TABLE recovery_cases ADD COLUMN last_audit_hash VARCHAR")
+                )
 
 
 _enforce_production_secrets()

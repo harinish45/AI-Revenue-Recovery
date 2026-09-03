@@ -5,7 +5,7 @@ from datetime import timedelta
 from fastapi.testclient import TestClient
 
 from app.config import settings as app_settings
-from app.models import AuditLog, Customer, Payment, RecoveryCase
+from app.models import AuditLog, AuditSeal, Customer, Payment, RecoveryCase
 from app.utils.time import utcnow
 
 
@@ -325,6 +325,35 @@ def test_audit_chain_verification_detects_tampering(client: TestClient, db_sessi
     assert report["valid"] is False
     tampered = [e for e in report["events"] if e["audit_id"] == target.id]
     assert tampered and tampered[0]["valid"] is False
+
+
+def test_audit_chain_verification_detects_a_deleted_tail_event(client: TestClient, db_session):
+    """Deleting the *newest* AuditLog/AuditSeal row pair for a case leaves every
+    remaining seal internally consistent -- pure hash-linking only ever points
+    backward, so a forward walk alone can't see a missing tail. The chain-tail
+    anchor on RecoveryCase (written in the same transaction as each seal) is
+    what makes this detectable."""
+    items = _seed(client)
+    case_id = items[0]["id"]
+
+    before = client.get("/api/audit/chain/verify", params={"case_id": case_id}).json()
+    assert before["valid"] is True
+    events_before = before["events_checked"]
+
+    newest_seal = (
+        db_session.query(AuditSeal)
+        .filter(AuditSeal.case_id == case_id)
+        .order_by(AuditSeal.sequence.desc())
+        .first()
+    )
+    db_session.query(AuditLog).filter(AuditLog.id == newest_seal.audit_id).delete()
+    db_session.query(AuditSeal).filter(AuditSeal.audit_id == newest_seal.audit_id).delete()
+    db_session.commit()
+
+    report = client.get("/api/audit/chain/verify", params={"case_id": case_id}).json()
+    assert report["events_checked"] == events_before - 1
+    assert report["valid"] is False
+    assert any(m["case_id"] == case_id for m in report["anchor_mismatches"])
 
 
 def test_core_api_is_open_outside_production_with_no_keys_configured(client: TestClient):

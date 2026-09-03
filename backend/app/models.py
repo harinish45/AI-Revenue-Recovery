@@ -1,6 +1,16 @@
 import uuid
 
-from sqlalchemy import JSON, Boolean, Column, DateTime, Float, ForeignKey, Integer, String
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    Column,
+    DateTime,
+    Float,
+    ForeignKey,
+    Integer,
+    String,
+    UniqueConstraint,
+)
 from sqlalchemy.orm import relationship
 
 from .database import Base
@@ -52,6 +62,13 @@ class RecoveryCase(Base):
     action_status = Column(String, default="eligible")
     created_at = Column(DateTime, default=utcnow)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
+    # Chain-tail anchor: mirrors the sequence/hash of this case's most recent
+    # audit seal, written in the same transaction as that seal (see
+    # audit_service.log_event). A deleted tail seal can't erase this
+    # anchor, so verify_chain can detect truncation that pure hash-linking
+    # (each seal only points backward) would otherwise miss entirely.
+    last_audit_sequence = Column(Integer, nullable=True)
+    last_audit_hash = Column(String, nullable=True)
 
     payment = relationship("Payment", back_populates="recovery_case")
     executions = relationship("Execution", back_populates="case")
@@ -95,6 +112,14 @@ class AuditSeal(Base):
     previous_hash = Column(String, nullable=True)
     event_hash = Column(String, nullable=False)
     created_at = Column(DateTime, default=utcnow)
+
+    __table_args__ = (
+        # Belt-and-suspenders alongside the row lock taken before every
+        # log_event() call: even if two writers ever raced past that lock,
+        # the database itself refuses a second seal at the same position in
+        # the same case's chain.
+        UniqueConstraint("case_id", "sequence", name="uq_audit_seals_case_sequence"),
+    )
 
 
 class DemoFlag(Base):
