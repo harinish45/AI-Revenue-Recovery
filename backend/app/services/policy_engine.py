@@ -12,7 +12,14 @@ from ..config import settings
 from ..models import Payment, RecoveryCase
 from ..utils.time import utcnow
 
-TERMINAL_STATES = ("recovered", "blocked", "needs_human_review", "skipped", "awaiting_payment")
+TERMINAL_STATES = (
+    "recovered",
+    "blocked",
+    "needs_human_review",
+    "skipped",
+    "awaiting_payment",
+    "closed",
+)
 
 ALLOWED_ACTIONS = {"retry_payment", "payment_link", "customer_reminder", "needs_human_review"}
 

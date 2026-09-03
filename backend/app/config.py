@@ -1,3 +1,5 @@
+import json
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -86,7 +88,10 @@ class Settings(BaseSettings):
     # (read + execute) or "readonly" (read only). Empty outside production
     # means "no auth configured yet" and is allowed; empty in production is
     # refused at startup — see main.py's boot check.
-    API_KEYS: tuple = ()
+    # Keep this as a string so Render's generateValue output (a plain secret)
+    # is accepted as well as the local JSON-list form, e.g.
+    # ["secret:operator", "readonly-secret:readonly"].
+    API_KEYS: str = ""
     # HMAC key that seals the audit hash chain. Without a real secret,
     # anyone with database write access could recompute a self-consistent
     # chain. Left blank in dev/demo (a random per-process key is generated
@@ -132,7 +137,22 @@ class Settings(BaseSettings):
     def api_keys_by_role(self) -> dict:
         """Parse ``API_KEYS`` entries of the form ``<key>:<role>`` into a map."""
         parsed = {}
-        for entry in self.API_KEYS:
+        raw_keys = self.API_KEYS
+        if isinstance(raw_keys, str):
+            raw_keys = raw_keys.strip()
+            if not raw_keys:
+                entries = []
+            else:
+                try:
+                    decoded = json.loads(raw_keys)
+                except json.JSONDecodeError:
+                    decoded = [raw_keys]
+                entries = decoded if isinstance(decoded, list) else [decoded]
+        else:
+            # Kept for compatibility with tests and callers that assign a
+            # tuple/list directly after Settings has been instantiated.
+            entries = raw_keys
+        for entry in entries:
             key, _, role = str(entry).partition(":")
             key = key.strip()
             role = role.strip() or "readonly"

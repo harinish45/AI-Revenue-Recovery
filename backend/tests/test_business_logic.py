@@ -54,9 +54,7 @@ def test_policy_amount_check_tolerates_float_noise_at_the_boundary(db_session):
     computed value) -- AMOUNT_TOLERANCE absorbs that noise so the check
     doesn't flip on float representation alone, while a genuinely-over amount
     still blocks."""
-    customer, just_noise = _make_customer_and_payment(
-        db_session, amount=settings.MAX_AMOUNT + 1e-9
-    )
+    customer, just_noise = _make_customer_and_payment(db_session, amount=settings.MAX_AMOUNT + 1e-9)
     case = RecoveryCase(
         id="RC-BOUNDARY-1",
         payment_id=just_noise.id,

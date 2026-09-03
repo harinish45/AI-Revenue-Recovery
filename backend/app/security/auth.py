@@ -37,6 +37,12 @@ def require_role(minimum_role: str):
         request: Request,
         x_api_key: Optional[str] = Header(default=None, alias="X-API-Key"),
     ) -> None:
+        # The Render-hosted public demo intentionally runs with development
+        # controls enabled. Ignore a stale dashboard API_KEYS variable in this
+        # mode so the demo cannot become unusable after an environment change.
+        # Production always remains key-protected.
+        if settings.demo_controls_enabled:
+            return
         if not settings.api_keys_by_role and not settings.is_production:
             return
         role = _resolve_role(x_api_key)

@@ -131,7 +131,7 @@ structured the way a codebase meant to be extended, not just demoed, should be.
 
 ## 🚀 Quickstart
 
-**Live demo:** *[link pending]*
+**Live demo:** [recoverai-5orn.onrender.com](https://recoverai-5orn.onrender.com)
 
 **Paste one line into a terminal.** It clones the repo (if you don't already
 have it) and starts the whole app — nothing else to install first except
@@ -152,7 +152,7 @@ irm https://raw.githubusercontent.com/harinish45/AI-Revenue-Recovery/main/bootst
 ### 👉 Open **http://localhost:8000**
 
 That's the whole cockpit — standalone dashboard, voice agent, everything. (The
-React dev dashboard, if you want it separately, is on http://localhost:3000.)
+React dev dashboard, if you want it separately, is on http://localhost:5173.)
 Both containers run as a non-root user with a `HEALTHCHECK` — see
 [Security Posture](#️-security-posture--defense-in-depth). Stop it any time
 with `docker compose down` from inside the cloned folder.
@@ -183,6 +183,31 @@ DEMO_MODE=true
 ```
 
 </details>
+
+### Voice agent: use Microsoft Edge
+
+The voice agent is a real browser interaction: it requests microphone input,
+recognizes speech, speaks replies aloud, and records consent and outcomes to
+the backend audit trail. Payments remain simulated in this test-mode demo;
+the voice conversation and audit events are real.
+
+For the best result, open either the [live Render demo](https://recoverai-5orn.onrender.com)
+or `http://localhost:8000` in **Microsoft Edge**. Edge generally provides the
+best built-in neural voices for the supported Indian languages. Allow the
+microphone permission when prompted, select a case, check the consent box,
+and start the call. If a language voice is missing, the agent intentionally
+shows the response as text instead of playing incorrect pronunciation.
+
+The live Render URL uses HTTPS, so microphone access is supported. When using
+the React development dashboard separately, run it at `http://localhost:5173`
+and keep the backend running at `http://localhost:8000`.
+
+Render and localhost use the same standalone cockpit and backend API. If Edge
+reports that a language voice is unavailable, install that language's speech
+pack in Windows **Settings → Time & language → Language & region**, restart
+Edge, and reload the page. Speech recognition retries the language's primary
+tag automatically when a regional tag is rejected; typed replies remain
+available as a safe fallback.
 
 ### Run the test suite
 
