@@ -6,11 +6,11 @@
 
 `Detect → Diagnose → Decide → Recover → Audit`
 
-![Python](https://img.shields.io/badge/Python-3.11-3776AB?logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.14-3776AB?logo=python&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
-![React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Razorpay](https://img.shields.io/badge/Razorpay-Integrated-0C2451?logo=razorpay&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-60%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-63%20passing-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 [![Backend CI](https://github.com/harinish45/AI-Revenue-Recovery/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/harinish45/AI-Revenue-Recovery/actions/workflows/backend-ci.yml)
@@ -77,7 +77,7 @@ Every execution passes this gauntlet — **in this exact order**:
 │  ┌───────────┐  ┌───────────┐  ┌────────────┐  ┌────────────┐  │
 │  │ Recovery  │→ │ Policy    │→ │ Razorpay   │→ │ Audit      │  │
 │  │ Agent     │  │ Engine    │  │ Service    │  │ Chain      │  │
-│  │ (bounded) │  │ (10 gate) │  │ (provider) │  │ (SHA-256)  │  │
+│  │ (bounded) │  │ (11 gate) │  │ (provider) │  │ (SHA-256)  │  │
 │  └───────────┘  └───────────┘  └─────┬──────┘  └────────────┘  │
 │        │            │                │ signed webhooks          │
 │  ┌─────▼────────────▼────────────────▼──────────────────────┐  │
@@ -109,7 +109,7 @@ backend/
 │   └── models.py · schemas.py · main.py
 ├── migrations/          Alembic migrations (real, verified up/down against a
 │                          clean database — see Design Decisions)
-└── tests/                60 tests — safety, adversarial, business logic, API
+└── tests/                63 tests — safety, adversarial, business logic, API
 
 frontend/src/
 ├── components/         CasesTable · CaseDetailModal · AuditDrawer
@@ -187,7 +187,7 @@ DEMO_MODE=true
 ### Run the test suite
 
 ```bash
-cd backend && python -m pytest tests/ -v      # 60 tests: safety, adversarial, business logic, API
+cd backend && python -m pytest tests/ -v      # 63 tests: safety, adversarial, business logic, API
 ```
 
 ## 🔌 API Highlights
@@ -296,7 +296,7 @@ Expected net value:    ₹1,074
 Decision:              PAYMENT LINK
 Stopping rules:        do not retry the card · escalate after link window
 Next permitted retry:  2026-08-28T14:32Z        (24h cooldown)
-Policy checks:         10/10 passed
+Policy checks:         11/11 passed
 Audit seal:            AUD-88f2…c1a9   (chain verified)
 ```
 
@@ -311,26 +311,75 @@ record. No single layer is trusted alone — a bypass of one still hits the next
         │                   response, not just claimed in a doc
  L2  Request size ceiling   rejected from Content-Length alone, before the body is
         │                   even read — bounds every route, not only webhooks
- L3  Authentication         X-API-Key · readonly/operator roles · refuses to boot
-        │                   in production without API_KEYS configured
+ L3  Authentication         X-API-Key · readonly/operator roles · refuses to boot in
+        │                   production without API_KEYS, AUDIT_SIGNING_KEY, AND
+        │                   WEBHOOK_SECRET all configured (a prod deploy that left
+        │                   RAZORPAY_SIMULATE=true used to boot fine with an
+        │                   unconfigured webhook secret and silently accept
+        │                   unauthenticated "payment confirmed" events — closed)
  L4  Input validation       Pydantic schemas — language allowlists, transcript/intent
-        │                   bounds, confidence range, pagination ceilings
- L5  Rate limiting          per-endpoint throttling on execute, demo, voice routes
-        │
+        │                   bounds, confidence range, pagination ceilings; case search
+        │                   escapes SQL LIKE wildcards so a literal '%'/'_' in a
+        │                   customer name can't silently broaden a match
+ L5  Rate limiting          per-endpoint throttling on execute, demo, voice routes —
+        │                   uvicorn now runs with --proxy-headers/--forwarded-allow-ips
+        │                   so the limiter keys on the real client IP behind Render's
+        │                   load balancer, not the LB's own IP for every request
  L6  Business policy gate   the 11-check safety contract (see above) — the one place
         │                   that decides whether an intervention is allowed to run
  L7  Idempotency ledger     Idempotency-Key request-hash separation; replay returns
-        │                   the original result, cross-case reuse returns 409
+        │                   the original result, cross-case reuse returns 409 — backed
+        │                   by row-level locking (see Concurrency Safety below), not
+        │                   just the idempotency table alone
  L8  Tamper-evident audit   HMAC-SHA256-sealed, hash-chained event log — forging a
-                            self-consistent chain needs AUDIT_SIGNING_KEY, not just DB access
+                            self-consistent chain needs AUDIT_SIGNING_KEY, not just DB
+                            access — plus a chain-tail anchor (see below) that catches
+                            deletion of the *newest* event, which pure hash-linking
+                            alone structurally cannot detect
 ```
+
+### Concurrency safety — closing the double-execution race
+
+Every case-mutating endpoint (`execute`, `confirm-payment`, the Razorpay webhook
+handler, batch recovery, voice events) re-fetches its case row under
+`with_for_update()` as the first thing it does — a real row lock on Postgres in
+production, a documented no-op on SQLite. Without this, two concurrent requests for
+the same case (a UI double-click, a client retry that reused a *different*
+Idempotency-Key, or a webhook racing an operator's manual confirmation) could both
+read `pending`/`awaiting_payment`, both pass the policy gate, and both call the
+payment provider before either commit was visible to the other — a real
+double-send / double-counted-revenue risk that only surfaces under production
+concurrency, never in a single-request demo. The lock makes the second request
+block until the first commits, so it then sees the now-terminal status and the
+policy engine's own `terminal_state_check` correctly blocks it — no new bypass
+logic needed, the existing safety contract just gets to actually run. Batch
+recovery re-locks each case individually with `skip_locked=True` right before
+processing it, so two overlapping batch triggers split the work across disjoint
+cases instead of blocking on or double-processing the same one.
+
+### Audit-chain tamper detection, made actually complete
+
+`verify_chain()`'s hash-linking only ever points *backward* — each seal embeds the
+previous seal's hash. That means deleting the single newest `AuditLog`/`AuditSeal`
+row pair for a case leaves every *remaining* seal perfectly self-consistent, and a
+forward-only walk reports the truncated chain as 100% valid. Every sealed event now
+also writes `last_audit_sequence`/`last_audit_hash` onto the case row itself, in the
+same transaction as the seal — an anchor stored outside the seals table entirely, so
+deleting seal/log rows alone can't erase it. `verify_chain()` cross-checks this
+anchor against what it can still find and reports a mismatch (`anchor_mismatches`)
+as truncation. A `UNIQUE(case_id, sequence)` constraint on `audit_seals` backs this
+up as defense in depth. The audit drawer in the React dashboard has a "Verify full
+chain" action that calls this end to end and surfaces the result — not just
+per-event seal checks.
 
 Plus, orthogonal to the request path:
 
 - **Webhook integrity** — HMAC-SHA256 signature verification (timing-safe compare), staleness window, event-type allowlist, provider-ID requirement, payload size cap
-- **CI security scanning on every push** — `pip-audit` + `npm audit` (dependency CVEs), `bandit` (Python SAST), Gitleaks (secret scanning), Dependabot (pip/npm/Actions/Docker)
-- **Container hardening** — both images run as a non-root user with a `HEALTHCHECK`
+- **CI security scanning on every push** — `pip-audit` + `npm audit` (dependency CVEs), `bandit` (Python SAST), Gitleaks (secret scanning), Dependabot (pip/npm/Actions/Docker); frontend CI now also runs `eslint` as a real lint gate (there wasn't one before)
+- **Reproducible builds** — frontend dependencies (`react`, `vite`, `@vitejs/plugin-react`, `typescript`) were pinned to `"latest"`, meaning every fresh `npm install` could silently pull a different, untested version; all now pinned to the exact versions this repo is built and tested against
+- **Container hardening** — both images run as a non-root user with a `HEALTHCHECK`; base images and CI Actions kept current (Python 3.14, Node 26, nginx 1.31, `actions/checkout@v7`, `actions/setup-python@v7`, `actions/setup-node@v7`, `gitleaks-action@v3`) — each bump verified before applying, not merged blindly (see commit history for how)
 - **Demo isolation** — `/api/demo/*` triple-guarded: off by default, hard-disabled in production, optional shared-token gate
+- **Independently reviewed** — this repo's hardening work has been through a dedicated multi-pass security review (vulnerability identification against the actual diff, followed by independent false-positive filtering of every candidate finding) with no reportable high-confidence issues found
 
 See [`docs/security.md`](docs/security.md) for the full control list and threat model.
 

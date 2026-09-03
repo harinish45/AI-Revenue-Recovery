@@ -38,10 +38,16 @@ Implemented controls:
     (`"<key>:<role>"` entries). Webhook and demo-control routes keep their own
     separate, existing mechanisms (HMAC signature, `X-Demo-Token`).
 14. **Fail-closed startup in production.** `APP_ENV=production` refuses to
-    boot unless both `API_KEYS` and `AUDIT_SIGNING_KEY` are configured — the
-    app cannot be silently deployed wide-open or with a forgeable audit trail.
-    Outside production, both stay optional so the public demo and local dev
-    keep working exactly as before this control was added (an unset
+    boot unless `API_KEYS`, `AUDIT_SIGNING_KEY`, **and `WEBHOOK_SECRET`** are
+    all configured — the app cannot be silently deployed wide-open, with a
+    forgeable audit trail, or accepting unauthenticated webhook payment
+    confirmations. Before `WEBHOOK_SECRET` was added to this check, a
+    production deploy left with `RAZORPAY_SIMULATE=true` and no webhook
+    secret configured would boot successfully and silently accept
+    unauthenticated "payment confirmed" events (`webhooks.py`'s own runtime
+    guard only rejects unsigned payloads when `RAZORPAY_SIMULATE=false`).
+    Outside production, all three stay optional so the public demo and local
+    dev keep working exactly as before this control was added (an unset
     `AUDIT_SIGNING_KEY` falls back to a random per-process key).
 15. **Model-assisted diagnosis input hardening**
     (`backend/app/services/diagnosis_service.py`): the failure-reason text
@@ -56,6 +62,50 @@ Implemented controls:
     Docker base images.
 17. Both container images run as an unprivileged user and expose a
     `HEALTHCHECK` against the app's own health/liveness endpoint.
+18. **Row-level locking against concurrent double-execution.** Every
+    case-mutating entry point (`execute_recovery`, `confirm_provider_payment`,
+    `log_event`, batch recovery) re-fetches its case row under
+    `with_for_update()` before reading or mutating any state — a real lock on
+    PostgreSQL in production, a documented no-op on SQLite. Without this, two
+    concurrent requests for the same case (a UI double-click, a client retry
+    that reused a different `Idempotency-Key`, or a webhook racing an
+    operator's manual confirmation) could each observe `pending` /
+    `awaiting_payment`, each pass the policy gate, and each call the payment
+    provider before either commit was visible to the other. The lock
+    serializes the two requests so the second one sees the now-terminal
+    status and control 6/`terminal_state_check` blocks it correctly, instead
+    of a second execution silently going through. Batch recovery re-locks
+    each case individually with `skip_locked=True` immediately before
+    processing it, so two overlapping batch runs split the work across
+    disjoint cases rather than blocking on, or double-processing, the same
+    one.
+19. **Audit-chain truncation detection.** Control 8's hash chain only ever
+    links backward (each seal embeds the previous seal's hash), which means
+    deleting the single *newest* `AuditLog`/`AuditSeal` row pair for a case
+    leaves every remaining seal internally consistent — a forward-only
+    verification walk would report the truncated chain as 100% valid. Every
+    sealed event now also writes an independent anchor
+    (`last_audit_sequence`/`last_audit_hash`) onto the case row itself, in the
+    same transaction as the seal; `verify_chain()` cross-checks this anchor
+    against what it can still find in `audit_seals` and reports a mismatch
+    (`anchor_mismatches`) as truncation. A `UNIQUE(case_id, sequence)`
+    constraint on `audit_seals` backs this up as defense in depth against the
+    row-lock alone.
+20. **Rate limiting keyed on the real client IP.** `slowapi`'s
+    `get_remote_address` reads the raw socket peer; without
+    `--proxy-headers`/`--forwarded-allow-ips` on uvicorn, every request behind
+    a reverse proxy (Render's load balancer) arrives from the LB's own IP, so
+    every client shared one rate-limit bucket — the limiter was either
+    throttling everyone together or doing nothing useful. Enabled in both
+    `backend/Dockerfile` and `render.yaml`'s start command; the platform
+    terminates TLS, so trusting its proxy headers for the client IP is safe.
+21. **SQL LIKE wildcard escaping.** `GET /api/cases?search=` builds a
+    parameterized `ILIKE` pattern — not an injection risk — but a literal
+    `%`/`_` in the search text (or in stored data being matched against) is
+    otherwise interpreted as a wildcard rather than a literal character,
+    silently broadening a match. The search term is now escaped
+    (`\`, `%`, `_`) with an explicit `ESCAPE` clause before the pattern is
+    built.
 
 ## Threat model — in scope vs. out of scope
 
