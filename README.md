@@ -43,7 +43,7 @@ RecoverAI is a **bounded autonomous agent** that turns failed payments into a go
 |---|---|---|
 | 🔍 **Detect** | Failed payments become tracked recovery cases | Amounts reconciled between payment & case |
 | 🧠 **Diagnose** | AI classifies the failure root cause with evidence + confidence | Model output can never override deterministic classification |
-| ⚖️ **Decide** | 10-check deterministic policy engine approves or blocks | The agent *recommends*; policy *decides* |
+| ⚖️ **Decide** | 11-check deterministic policy engine approves or blocks | The agent *recommends*; policy *decides* |
 | 💸 **Recover** | Payment link / reminder / retry is executed via Razorpay | A sent link ≠ recovered money — only provider-confirmed events count revenue |
 | 🧾 **Audit** | Every step sealed into a SHA-256 tamper-evident chain | Any tampering invalidates the whole chain, verified recursively |
 
@@ -317,7 +317,7 @@ record. No single layer is trusted alone — a bypass of one still hits the next
         │                   bounds, confidence range, pagination ceilings
  L5  Rate limiting          per-endpoint throttling on execute, demo, voice routes
         │
- L6  Business policy gate   the 10-check safety contract (see above) — the one place
+ L6  Business policy gate   the 11-check safety contract (see above) — the one place
         │                   that decides whether an intervention is allowed to run
  L7  Idempotency ledger     Idempotency-Key request-hash separation; replay returns
         │                   the original result, cross-case reuse returns 409
