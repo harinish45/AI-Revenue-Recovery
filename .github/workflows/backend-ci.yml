@@ -16,7 +16,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
+          python-version: '3.14'
       - run: pip install ruff bandit
       - run: ruff check app tests
       - run: ruff format --check app tests
@@ -35,7 +35,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
+          python-version: '3.14'
       - run: pip install -r requirements.txt
       - run: pytest -q
 
@@ -48,7 +48,7 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
-          python-version: '3.11'
+          python-version: '3.14'
       - run: pip install pip-audit
       # Fails the build on known CVEs in pinned dependencies.
       - run: pip-audit -r requirements.txt
