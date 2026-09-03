@@ -21,12 +21,12 @@ input,select{font-family:inherit;color:var(--tx)}
 .tstrip i{width:6px;height:6px;border-radius:50%;background:var(--amb);animation:blk 2s infinite}
 @keyframes blk{50%{opacity:.4}}
 .shell{display:grid;grid-template-columns:248px 1fr;min-height:calc(100vh - 28px)}
-.side{border-right:1px solid var(--ln);padding:18px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:calc(100vh - 28px);overflow-y:auto;background:#151b36}
-.brand{display:flex;gap:11px;align-items:center;padding:2px 8px 14px}
+.side{border-right:1px solid var(--ln);padding:18px 14px;display:flex;flex-direction:column;position:sticky;top:0;height:calc(100vh - 28px);overflow:hidden;background:#151b36}
+.brand{display:flex;gap:11px;align-items:center;padding:2px 8px 14px;flex:none}
 .brand b{font-family:var(--fd);font-size:15px;font-weight:700;letter-spacing:-.01em}
 .brand b em{font-style:normal;color:var(--grn)}
 .brand span{font-size:9px;color:var(--dim);letter-spacing:.1em;text-transform:uppercase;font-weight:600}
-.nav{display:flex;flex-direction:column;gap:2px;flex:1}
+.nav{display:flex;flex-direction:column;gap:2px;flex:1;min-height:0;overflow-y:auto}
 .ncap{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--dim);padding:10px 12px 4px;font-weight:800}
 .nav button{display:flex;align-items:center;gap:11px;width:100%;padding:8px 12px;border-radius:8px;color:var(--mut);font-size:13px;font-weight:600;transition:.12s;text-align:left;min-height:36px}
 .nav button:hover{color:var(--tx);background:var(--p2)}
@@ -34,7 +34,7 @@ input,select{font-family:inherit;color:var(--tx)}
 .nav button.on svg{color:var(--grn)}
 .nav button svg{width:15px;height:15px;flex:none;color:var(--mut)}
 .nav .nbadge{margin-left:auto;font-family:var(--fm);font-size:10px;padding:1px 7px;border-radius:99px;background:var(--p3);color:var(--mut);border:1px solid var(--ln2)}
-.side-foot{margin-top:auto;padding:10px 8px 0;border-top:1px solid var(--ln);display:flex;flex-direction:column;gap:6px}
+.side-foot{margin-top:auto;padding:10px 8px 0;border-top:1px solid var(--ln);display:flex;flex-direction:column;gap:6px;flex:none}
 .conn{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--grn2)}
 .conn.demo{color:var(--amb2)}
 .conn.bad{color:var(--red2)}
@@ -183,7 +183,8 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .vlang button{padding:5px 10px;border-radius:6px;font-size:11px;font-weight:600;border:1px solid transparent;color:var(--mut);cursor:pointer;transition:.12s}
 .vlang button.on{background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.3);color:var(--vio2)}
 .vlang button:hover{color:var(--tx)}
-.vchat{display:flex;flex-direction:column;gap:10px;padding:14px;max-height:340px;overflow-y:auto;min-height:280px}
+.vchat{display:flex;flex-direction:column;gap:10px;padding:14px;flex:1;min-height:0;overflow-y:auto}
+.voice-console-live{display:flex;flex-direction:column;min-height:380px;max-height:calc(100vh - 230px)}
 .vmsg{display:flex;gap:8px;max-width:85%;animation:fin .22s ease}
 .vmsg.agent{align-self:flex-start}
 .vmsg.user{align-self:flex-end;flex-direction:row-reverse}
@@ -200,8 +201,8 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .vstatus{font-size:11px;color:var(--mut);font-weight:600}
 .vinterim{font-size:11px;color:var(--dim);font-style:italic;min-height:16px;flex:1}
 .vquick{display:flex;gap:7px;flex-wrap:wrap;padding:0 14px 14px}
-.vquick button{display:inline-flex;align-items:center;gap:6px;padding:7px 13px 7px 10px;border-radius:99px;font-size:11px;font-weight:600;background:var(--p2);border:1px solid var(--ln2);color:var(--mut);cursor:pointer;transition:.15s}
-.vquick button .qi{font-size:13px;line-height:1}
+.vquick button{display:inline-flex;align-items:center;padding:7px 14px;border-radius:99px;font-size:11px;font-weight:600;background:var(--p2);border:1px solid var(--ln2);color:var(--mut);cursor:pointer;transition:.15s}
+.vquick button:hover{border-color:#8b5cf6;color:var(--tx)}
 .vquick button:hover:not(:disabled){color:var(--tx);border-color:var(--vio2);background:rgba(139,92,246,.08);transform:translateY(-1px)}
 .vquick button:disabled{opacity:.4;cursor:not-allowed;transform:none}
 .vinput-row{display:flex;gap:9px;align-items:center;padding:2px 14px 10px}
@@ -233,7 +234,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .voice-fallback-notice b{color:#fbbf24}
 .voice-case-search-wrap{position:relative;margin-bottom:5px}.voice-case-search-wrap::before{content:'⌕';position:absolute;left:13px;top:50%;transform:translateY(-52%);color:#a78bfa;font-size:20px;z-index:1}.voice-case-search{width:100%;box-sizing:border-box;padding:12px 40px 12px 38px!important;border:1px solid rgba(139,92,246,.28)!important;border-radius:11px!important;background:linear-gradient(110deg,rgba(139,92,246,.09),rgba(236,72,153,.04),rgba(139,92,246,.09));background-size:220% 100%;color:var(--tx);outline:none;transition:border-color .2s,box-shadow .2s;animation:searchGlow 5s ease-in-out infinite}.voice-case-search::placeholder{color:var(--dim)}.voice-case-search:focus{border-color:#a78bfa!important;box-shadow:0 0 0 3px rgba(139,92,246,.14),0 0 22px rgba(236,72,153,.16);animation:none}.voice-case-search-clear{position:absolute;right:10px;top:50%;transform:translateY(-50%);border:0;background:transparent;color:var(--dim);cursor:pointer;font-size:18px;padding:4px}.voice-case-search-clear:hover{color:var(--tx)}
 @keyframes searchGlow{0%,100%{background-position:0% 50%;box-shadow:0 0 0 rgba(139,92,246,0)}50%{background-position:100% 50%;box-shadow:0 0 18px rgba(139,92,246,.1)}}
-.voice-setup-copy{max-width:520px;width:100%;margin:0;color:var(--mut);font-size:12px;line-height:1.65}.voice-consent{display:flex;align-items:flex-start;gap:12px;max-width:560px;width:100%;margin:0;padding:14px 16px;text-align:left;border:1px solid rgba(245,158,11,.3);border-radius:12px;background:linear-gradient(100deg,rgba(245,158,11,.1),rgba(245,158,11,.035));cursor:pointer}.voice-consent input{appearance:none;width:20px;height:20px;flex:none;margin:1px 0 0;border:1px solid #9ca3af;border-radius:6px;background:#11131b;cursor:pointer;position:relative}.voice-consent input:checked{border-color:#ec4899;background:#ec4899;box-shadow:0 0 12px rgba(236,72,153,.35)}.voice-consent input:checked::after{content:'✓';position:absolute;inset:0;display:grid;place-items:center;color:white;font-size:14px;font-weight:800}.voice-consent strong{display:block;color:#fbbf24;font-size:12px;margin-bottom:4px}.voice-consent span{color:var(--mut);font-size:11px;line-height:1.45}.voice-start{min-width:220px;padding:12px 20px!important;font-size:13px!important;box-shadow:0 0 0 rgba(236,72,153,0);transition:transform .2s,box-shadow .2s}.voice-start:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(236,72,153,.2)}
+.voice-setup-copy{max-width:520px;width:100%;margin:0;color:var(--mut);font-size:12px;line-height:1.65}.voice-consent{display:flex;align-items:flex-start;gap:12px;max-width:560px;width:100%;margin:0;padding:13px 15px;text-align:left;border:1px solid var(--ln2);border-radius:10px;background:var(--p2);cursor:pointer;transition:border-color .15s}.voice-consent:hover{border-color:#8b5cf6}.voice-consent input{appearance:none;width:17px;height:17px;flex:none;margin:2px 0 0;border:1.5px solid var(--ln2);border-radius:5px;background:var(--p1);cursor:pointer;position:relative}.voice-consent input:checked{border-color:#8b5cf6;background:#8b5cf6}.voice-consent input:checked::after{content:'';position:absolute;left:5px;top:2px;width:4px;height:8px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}.voice-consent strong{display:block;color:var(--tx);font-size:12px;font-weight:700;margin-bottom:3px}.voice-consent span{color:var(--mut);font-size:11px;line-height:1.5}.voice-start{min-width:220px;padding:12px 20px!important;font-size:13px!important;box-shadow:0 0 0 rgba(236,72,153,0);transition:transform .2s,box-shadow .2s}.voice-start:not(:disabled):hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(236,72,153,.2)}
 .vtimer{font-family:var(--fm);font-size:11px;color:var(--vio2);font-weight:600}
 .tl{position:relative;padding-left:18px}
 .tl::before{content:"";position:absolute;left:5px;top:4px;bottom:4px;width:2px;background:var(--ln)}
@@ -319,7 +320,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
 .toast.w{border-left-color:var(--amb)}.toast.w .tic{background:rgba(245,158,16,.12);color:var(--amb2)}
 .toast.i .tic{background:rgba(59,130,246,.12);color:var(--blu2)}
 @media(max-width:1150px){.kpis{grid-template-columns:repeat(3,1fr)}.ovgrid{grid-template-columns:1fr}.pbgrid{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
-@media(max-width:900px){.shell{grid-template-columns:56px 1fr}.brand div,.nav .nl,.nav .nbadge,.ncap,.side-foot small,.conn span{display:none}.brand{justify-content:center}.nav button{justify-content:center}.kpis{grid-template-columns:1fr 1fr}.vchat{max-height:220px;min-height:170px}.voice-call-header{padding:10px 12px}.voice-transcript-title{padding:8px 12px 0}.vcontrols{padding:10px 12px}.vquick{padding:0 12px 10px}.vbub{font-size:12px;padding:8px 12px}.voice-setup-grid{grid-template-columns:1fr}.voice-setup-case{border-right:none;border-bottom:1px solid var(--ln);flex-direction:row;align-items:center;gap:12px}.voice-setup-facts{flex-direction:row;flex-wrap:wrap;gap:14px}.voice-crumb-steps{gap:0}.voice-crumb-step{padding:0 6px}}
+@media(max-width:900px){.shell{grid-template-columns:56px 1fr}.brand div,.nav .nl,.nav .nbadge,.ncap,.side-foot small,.conn span{display:none}.brand{justify-content:center}.nav button{justify-content:center}.kpis{grid-template-columns:1fr 1fr}.voice-console-live{min-height:280px;max-height:calc(100vh - 190px)}.voice-call-header{padding:10px 12px}.voice-transcript-title{padding:8px 12px 0}.vcontrols{padding:10px 12px}.vquick{padding:0 12px 10px}.vbub{font-size:12px;padding:8px 12px}.voice-setup-grid{grid-template-columns:1fr}.voice-setup-case{border-right:none;border-bottom:1px solid var(--ln);flex-direction:row;align-items:center;gap:12px}.voice-setup-facts{flex-direction:row;flex-wrap:wrap;gap:14px}.voice-crumb-steps{gap:0}.voice-crumb-step{padding:0 6px}}
 @media(max-width:620px){.shell{grid-template-columns:1fr}.side{position:fixed;bottom:0;left:0;right:0;top:auto;height:56px;flex-direction:row;align-items:center;z-index:80;background:#000;border-top:1px solid var(--ln);overflow-y:hidden}.brand,.side-foot{display:none}.nav{flex-direction:row;flex:1;gap:2px;overflow-x:auto;padding:0 6px}.nav button{flex:none;min-width:48px;justify-content:center;padding:6px}main{padding-bottom:76px}.kpis{grid-template-columns:1fr}.pbgrid{grid-template-columns:1fr}.bmrow{grid-template-columns:repeat(2,1fr)}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
@@ -1086,10 +1087,10 @@ function renderVoice(){
    '<div><dt>Reason</dt><dd>'+(activeCase?esc(activeCase.category.name):'—')+'</dd></div>'+
    '</dl></div>';
   h+='<div class="voice-setup-panel">';
-  h+='<span class="voice-ready-badge">⌁ Ready for a '+esc(VOICE_BRAIN[S.voiceLang].name)+' session</span>';
+  h+='<span class="voice-ready-badge">⌁ Ready for '+(/^[aeiou]/i.test(VOICE_BRAIN[S.voiceLang].name)?'an ':'a ')+esc(VOICE_BRAIN[S.voiceLang].name)+' session</span>';
   h+='<div class="voice-setup-field"><label>Call language</label><div class="vlang">'+Object.keys(VOICE_BRAIN).map(function(code){return '<button class="'+(S.voiceLang===code?'on':'')+'" data-act="set-vlang" data-lang="'+code+'">'+VOICE_BRAIN[code].label+'</button>';}).join('')+'</div></div>';
   h+='<p class="voice-setup-copy">The agent explains the purpose, listens for intent, and asks for confirmation before recording a promise. It stops safely on refusal or uncertainty.</p>';
-  h+='<label class="voice-consent"><input type="checkbox" id="voiceConsent" '+(S.voiceConsent?'checked':'')+'><span><strong>Operator consent gate</strong><span> This is a simulated test-mode call. The customer-facing disclosure will always be respected.</span></span></label>';
+  h+='<label class="voice-consent"><input type="checkbox" id="voiceConsent" '+(S.voiceConsent?'checked':'')+'><span><strong>I confirm consent to place this call</strong><span> Simulated test-mode call. Customer-facing disclosure requirements are always respected.</span></span></label>';
   h+='<button class="btn btn-v voice-start" data-act="start-call" '+(!S.voiceCase||!S.voiceConsent?'disabled':'')+'>Start '+esc(VOICE_BRAIN[S.voiceLang].label)+' Voice Call →</button>';
   h+='</div></div></div>';
   return h;
@@ -1097,7 +1098,7 @@ function renderVoice(){
 
  // ═══ Mode 3: LIVE CALL — full-width immersive console ═══
  h+=voiceCrumbs(3);
- h+='<div class="card voice-console" style="overflow:hidden"><div class="voice-call-header"><div class="voice-avatar">'+(activeCase?esc(activeCase.customer.charAt(0)):'R')+'</div><div class="voice-active-id"><span>LIVE · '+esc(VOICE_BRAIN[S.voiceLang].name)+'</span><strong>'+(activeCase?esc(activeCase.customer):'Customer')+'</strong><small>'+(activeCase?activeCase.id+' · '+fmt(activeCase.amount)+' at risk':'Recovery case')+'</small></div><span class="vtimer" id="vtimer">00:00</span><div class="voice-eq"><i></i><i></i><i></i><i></i><i></i></div><button class="btn btn-r btn-sm" data-act="end-call">End call</button></div>';
+ h+='<div class="card voice-console voice-console-live"><div class="voice-call-header"><div class="voice-avatar">'+(activeCase?esc(activeCase.customer.charAt(0)):'R')+'</div><div class="voice-active-id"><span>LIVE · '+esc(VOICE_BRAIN[S.voiceLang].name)+'</span><strong>'+(activeCase?esc(activeCase.customer):'Customer')+'</strong><small>'+(activeCase?activeCase.id+' · '+fmt(activeCase.amount)+' at risk':'Recovery case')+'</small></div><span class="vtimer" id="vtimer">00:00</span><div class="voice-eq"><i></i><i></i><i></i><i></i><i></i></div><button class="btn btn-r btn-sm" data-act="end-call">End call</button></div>';
  if(!vinfo.usable)h+='<div class="voice-fallback-notice"><b>No '+esc((VOICE_BRAIN[S.voiceLang]||{}).name||S.voiceLang)+' voice on this device.</b> Showing text only so nothing garbled plays. For real pronunciation: open this in <b>Microsoft Edge</b> (built-in neural voices for all 8 languages, zero setup), or add the language in Windows Settings &rarr; Time &amp; Language &rarr; Language &amp; region &rarr; Add a language &rarr; download its speech pack.</div>';
  h+='<div class="voice-stage"><i class="live"></i><span>Stage</span><b>'+esc(pretty(S.voiceStage))+'</b><span>· intent</span><b>'+esc(pretty(S.voiceIntent))+'</b><span style="margin-left:auto">confidence '+Math.round(S.voiceConfidence*100)+'%</span></div>';
  h+='<div class="voice-transcript-title"><span>Live transcript</span><small>Messages are simulated and audit-ready</small></div><div id="voiceChat" class="vchat"></div>';
@@ -1619,8 +1620,7 @@ function renderVoiceChat(){
  // Quick-reply order is the same across every language pack (yes / no-money
  // / half-payment / human / later / link), so the icon can be matched by
  // position rather than parsing translated text.
- var QUICK_ICONS=['💬','💰','💳','🧑‍💼','📞','🔗','🧾'];
- if(q){var brain=VOICE_BRAIN[S.voiceLang];q.innerHTML=(brain.quickReplies||[]).map(function(s,i){return '<button data-act="quick-say" data-text="'+esc(s)+'" '+(S.voiceBusy?'disabled':'')+'><span class="qi" aria-hidden="true">'+(QUICK_ICONS[i]||'💬')+'</span>'+esc(s)+'</button>';}).join('');}
+ if(q){var brain=VOICE_BRAIN[S.voiceLang];q.innerHTML=(brain.quickReplies||[]).map(function(s){return '<button data-act="quick-say" data-text="'+esc(s)+'" '+(S.voiceBusy?'disabled':'')+'>'+esc(s)+'</button>';}).join('');}
  var inp=document.getElementById('vinput'),send=document.getElementById('vsend');
  if(inp)inp.disabled=S.voiceBusy;
  if(send)send.disabled=S.voiceBusy;
