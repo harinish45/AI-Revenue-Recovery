@@ -135,3 +135,27 @@ For a deployed environment: set a strict `CORS_ORIGINS`, disable demo routes
 `AUDIT_SIGNING_KEY` configured, use PostgreSQL with TLS, store secrets in a
 secret manager, and add distributed rate limiting (e.g. a Redis-backed
 limiter) if running more than one instance.
+
+**A specific, concrete consequence of the live public demo's own
+configuration, stated plainly rather than left implicit:** the deployed demo
+runs with `RAZORPAY_SIMULATE=true` and no `WEBHOOK_SECRET` set (control 14's
+production-only boot check doesn't apply outside `APP_ENV=production`, and
+the demo intentionally runs `APP_ENV=development` — see `render.yaml`). Under
+control 3's guard, that means `/api/webhooks/razorpay` accepts *unsigned*
+requests. `GET /api/cases` is itself unauthenticated in this same demo
+configuration and returns each case's real `payment_id`, so anyone can read a
+case's `payment_id` and then POST an unsigned `payment.captured` /
+`payment_link.paid` event for it, flipping that specific case to `recovered`
+without ever having a real signature. The forged confirmation is bounded --
+it can only mark an *existing* case's *own* payment amount as recovered, not
+fabricate an arbitrary amount or case, and it's fully visible afterward
+(`razorpay_webhook_received` + `payment_confirmed` are both sealed into the
+same tamper-evident audit chain as everything else) -- but it is a real,
+exploitable gap in the demo's revenue-confirmation story specifically,
+consistent with (not worse than) the demo's existing unauthenticated
+seed/reset surface. Setting `WEBHOOK_SECRET` (with `RAZORPAY_SIMULATE=false`
+once a real provider is wired in, or even just set alongside
+`RAZORPAY_SIMULATE=true` -- control 3 requires a valid signature whenever a
+secret is configured, regardless of simulate mode) closes it; the demo
+deliberately leaves it open so anyone can `POST /api/webhooks/razorpay`
+against the live URL with zero setup and see the confirmation flow work.
