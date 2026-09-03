@@ -10,7 +10,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Razorpay](https://img.shields.io/badge/Razorpay-Integrated-0C2451?logo=razorpay&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-66%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-67%20passing-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 [![Backend CI](https://github.com/harinish45/AI-Revenue-Recovery/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/harinish45/AI-Revenue-Recovery/actions/workflows/backend-ci.yml)
@@ -109,7 +109,7 @@ backend/
 │   └── models.py · schemas.py · main.py
 ├── migrations/          Alembic migrations (real, verified up/down against a
 │                          clean database — see Design Decisions)
-└── tests/                66 tests — safety, adversarial, business logic, API
+└── tests/                67 tests — safety, adversarial, business logic, API
 
 frontend/src/
 ├── components/         CasesTable · CaseDetailModal · AuditDrawer
@@ -212,7 +212,7 @@ available as a safe fallback.
 ### Run the test suite
 
 ```bash
-cd backend && python -m pytest tests/ -v      # 66 tests: safety, adversarial, business logic, API
+cd backend && python -m pytest tests/ -v      # 67 tests: safety, adversarial, business logic, API
 ```
 
 ## 🔌 API Highlights
@@ -311,6 +311,20 @@ through a real usability and honesty pass, not just a features pass:
   copy.** Payment Pages now shows real payment-link case data (sent /
   awaiting / paid, and the actual cases); Route shows a live breakdown of
   every case by the policy engine's actual routed action.
+- **The Execute button couldn't tell an already-`awaiting_payment` or
+  `closed` case from an actionable one, in both frontends.** Each kept its
+  own copy of which statuses count as terminal, and both copies had gone
+  stale relative to the backend's real list — missing `awaiting_payment`
+  and `closed` (added this session for completed voice calls). Clicking
+  Execute on one of those cases still round-tripped to the backend, which
+  correctly rejects it, but for `awaiting_payment` specifically the
+  rejection response still carries `status: "awaiting_payment"`, which the
+  React app's status branching misread as "intervention just sent" — a
+  false success message for a click that changed nothing. Fixed in both:
+  the standalone cockpit now calls its one canonical `isTerminalCase()`
+  helper everywhere instead of four separate hardcoded copies of the list;
+  the React app's `TERMINAL_STATES` constant now matches the backend's
+  exactly.
 
 ## 🧪 Adversarial Test Matrix
 
