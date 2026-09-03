@@ -334,7 +334,7 @@ main{padding:16px 20px 60px;max-width:1600px;flex:1;overflow-y:auto}
    client-generated — see Api + normalizeCase/normalizeAuditEntry. */
 var S={page:'overview',cases:[],audit:[],dashboard:null,live:false,loading:true,loadError:null,armed:false,running:false,filter:'all',statusFilter:'all',search:'',caseView:'table',theme:'dark',navKey:'Home',
 voiceCase:null,voiceSearch:'',voiceLang:'hi-IN',voiceActive:false,voiceEnding:false,voiceMsgs:[],voiceStage:'idle',voiceListening:false,voiceSpeaking:false,voiceBusy:false,voiceTimer:null,voiceStartTime:0,voiceConsent:false,voiceConfidence:0,voiceIntent:'DISCOVERY',voiceVoiceName:'Browser voice',voiceTurn:0,voiceUnclearStreak:0,voiceLastSpeechEndedAt:0,voiceLastAgentSpeech:'',voiceLastAgentSpeechAt:0,voiceListeningToken:0,
-auditFilter:'all',auditSearch:'',transactionTab:'payments',reportsTab:'overview',settingsTab:'configuration',accountTab:'profile',webhooks:[],integrationBase:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,agentPaused:false,pbStats:{},history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
+auditFilter:'all',auditSearch:'',transactionTab:'payments',reportsTab:'overview',settingsTab:'general',accountTab:'profile',webhookTestLog:[],integrationBase:'',batchLog:[],batchStats:null,batchHistory:[],batchTotal:0,agentPaused:false,pbStats:{},selectedPlaybook:null,history:{risk:[],recovered:[],rate:[],open:[],escalated:[]}};
 /* Mirrors backend/app/config.py Settings exactly — not editable here, this
    panel just displays what the server actually enforces. */
 var POLICY={maxAmount:50000,maxRetries:2,rateExecute:'20/minute',rateDemo:'10/minute'};
@@ -345,7 +345,7 @@ function isTerminalCase(c){return !!c&&TERMINAL_STATES.indexOf(String(c.recovery
 // break language purity in every non-English voice reply.
 function fmtINR(n){return '₹'+Math.round(n).toLocaleString('en-IN');}
 function fmt(n){if(n>=100000)return 'Rs.'+(n/100000).toFixed(1)+'L';if(n>=1000)return 'Rs.'+(n/1000).toFixed(1)+'K';return 'Rs.'+Math.round(n).toLocaleString('en-IN');}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');}
 // \w alone is ASCII-only, so this used to silently strip every Devanagari /
 // Tamil / Kannada / Telugu / Bengali / Malayalam character to nothing --
 // real speech recognition in those languages returns native-script text, so
@@ -361,8 +361,8 @@ function applyTheme(theme){
  try{localStorage.setItem('recoverai-theme',S.theme);}catch(e){}
  var btn=document.getElementById('themeBtn');if(btn)btn.textContent=S.theme==='light'?'Dark':'Light';
 }
-function loadWorkspaceConfig(){try{S.webhooks=JSON.parse(localStorage.getItem('recoverai-webhooks')||'[]');S.integrationBase=localStorage.getItem('recoverai-integration-base')||location.origin;}catch(e){S.webhooks=[];S.integrationBase=location.origin;}}
-function saveWorkspaceConfig(){try{localStorage.setItem('recoverai-webhooks',JSON.stringify(S.webhooks));localStorage.setItem('recoverai-integration-base',S.integrationBase||location.origin);}catch(e){}}
+function loadWorkspaceConfig(){try{S.integrationBase=localStorage.getItem('recoverai-integration-base')||location.origin;}catch(e){S.integrationBase=location.origin;}}
+function saveWorkspaceConfig(){try{localStorage.setItem('recoverai-integration-base',S.integrationBase||location.origin);}catch(e){}}
 function toggleTheme(){applyTheme(S.theme==='light'?'dark':'light');}
 try{S.theme=localStorage.getItem('recoverai-theme')||'dark';}catch(e){}
 applyTheme(S.theme);
@@ -392,7 +392,24 @@ var Api={
  simulateFailure:function(){return apiRequest('POST','/api/demo/simulate-failure');},
  recordVoiceEvent:function(caseId,body){return apiRequest('POST','/api/cases/'+encodeURIComponent(caseId)+'/voice-events',body);},
  verifyAudit:function(id){return apiRequest('GET','/api/audit/'+encodeURIComponent(id)+'/verify');},
- verifyChain:function(){return apiRequest('GET','/api/audit/chain/verify');}
+ verifyChain:function(){return apiRequest('GET','/api/audit/chain/verify');},
+ // Sends a REAL, accurately-shaped Razorpay webhook delivery straight to
+ // /api/webhooks/razorpay -- payload.payment.entity.id nesting and an
+ // X-Razorpay-Event-Id header, exactly what a live Razorpay webhook sends
+ // (not this app's older simplified test shape). Works unsigned out of the
+ // box because the demo runs with RAZORPAY_SIMULATE=true and no
+ // WEBHOOK_SECRET configured -- the same rule a real signed delivery
+ // would need WEBHOOK_SECRET set on both ends to satisfy.
+ sendTestWebhook:function(eventType,paymentId){
+  var pid=paymentId||('pay_test_'+Date.now().toString(36));
+  var body={entity:'event',account_id:'acc_test_demo',event:eventType,
+   contains:eventType==='payment_link.paid'?['payment_link','payment']:['payment'],
+   payload:{payment:{entity:{id:pid,status:eventType==='payment.failed'?'failed':'captured'}}},
+   created_at:Math.floor(Date.now()/1000)};
+  if(eventType==='payment_link.paid')body.payload.payment_link={entity:{id:'plink_test_'+Date.now().toString(36),status:'paid'}};
+  if(eventType==='refund.processed'){body.payload={refund:{entity:{id:'rfnd_test_'+Date.now().toString(36),payment_id:pid,status:'processed'}}};body.contains=['refund'];}
+  return apiRequest('POST','/api/webhooks/razorpay',body,{'X-Razorpay-Event-Id':'evt_test_'+Date.now().toString(36)+Math.random().toString(36).slice(2,6)});
+ }
 };
 /* ═══ NORMALIZATION — real API shapes → the field names render*() expects ═══ */
 var CATEGORY_META={
@@ -500,6 +517,12 @@ var PLAYBOOKS=[
   filterFn:function(c){return c.status==='open'&&c.amount>5000;}},
  {id:'mandate',name:'Mandate Retry Sequencer',desc:'Sequences retries for bank-rejected mandates into safe windows',color:'#3b82f6',
   filterFn:function(c){return c.status==='open'&&c.failure_category==='bank_rejection';}},
+ {id:'lowrisk',name:'Low-Risk Auto-Retry',desc:'Fast-lane retry for cases the deterministic policy engine already scored as low risk',color:'#22c55e',
+  filterFn:function(c){return c.status==='open'&&c.risk==='low';}},
+ {id:'smallticket',name:'Small-Ticket Batch Clear',desc:'Bulk-clears low-value open cases where the intervention cost is easily justified',color:'#f59e0b',
+  filterFn:function(c){return c.status==='open'&&c.amount<=1000;}},
+ {id:'secondchance',name:'Second Attempt Ladder',desc:'Targets cases that already had one retry and are due for the next cooldown-safe attempt',color:'#8b5cf6',
+  filterFn:function(c){return c.status==='open'&&c.attempts>=1;}},
  {id:'voice',name:'Multilingual Voice Recovery',desc:'AI voice agent calls customers in 8 Indian languages and negotiates a promise-to-pay',color:'#ec4899',
   filterFn:function(c){return c.status==='open';}}
 ];
@@ -682,7 +705,7 @@ function go(page){
   else if(page==='cases')html=(S.navKey==='Invoices'||S.navKey==='Customers')?renderProductSection(S.navKey):renderTransactions();
   else if(page==='settlements')html=renderSettlements();
   else if(page==='batch')html=renderBatch();
-  else if(page==='playbooks')html=(S.navKey&&S.navKey!=='Subscriptions')?renderProductSection(S.navKey):renderPlaybooks();
+  else if(page==='playbooks')html=(S.navKey&&S.navKey!=='Subscriptions')?renderProductSection(S.navKey):(S.selectedPlaybook?renderPlaybookDetail(S.selectedPlaybook):renderPlaybooks());
   else if(page==='voice')html=renderVoice();
   else if(page==='promises')html=renderPromises();
   else if(page==='audit')html=S.navKey==='Reports'?renderReports():renderAudit();
@@ -705,10 +728,38 @@ function renderProductSection(section){
  if(section==='Customers'||section==='Invoices'){
   var rows=section==='Customers'?S.cases.filter(function(c,i,a){return a.findIndex(function(x){return x.customer===c.customer;})===i;}):S.cases;
   h+='<div class="card"><div class="toolbar"><div class="srch"><input placeholder="Search '+section.toLowerCase()+'..." aria-label="Search '+section+'"></div><span class="hint" style="margin-left:auto">'+rows.length+' records</span></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>'+ (section==='Customers'?'Customer':'Invoice ID')+'</th><th>Case</th><th>Amount</th><th>Risk</th><th>Status</th><th></th></tr></thead><tbody>';
-  rows.slice(0,100).forEach(function(c){h+='<tr data-act="case-detail" data-id="'+c.id+'"><td><div class="cust"><div class="ava">'+esc(c.customer.split(' ').map(function(w){return w[0];}).join(''))+'</div><div><b>'+esc(section==='Customers'?c.customer:'INV-'+c.id)+'</b><span>'+esc(c.customer)+'</span></div></div></td><td class="mono">'+c.id+'</td><td class="amt">'+fmt(c.amount)+'</td><td><span class="rb '+c.risk+'"><i></i>'+c.risk+'</span></td><td><span class="sb '+c.status+'"><i></i>'+pretty(c.status)+'</span></td><td><button class="btn btn-g btn-sm" data-act="case-detail" data-id="'+c.id+'">View</button></td></tr>';});
+  rows.slice(0,100).forEach(function(c){h+='<tr data-act="case-detail" data-id="'+esc(c.id)+'"><td><div class="cust"><div class="ava">'+esc(c.customer.split(' ').map(function(w){return w[0];}).join(''))+'</div><div><b>'+esc(section==='Customers'?c.customer:'INV-'+c.id)+'</b><span>'+esc(c.customer)+'</span></div></div></td><td class="mono">'+esc(c.id)+'</td><td class="amt">'+fmt(c.amount)+'</td><td><span class="rb '+esc(c.risk)+'"><i></i>'+esc(c.risk)+'</span></td><td><span class="sb '+esc(c.status)+'"><i></i>'+esc(pretty(c.status))+'</span></td><td><button class="btn btn-g btn-sm" data-act="case-detail" data-id="'+esc(c.id)+'">View</button></td></tr>';});
   h+='</tbody></table></div></div>';
  }else if(section==='Reports'){
   h+='<div class="card"><div class="chead"><h3>Report center</h3><span class="hint">sandbox data only</span></div><div class="cbody" style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px"><button class="product-tile" data-act="go" data-pg="batch"><b>Batch performance</b><small>Recovered, awaiting, skipped and escalated cases</small></button><button class="product-tile" data-act="go" data-pg="audit"><b>Audit export</b><small>Download the sealed transaction decision trail</small></button><button class="product-tile" data-act="go" data-pg="settlements"><b>Settlement report</b><small>Recovered value linked back to cases</small></button></div></div>';
+ }else if(section==='Payment Pages'){
+  // Payment Pages, for real: the payment_link.paid webhook is exactly what
+  // confirms a hosted recovery page was paid -- this is real link-based
+  // case data, not placeholder tiles.
+  var linkCases=S.cases.filter(function(c){return c.recommended_action==='payment_link';});
+  var linkAwaiting=linkCases.filter(function(c){return c.status==='awaiting';}),linkPaid=linkCases.filter(function(c){return c.status==='recovered';});
+  h+='<div class="card"><div class="chead"><h3>Recovery checkout links</h3><span class="hint">'+linkCases.length+' link cases · confirmed by a real payment_link.paid webhook — try it in Settings → Webhooks</span></div>';
+  if(!linkCases.length){h+='<div class="empty"><h4>No payment-link cases yet</h4><p>The agent recommends a payment link for liquidity-issue failures. Seed data or run a batch to generate some.</p></div></div>';}
+  else{
+   h+='<div class="bmrow" style="grid-template-columns:repeat(3,1fr);padding:0 14px 12px"><div class="bm"><b style="color:#60a5fa">'+linkCases.length+'</b><span>Total links</span></div><div class="bm"><b style="color:#fbbf24">'+linkAwaiting.length+'</b><span>Sent, awaiting payment</span></div><div class="bm"><b style="color:#4ade80">'+linkPaid.length+'</b><span>Paid</span></div></div>';
+   h+='<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Case</th><th>Customer</th><th>Amount</th><th>Link status</th><th></th></tr></thead><tbody>';
+   linkCases.slice(0,50).forEach(function(c){h+='<tr data-act="case-detail" data-id="'+esc(c.id)+'"><td class="mono">'+esc(c.id)+'</td><td>'+esc(c.customer)+'</td><td class="amt">'+fmt(c.amount)+'</td><td><span class="sb '+esc(c.status)+'"><i></i>'+esc(pretty(c.status))+'</span></td><td>'+(c.status==='open'?'<button class="btn btn-p btn-sm" data-act="exec-case" data-id="'+esc(c.id)+'">Send link</button>':'<button class="btn btn-g btn-sm" data-act="case-detail" data-id="'+esc(c.id)+'">View</button>')+'</td></tr>';});
+   h+='</tbody></table></div></div>';
+  }
+ }else if(section==='Route'){
+  // Real routing: exactly how the deterministic policy engine has routed
+  // every case right now, grouped by the actual recommended_action -- not
+  // fictional configurable rules.
+  var byAction={};
+  S.cases.forEach(function(c){var k=c.recommended_action||'unknown';byAction[k]=(byAction[k]||0)+1;});
+  var actionMeta={retry_payment:['Retry payment','#4ade80'],payment_link:['Payment link','#60a5fa'],customer_reminder:['Customer reminder','#a78bfa'],needs_human_review:['Human review','#f87171']};
+  var total=S.cases.length||1;
+  h+='<div class="card"><div class="chead"><h3>Live routing decisions</h3><span class="hint">how the 11-check policy engine routed every case right now</span></div><div class="cbody">';
+  Object.keys(actionMeta).forEach(function(k){
+   var n=byAction[k]||0,pct=Math.round(n/total*100),meta=actionMeta[k];
+   h+='<div style="margin-bottom:12px"><div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><b>'+meta[0]+'</b><span class="mono" style="color:var(--dim)">'+n+' cases · '+pct+'%</span></div><div class="pbar"><i style="width:'+pct+'%;background:'+meta[1]+'"></i></div></div>';
+  });
+  h+='<p style="font-size:11px;color:var(--dim);margin-top:6px">Routing is decided once per case by the deterministic policy engine (see Settings → Readiness) — not editable here by design, the same way a real payments platform would never let a dashboard toggle bypass its risk engine.</p></div></div>';
  }else{
   var productRows={
    'Payment Pages':[['Recovery checkout','A branded hosted page for customers who need one safe payment path.','Open Playbooks'],['Page performance','Track sent, opened, paid and expired recovery links.','Open Transactions'],['Integration','Use the API seam and webhook audit before connecting production credentials.','View Audit Trail']],
@@ -727,7 +778,7 @@ function renderSettlements(){
  var h='<div class="kpis"><div class="kpi"><div class="kl">Settled cases</div><div class="kv" style="color:#4ade80">'+recovered.length+'</div><div class="ks">confirmed recovery</div></div><div class="kpi"><div class="kl">Settlement value</div><div class="kv" style="color:#4ade80">'+fmt(total)+'</div><div class="ks">sandbox estimate</div></div><div class="kpi"><div class="kl">Pending confirmation</div><div class="kv" style="color:#fbbf24">'+S.cases.filter(function(c){return c.status==='awaiting';}).length+'</div><div class="ks">provider callback pending</div></div><div class="kpi"><div class="kl">Environment</div><div class="kv" style="color:#60a5fa">TEST</div><div class="ks">no real money moves</div></div></div>';
  h+='<div class="card"><div class="toolbar"><div class="srch"><input placeholder="Search settlements..." aria-label="Search settlements"></div><span class="hint" style="margin-left:auto">All settlement activity is linked to its transaction</span></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Settlement ID</th><th>Case</th><th>Customer</th><th>Amount</th><th>Status</th><th>Created</th></tr></thead><tbody>';
  if(!recovered.length)h+='<tr><td colspan="6"><div class="empty"><h4>No settlements yet</h4><p>Recovered cases will appear here after a successful sandbox run.</p></div></td></tr>';
- recovered.forEach(function(c){h+='<tr data-act="case-detail" data-id="'+c.id+'"><td class="mono" style="color:#60a5fa">stl_'+c.id.toLowerCase().replace(/[^a-z0-9]/g,'')+'</td><td class="mono">'+c.id+'</td><td>'+esc(c.customer)+'</td><td class="amt">'+fmt(c.recovered_amount)+'</td><td><span class="sb recovered"><i></i>Settled</span></td><td>'+esc(c.created)+'</td></tr>';});
+ recovered.forEach(function(c){h+='<tr data-act="case-detail" data-id="'+esc(c.id)+'"><td class="mono" style="color:#60a5fa">stl_'+esc(c.id.toLowerCase().replace(/[^a-z0-9]/g,''))+'</td><td class="mono">'+esc(c.id)+'</td><td>'+esc(c.customer)+'</td><td class="amt">'+fmt(c.recovered_amount)+'</td><td><span class="sb recovered"><i></i>Settled</span></td><td>'+esc(c.created)+'</td></tr>';});
  h+='</tbody></table></div></div><div class="card"><div class="chead"><h3>Settlement controls</h3><span class="hint">sandbox only</span></div><div class="cbody" style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-g" data-act="export-report">Export report</button><button class="btn btn-g" data-act="go" data-pg="audit">View transaction audit</button></div></div>';return h;
 }
 function renderOverview(){
@@ -761,7 +812,7 @@ function renderOverview(){
  var escalated=S.cases.filter(function(c){return c.status==='escalated';}).slice(0,4);
  h+='<div class="card"><div class="chead"><h3>Human Review</h3><span class="hint">'+escN+' cases need attention</span><button class="btn btn-g btn-sm" style="margin-left:8px" data-act="status-filter" data-status="escalated">View cases</button></div>';
  if(!escalated.length)h+='<div class="empty" style="padding:22px"><h4>Queue clear</h4><p>High-risk or policy-blocked cases appear here for review.</p></div>';
- else escalated.forEach(function(c){h+='<div class="actrow"><span class="tag r">REVIEW</span><span class="mono" style="color:#f87171;font-size:10px">'+c.id+'</span><span class="ax"><b>'+esc(c.customer)+'</b> · '+esc(c.category.name)+' · '+fmt(c.amount)+'</span><button class="btn btn-g btn-sm" data-act="case-detail" data-id="'+c.id+'">Inspect</button></div>';});
+ else escalated.forEach(function(c){h+='<div class="actrow"><span class="tag r">REVIEW</span><span class="mono" style="color:#f87171;font-size:10px">'+esc(c.id)+'</span><span class="ax"><b>'+esc(c.customer)+'</b> · '+esc(c.category.name)+' · '+fmt(c.amount)+'</span><button class="btn btn-g btn-sm" data-act="case-detail" data-id="'+esc(c.id)+'">Inspect</button></div>';});
  h+='</div>';
  return h;
 }
@@ -802,12 +853,12 @@ function renderCaseBody(){
   if(list.length===0){h+='<tr><td colspan="8"><div class="empty"><h4>No cases found</h4><p>Adjust filters or seed data.</p></div></td></tr>';}
   else{list.forEach(function(c){
    var isTerm=['recovered','blocked','needs_human_review','skipped'].indexOf(c.status)>-1||['recovered','blocked','needs_human_review','skipped'].indexOf(c.recovery_status)>-1;
-   h+='<tr data-act="case-detail" data-id="'+c.id+'"><td class="mono" style="color:#4ade80">'+c.id+'</td>';
-   h+='<td><div class="cust"><div class="ava">'+esc(c.customer.split(' ').map(function(w){return w[0];}).join(''))+'</div><div><b>'+esc(c.customer)+'</b><span>'+c.created+' · '+c.category.code+'</span></div></div></td>';
+   h+='<tr data-act="case-detail" data-id="'+esc(c.id)+'"><td class="mono" style="color:#4ade80">'+esc(c.id)+'</td>';
+   h+='<td><div class="cust"><div class="ava">'+esc(c.customer.split(' ').map(function(w){return w[0];}).join(''))+'</div><div><b>'+esc(c.customer)+'</b><span>'+esc(c.created)+' · '+esc(c.category.code)+'</span></div></div></td>';
    h+='<td class="amt">'+fmt(c.amount)+'</td><td style="color:#9d9da6;font-size:11px">'+esc(c.category.name)+'</td>';
-   h+='<td><span class="rb '+c.risk+'"><i></i>'+c.risk+'</span></td>';
-   h+='<td><span class="sb '+c.status+'"><i></i>'+c.status+'</span></td>';
-   h+='<td>'+(isTerm?'<button class="btn btn-g btn-sm" disabled style="opacity:.35;cursor:not-allowed;">Done</button>':c.status==='open'?'<button class="btn btn-p btn-sm" data-act="exec-case" data-id="'+c.id+'">Execute</button>':'')+'</td></tr>';});}
+   h+='<td><span class="rb '+esc(c.risk)+'"><i></i>'+esc(c.risk)+'</span></td>';
+   h+='<td><span class="sb '+esc(c.status)+'"><i></i>'+esc(c.status)+'</span></td>';
+   h+='<td>'+(isTerm?'<button class="btn btn-g btn-sm" disabled style="opacity:.35;cursor:not-allowed;">Done</button>':c.status==='open'?'<button class="btn btn-p btn-sm" data-act="exec-case" data-id="'+esc(c.id)+'">Execute</button>':'')+'</td></tr>';});}
   h+='</tbody></table></div>';
  }else{
   h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px">';
@@ -816,7 +867,7 @@ function renderCaseBody(){
    h+='<div style="background:var(--p1);border:1px solid var(--ln);border-radius:12px;padding:10px;min-height:200px"><div style="font-size:10px;font-weight:800;text-transform:uppercase;color:'+col.c+';padding:4px 6px 10px">'+col.n+' · '+items.length+'</div>';
    items.forEach(function(c){
     var isTerm=['recovered','blocked','needs_human_review','skipped'].indexOf(c.status)>-1||['recovered','blocked','needs_human_review','skipped'].indexOf(c.recovery_status)>-1;
-    h+='<div data-act="case-detail" data-id="'+c.id+'" style="background:var(--p2);border:1px solid var(--ln2);border-radius:8px;padding:11px;margin-bottom:9px;cursor:pointer"><div style="display:flex;justify-content:space-between"><span class="mono" style="font-size:10px;color:#4ade80">'+c.id+'</span><span class="rb '+c.risk+'">'+c.risk+'</span></div><p style="font-size:11px;color:var(--mut);margin:3px 0 8px">'+esc(c.customer)+'</p><div style="display:flex;justify-content:space-between;align-items:center"><span class="amt">'+fmt(c.amount)+'</span>'+(isTerm?'<button class="btn btn-g btn-sm" disabled style="opacity:.35;cursor:not-allowed;">Done</button>':c.status==='open'?'<button class="btn btn-p btn-sm" data-act="exec-case" data-id="'+c.id+'">Exec</button>':'')+'</div></div>';});
+    h+='<div data-act="case-detail" data-id="'+esc(c.id)+'" style="background:var(--p2);border:1px solid var(--ln2);border-radius:8px;padding:11px;margin-bottom:9px;cursor:pointer"><div style="display:flex;justify-content:space-between"><span class="mono" style="font-size:10px;color:#4ade80">'+esc(c.id)+'</span><span class="rb '+esc(c.risk)+'">'+esc(c.risk)+'</span></div><p style="font-size:11px;color:var(--mut);margin:3px 0 8px">'+esc(c.customer)+'</p><div style="display:flex;justify-content:space-between;align-items:center"><span class="amt">'+fmt(c.amount)+'</span>'+(isTerm?'<button class="btn btn-g btn-sm" disabled style="opacity:.35;cursor:not-allowed;">Done</button>':c.status==='open'?'<button class="btn btn-p btn-sm" data-act="exec-case" data-id="'+esc(c.id)+'">Exec</button>':'')+'</div></div>';});
    if(items.length===0)h+='<div style="text-align:center;color:#5c5c66;font-size:11px;padding:20px">No cases</div>';
    h+='</div>';});
   h+='</div>';
@@ -856,8 +907,26 @@ function renderPlaybooks(){
  PLAYBOOKS.forEach(function(p){
   var eligible=S.cases.filter(p.filterFn).length;
   var ps=S.pbStats[p.id];
-  h+='<button class="pbcard" data-act="run-pb" data-id="'+p.id+'"><div class="top"><div class="pbic" style="background:'+p.color+'15;color:'+p.color+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><h3>'+p.name+'</h3><span class="st '+(eligible?'done':'')+'">'+(eligible?'Ready':'Idle')+'</span></div><p>'+p.desc+'</p><div class="eligible">'+eligible+' cases eligible</div><div class="go">'+(p.id==='voice'?'Open Voice Agent →':'Run Playbook')+'</div><div class="lr">'+(ps?fmt(ps.amt)+' recovered this session · '+ps.runs+' runs':'0 runs this session')+'</div></button>';});
+  h+='<button class="pbcard" data-act="open-pb" data-id="'+esc(p.id)+'"><div class="top"><div class="pbic" style="background:'+p.color+'15;color:'+p.color+'"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><h3>'+esc(p.name)+'</h3><span class="st '+(eligible?'done':'')+'">'+(eligible?'Ready':'Idle')+'</span></div><p>'+esc(p.desc)+'</p><div class="eligible">'+eligible+' cases eligible</div><div class="go">View Playbook →</div><div class="lr">'+(ps?fmt(ps.amt)+' recovered this session · '+ps.runs+' runs':'0 runs this session')+'</div></button>';});
  h+='</div>';
+ return h;
+}
+function renderPlaybookDetail(id){
+ var p=PLAYBOOKS.find(function(x){return x.id===id;});
+ if(!p){S.selectedPlaybook=null;return renderPlaybooks();}
+ var eligible=S.cases.filter(p.filterFn);
+ var ps=S.pbStats[p.id];
+ var h='<div class="playbook-head"><div><span class="eyebrow"><a href="javascript:void(0)" data-act="close-pb" style="color:inherit;text-decoration:underline;cursor:pointer">← All playbooks</a> · Subscriptions</span><h2>'+esc(p.name)+'</h2><p>'+esc(p.desc)+'</p></div><div class="playbook-head-meta"><span><b>'+eligible.length+'</b> eligible now</span><span><b>'+(ps?ps.runs:0)+'</b> runs this session</span><span><b>'+(ps?fmt(ps.amt):'Rs.0')+'</b> recovered this session</span>'+(p.id==='voice'?'<button class="btn btn-v btn-sm" data-act="go" data-pg="voice">Open Voice Agent</button>':'<button class="btn btn-p btn-sm" data-act="run-pb" data-id="'+esc(p.id)+'" '+(eligible.length?'':'disabled')+'>Run Playbook now</button>')+'</div></div>';
+ h+='<div class="card"><div class="chead"><h3>Eligible cases</h3><span class="hint">exactly what this playbook will act on</span></div>';
+ if(!eligible.length){
+  h+='<div class="empty"><h4>No eligible cases right now</h4><p>This playbook\'s filter has nothing open to match today\'s seed data. Try Seed Data again, or run a batch first.</p></div></div>';
+ }else{
+  h+='<div style="overflow-x:auto"><table class="tbl"><thead><tr><th>Case</th><th>Customer</th><th>Amount</th><th>Risk</th><th>Category</th><th>Attempts</th></tr></thead><tbody>';
+  eligible.slice(0,50).forEach(function(c){h+='<tr data-act="case-detail" data-id="'+esc(c.id)+'"><td class="mono">'+esc(c.id)+'</td><td>'+esc(c.customer)+'</td><td class="amt">'+fmt(c.amount)+'</td><td><span class="rb '+esc(c.risk)+'"><i></i>'+esc(c.risk)+'</span></td><td>'+esc(c.category.name)+'</td><td class="mono">'+c.attempts+'</td></tr>';});
+  h+='</tbody></table></div>';
+  if(eligible.length>50)h+='<div class="cbody" style="padding-top:0"><small style="color:var(--dim)">+'+(eligible.length-50)+' more, shown when the playbook runs</small></div>';
+  h+='</div>';
+ }
  return h;
 }
 function renderVoice(){
@@ -870,7 +939,7 @@ function renderVoice(){
  var activeCase=S.cases.find(function(c){return c.id===S.voiceCase;});
  var h='<div class="voice-hero"><div class="voice-hero-main"><div class="voice-eyebrow">Multilingual recovery cockpit</div><h2>Recover revenue with context, not pressure.</h2><p>Localized conversations, explicit promise confirmation and compliant escalation. Every meaningful outcome is written to the audit trail.</p><div class="voice-signal"><i></i><span>'+(S.voiceActive?'LIVE SESSION':'READY FOR SESSION')+'</span><span>·</span><span>Test Mode / bounded workflow</span></div></div><div class="voice-health"><div class="voice-metric"><span>Languages</span><b>'+Object.keys(VOICE_BRAIN).length+'</b><small>Indian + English packs</small></div><div class="voice-metric"><span>Speech input</span><b>'+(window.SpeechRecognition||window.webkitSpeechRecognition?'Ready':'Type fallback')+'</b><small>Browser capability</small></div><div class="voice-metric"><span>Voice output</span><b>'+(voiceDiagnostics().usable?'Ready':'Text fallback')+'</b><small>'+esc(voiceDiagnostics().label)+'</small></div><div class="voice-metric"><span>Guardrail</span><b>Bounded</b><small>Confirm before promise</small></div></div></div><div class="vgrid"><div class="card"><div class="chead"><div><h3>Choose a case for voice</h3><small style="display:block;color:var(--dim);font-size:10px;margin-top:3px">Open cases and human-review follow-ups</small></div><span class="hint">'+open.length+' shown · '+allVoiceCases.filter(function(c){return c.status==='escalated';}).length+' human review</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px"><div class="voice-case-search-wrap"><input id="voiceCaseSearch" class="voice-case-search" aria-label="Search voice cases" placeholder="Search by case ID, customer, reason, or status…" value="'+esc(S.voiceSearch)+'">'+(S.voiceSearch?'<button class="voice-case-search-clear" data-act="clear-voice-search" aria-label="Clear case search">×</button>':'')+'</div>';
  if(open.length===0)h+='<div class="empty"><h4>'+(allVoiceCases.length?'No matching cases':'No cases ready for voice')+'</h4><p>'+(allVoiceCases.length?'Try another search. Human-review cases remain available here after a batch run.':'Run Seed Data first, or run a batch with a policy escalation to create a human-review case.')+'</p></div>';
- open.forEach(function(c){var statusLabel=c.status==='escalated'?'Human review':'Ready';h+='<button class="swrow voice-case-row" data-act="sel-voice" data-id="'+c.id+'" style="'+(S.voiceCase===c.id?'border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.06)':'')+'"><div><b>'+esc(c.customer)+'</b><small><span class="mono">'+c.id+'</span> · '+esc(c.category.name)+' · '+fmt(c.amount)+'</small><small class="voice-case-meta">'+statusLabel+' · '+esc(c.category.code)+'</small></div><span class="rb '+c.risk+'">'+c.risk+'</span></button>';});
+ open.forEach(function(c){var statusLabel=c.status==='escalated'?'Human review':'Ready';h+='<button class="swrow voice-case-row" data-act="sel-voice" data-id="'+esc(c.id)+'" style="'+(S.voiceCase===c.id?'border-color:rgba(139,92,246,.4);background:rgba(139,92,246,.06)':'')+'"><div><b>'+esc(c.customer)+'</b><small><span class="mono">'+esc(c.id)+'</span> · '+esc(c.category.name)+' · '+fmt(c.amount)+'</small><small class="voice-case-meta">'+statusLabel+' · '+esc(c.category.code)+'</small></div><span class="rb '+esc(c.risk)+'">'+esc(c.risk)+'</span></button>';});
  h+='</div></div>';
  if(!S.voiceCase&&!S.voiceActive){h+='<div class="card voice-empty-state"><div class="empty"><h4>Select a case to open its voice workspace</h4><p>Choose a customer case on the left. The voice agent and its transcript will appear here for that case.</p></div></div>';return h+'</div>';}
  h+='<div class="card" style="overflow:hidden"><div class="chead"><h3>Voice Agent · '+(activeCase?esc(activeCase.id):'Selected case')+'</h3>'+(S.voiceActive?'<span class="vtimer" id="vtimer">00:00</span>':'<span class="hint">'+esc(VOICE_BRAIN[S.voiceLang].name)+'</span>')+'</div>';
@@ -910,7 +979,7 @@ function renderPromises(){
  h+='<div class="card"><div class="chead"><h3>Promises</h3><span class="hint">click a row to open the case</span><button class="btn btn-g btn-sm" style="margin-left:8px" data-act="scan-prom">Refresh</button></div><div style="overflow-x:auto"><table class="tbl"><thead><tr><th>ID</th><th>Customer</th><th>Amount</th><th>Captured</th><th>Due</th><th>Source</th><th>Status</th></tr></thead><tbody>';
  rows.forEach(function(p){
   var daysLeft=Math.ceil((p.dueAt-Date.now())/86400000);var dueCol=daysLeft<=0?'#f87171':daysLeft<=1?'#fbbf24':'#9d9da6';
-  h+='<tr data-act="case-detail" data-id="'+p.caseId+'"><td class="mono" style="color:#4ade80">'+p.id+'</td>';
+  h+='<tr data-act="case-detail" data-id="'+esc(p.caseId)+'"><td class="mono" style="color:#4ade80">'+esc(p.id)+'</td>';
   h+='<td><div style="min-width:0"><b style="display:block">'+esc(p.customer)+'</b>'+(p.transcript?'<span title="'+esc(p.transcript)+'" style="display:block;font-size:10px;color:var(--dim);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:220px">"'+esc(p.transcript.length>34?p.transcript.slice(0,34)+'…':p.transcript)+'"</span>':'')+'</div></td>';
   h+='<td class="amt">'+fmt(p.amount)+'</td><td style="color:#9d9da6">'+relTime(new Date(p.capturedAt).toISOString())+'</td><td style="color:'+dueCol+'">'+(daysLeft<=0?'due':'in '+daysLeft+'d')+'</td><td><span class="rb low" style="background:rgba(255,255,255,.05);color:#9d9da6">'+p.source+'</span></td><td><span class="sb '+p.status+'"><i></i>'+p.status+'</span></td></tr>';});
  h+='</tbody></table></div></div>';
@@ -948,26 +1017,69 @@ function hookAudit(){
  var inp=document.getElementById('auditSearch');if(inp)inp.addEventListener('input',function(){S.auditSearch=inp.value;renderAuditBody();});
 }
 function renderSettings(){
- var h=tabBar('settings',[['configuration','Configuration'],['integration','Integration'],['webhooks','Webhooks']],S.settingsTab);
- if(S.settingsTab==='integration')return h+'<div class="card"><div class="workspace-title"><div><span class="eyebrow">Developer tools</span><h2>Easy integration</h2><p>Connect payment events, recovery actions, and your CRM through documented API seams.</p></div><span class="mode-chip">● Test mode</span></div><div class="cbody"><div class="integration-url"><label>API base URL</label><div><input id="integrationBase" value="'+esc(S.integrationBase||location.origin)+'" aria-label="API base URL"><button class="btn btn-g btn-sm" data-act="save-integration">Save</button></div><small>Same-origin is recommended for the deployed dashboard.</small></div><div class="product-grid" style="margin-top:14px"><div class="product-tile"><span class="product-tile-index">01</span><b>Authentication</b><small>Production reads use X-API-Key with readonly/operator roles. Execute requests must also include a unique Idempotency-Key.</small><button class="btn btn-g btn-sm" data-act="copy-integration">Copy base URL</button></div><div class="product-tile"><span class="product-tile-index">02</span><b>Event contract</b><small>Send payment.failed, payment.captured, payment_link.paid, or refund.processed with a signed timestamped payload.</small><button class="btn btn-g btn-sm" data-act="go" data-pg="audit">View audit trail</button></div><div class="product-tile"><span class="product-tile-index">03</span><b>Safety boundary</b><small>Payload limits, rate limits, HMAC audit seals, CSP, and parameterized database queries are enforced server-side.</small><button class="btn btn-g btn-sm" data-act="go" data-pg="settings">View configuration</button></div></div></div></div>';
- if(S.settingsTab==='webhooks')return h+'<div class="card"><div class="workspace-title"><div><span class="eyebrow">Events</span><h2>Webhooks</h2><p>Add signed event destinations and keep the recovery ledger synchronized.</p></div><button class="btn btn-p btn-sm" data-act="add-webhook">Add webhook</button></div><div class="webhook-form"><div><label for="webhookName">Name</label><input id="webhookName" placeholder="Razorpay test events"></div><div><label for="webhookUrl">Endpoint URL</label><input id="webhookUrl" placeholder="https://example.com/webhooks/recoverai"></div><div><label for="webhookEvents">Events</label><select id="webhookEvents"><option value="payment.failed,payment.captured">Payment lifecycle</option><option value="payment_link.paid">Payment link paid</option><option value="refund.processed">Refund processed</option></select></div><p class="form-note">URLs must use HTTPS, or HTTP on localhost for local testing. Secrets stay in Render environment variables and are never stored in this page.</p></div><div class="webhook-list">'+(S.webhooks.length?S.webhooks.map(function(w){return '<div class="webhook-row"><div><b>'+esc(w.name)+'</b><small>'+esc(w.url)+'</small><small>'+esc(w.events.join(' · '))+' · '+esc(w.created)+'</small></div><span class="sb recovered"><i></i>Active</span><button class="btn btn-r btn-sm" data-act="remove-webhook" data-id="'+esc(w.id)+'">Remove</button></div>';}).join(''):'<div class="table-empty"><h3>No webhooks configured</h3><p>Add your first sandbox destination above.</p></div>')+'</div></div>';
- h+=tabBar('account',[['profile','Profile'],['balance','Balance'],['credits','Credits'],['team','Manage Team'],['support','Support Tickets']],S.accountTab);
- if(S.accountTab!=='profile')return h+renderAccountSection(S.accountTab);
- h+='<div class="card"><div class="chead"><h3>Configuration</h3><span class="hint">safe defaults · sandbox</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:8px">';
- h+='<div class="swrow"><b>Voice Language</b><div style="display:flex;gap:6px;align-items:center"><select id="setLang" style="background:var(--p1);border:1px solid var(--ln2);border-radius:8px;padding:6px 8px;color:var(--tx)">';
- Object.keys(VOICE_BRAIN).forEach(function(code){h+='<option value="'+code+'" '+(S.voiceLang===code?'selected':'')+'>'+VOICE_BRAIN[code].name+'</option>';});
- h+='</select><button class="btn btn-g btn-sm" data-act="test-voice">▶ Test</button></div></div>';
- var vinfo=voiceDiagnostics();
- h+='<div class="swrow"><b>Resolved System Voice</b><span class="mono" style="color:'+(vinfo.exact?'#4ade80':'#fbbf24')+';font-size:11px;text-align:right;max-width:220px">'+esc(vinfo.label)+'</span></div>';
- h+='<div class="swrow" data-act="toggle-arm" role="switch" aria-checked="'+S.armed+'"><b>Failure Simulation</b><div class="sw '+(S.armed?'on armed-pulse':'')+'"></div></div>';
- h+='<div class="swrow"><b>Auto-cap</b><span class="mono" style="color:#fbbf24">Rs.'+POLICY.maxAmount.toLocaleString('en-IN')+'</span></div>';
- h+='<div class="swrow"><b>Max Retries</b><span class="mono" style="color:#fbbf24">'+POLICY.maxRetries+'</span></div>';
- h+='<div class="swrow"><b>Rate Limit (Execute)</b><span class="mono" style="color:#fbbf24">'+POLICY.rateExecute+'</span></div>';
- h+='<div class="swrow"><b>Rate Limit (Demo/Voice)</b><span class="mono" style="color:#fbbf24">'+POLICY.rateDemo+'</span></div></div></div>';
- h+='<div class="card"><div class="chead"><h3>Data</h3></div><div class="cbody" style="display:flex;gap:8px"><button class="btn btn-g" data-act="seed">Seed</button><button class="btn btn-r" data-act="reset">Reset All</button></div></div>';
- h+='<div class="card"><div class="chead"><h3>Live Readiness</h3><span class="hint">demo → production handoff</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px">'+[['✓','Backend connected','FastAPI health + live case reads'],['✓','Bounded policy','amount, retry and terminal stops'],['✓','Idempotent execution','duplicate-safe execution key'],['✓','Audit trail','raw event inspection + export'],['✓','Human escalation','policy blocks never auto-bypass'],['✓','Multilingual voice',Object.keys(VOICE_BRAIN).length+' language packs retained'],['!','Provider adapters','connect real PSP/CRM credentials before production']].map(function(x){return '<div class="swrow"><div><b style="color:'+(x[0]==='!'?'#fbbf24':'#4ade80')+'">'+x[0]+' '+x[1]+'</b><small>'+x[2]+'</small></div><span class="mono" style="font-size:10px;color:'+(x[0]==='!'?'#fbbf24':'#4ade80')+'">'+(x[0]==='!'?'NEXT':'READY')+'</span></div>';}).join('')+'</div></div>';
- h+='<div class="card"><div class="chead"><h3>System</h3></div><div class="cbody" style="display:flex;flex-direction:column;gap:6px"><div class="swrow"><b>Version</b><span class="mono">v5.2</span></div><div class="swrow"><b>Track</b><span class="mono">03 - AI Revenue Recovery</span></div><div class="swrow"><b>Backend</b><span class="mono">'+(S.live?'Connected':'Unavailable')+'</span></div></div></div>';
- h+='<div class="card"><div class="chead"><h3>Live Mode Readiness</h3><span class="hint">explicit upgrade path</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px">'+[['NEXT','Signed Razorpay webhooks','Validate, deduplicate, and enqueue events'],['NEXT','Durable event queue','Move worker seam to Celery, RQ, or managed queues'],['OPTIONAL','LLM diagnosis adapter','Enable only with privacy, cost, and eval review'],['NEXT','Live payment data','Replace synthetic seed data with tenant-scoped reads'],['READY','Consent management','Voice gate, promise confirmation, and opt-out stop'],['NEXT','Real provider adapters','Razorpay Test Mode, Exotel/Twilio, CRM'],['NEXT','Persistent scheduler','Store retry windows and execute through a worker']].map(function(x){return '<div class="swrow"><div><b style="color:'+(x[0]==='READY'?'#4ade80':'#fbbf24')+'">'+x[1]+'</b><small>'+x[2]+'</small></div><span class="mono" style="font-size:10px;color:'+(x[0]==='READY'?'#4ade80':'#fbbf24')+'">'+x[0]+'</span></div>';}).join('')+'</div></div>';
+ var h=tabBar('settings',[['general','General'],['devtools','Developer Tools'],['data','Data'],['readiness','Readiness'],['integration','Integration'],['webhooks','Webhooks'],['account','Account']],S.settingsTab);
+
+ if(S.settingsTab==='general'){
+  var vinfo=voiceDiagnostics();
+  h+='<div class="card"><div class="chead"><h3>Voice &amp; Language</h3><span class="hint">user preference</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:8px">';
+  h+='<div class="swrow"><b>Voice Language</b><div style="display:flex;gap:6px;align-items:center"><select id="setLang" style="background:var(--p1);border:1px solid var(--ln2);border-radius:8px;padding:6px 8px;color:var(--tx)">';
+  Object.keys(VOICE_BRAIN).forEach(function(code){h+='<option value="'+code+'" '+(S.voiceLang===code?'selected':'')+'>'+VOICE_BRAIN[code].name+'</option>';});
+  h+='</select><button class="btn btn-g btn-sm" data-act="test-voice">▶ Test</button></div></div>';
+  h+='<div class="swrow"><b>Resolved System Voice</b><span class="mono" style="color:'+(vinfo.exact?'#4ade80':'#fbbf24')+';font-size:11px;text-align:right;max-width:220px">'+esc(vinfo.label)+'</span></div></div></div>';
+  h+='<div class="card"><div class="chead"><h3>Policy &amp; Limits</h3><span class="hint">read-only · enforced server-side, not editable here</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:8px">';
+  h+='<div class="swrow"><b>Auto-cap</b><span class="mono" style="color:#fbbf24">Rs.'+POLICY.maxAmount.toLocaleString('en-IN')+'</span></div>';
+  h+='<div class="swrow"><b>Max Retries</b><span class="mono" style="color:#fbbf24">'+POLICY.maxRetries+'</span></div>';
+  h+='<div class="swrow"><b>Rate Limit (Execute)</b><span class="mono" style="color:#fbbf24">'+POLICY.rateExecute+'</span></div>';
+  h+='<div class="swrow"><b>Rate Limit (Demo/Voice)</b><span class="mono" style="color:#fbbf24">'+POLICY.rateDemo+'</span></div></div></div>';
+  h+='<div class="card"><div class="chead"><h3>System</h3></div><div class="cbody" style="display:flex;flex-direction:column;gap:6px"><div class="swrow"><b>Version</b><span class="mono">v5.2</span></div><div class="swrow"><b>Track</b><span class="mono">03 - AI Revenue Recovery</span></div><div class="swrow"><b>Backend</b><span class="mono">'+(S.live?'Connected':'Unavailable')+'</span></div></div></div>';
+  return h;
+ }
+
+ if(S.settingsTab==='devtools'){
+  h+='<div class="card" style="border-color:rgba(245,158,11,.35)"><div class="chead"><h3>⚠ Failure Simulation</h3><span class="hint">debug tool, not a real setting</span></div><div class="cbody"><p style="color:var(--mut);font-size:11px;line-height:1.6;margin-bottom:10px">Arms the <b>next</b> execution to hit a simulated gateway failure — after the policy gate has already approved it — so you can watch the escalation path run for real. This is a chaos-testing switch for demos and QA, kept separate from the settings above it because it deliberately injects a failure rather than configuring one.</p><div class="swrow" data-act="toggle-arm" role="switch" aria-checked="'+S.armed+'"><b>Failure Simulation</b><div class="sw '+(S.armed?'on armed-pulse':'')+'"></div></div></div></div>';
+  return h;
+ }
+
+ if(S.settingsTab==='data'){
+  h+='<div class="card" style="border-color:rgba(239,68,68,.3)"><div class="chead"><h3>Data</h3><span class="hint">sandbox database only — never real money or PII</span></div><div class="cbody"><p style="color:var(--mut);font-size:11px;line-height:1.6;margin-bottom:12px"><b>Seed</b> adds a fresh batch of synthetic payments and recovery cases on top of what exists. <b>Reset All</b> permanently deletes every case, payment and audit event, then reseeds — you\'ll be asked to confirm since this cannot be undone.</p><div style="display:flex;gap:8px"><button class="btn btn-g" data-act="seed">Seed</button><button class="btn btn-r" data-act="reset">Reset All</button></div></div></div>';
+  return h;
+ }
+
+ if(S.settingsTab==='readiness'){
+  var checklist=[
+   ['READY','Backend connected','FastAPI health + live case reads'],
+   ['READY','Bounded policy engine','11-check deterministic gate — amount, retry, terminal-state and confidence stops'],
+   ['READY','Concurrency-safe execution','Row-level locking prevents double-execution under concurrent requests'],
+   ['READY','Idempotent execution','Idempotency-Key request-hash separation, duplicate-safe'],
+   ['READY','Tamper-evident audit trail','HMAC-sealed hash chain + independent anchor detects a deleted tail event'],
+   ['READY','Human escalation','Policy blocks never auto-bypass'],
+   ['READY','Multilingual voice',Object.keys(VOICE_BRAIN).length+' language packs, browser speech APIs'],
+   ['READY','Consent management','Voice gate, promise confirmation, and opt-out stop'],
+   ['READY','Signed Razorpay webhooks','HMAC-SHA256 signature + X-Razorpay-Event-Id dedup + real payload shape — see Webhooks tab'],
+   ['NEXT','Durable event queue','Move the worker seam to Celery, RQ, or a managed queue'],
+   ['NEXT','Real provider adapters','Connect real Razorpay, Exotel/Twilio, and CRM credentials'],
+   ['NEXT','Live payment data','Replace synthetic seed data with tenant-scoped reads'],
+   ['NEXT','Persistent scheduler','Store retry windows and execute through a worker, not in-request'],
+   ['OPTIONAL','LLM diagnosis adapter','Enable only with privacy, cost, and eval review']
+  ];
+  h+='<div class="card"><div class="chead"><h3>Production Readiness</h3><span class="hint">demo → production handoff, one list</span></div><div class="cbody" style="display:flex;flex-direction:column;gap:7px">'+checklist.map(function(x){var col=x[0]==='READY'?'#4ade80':x[0]==='OPTIONAL'?'#a78bfa':'#fbbf24';return '<div class="swrow"><div><b style="color:'+col+'">'+x[1]+'</b><small>'+x[2]+'</small></div><span class="mono" style="font-size:10px;color:'+col+'">'+x[0]+'</span></div>';}).join('')+'</div></div>';
+  return h;
+ }
+
+ if(S.settingsTab==='integration')return h+'<div class="card"><div class="workspace-title"><div><span class="eyebrow">Developer tools</span><h2>Easy integration</h2><p>Connect payment events, recovery actions, and your CRM through documented API seams.</p></div><span class="mode-chip">● Test mode</span></div><div class="cbody"><div class="integration-url"><label>API base URL</label><div><input id="integrationBase" value="'+esc(S.integrationBase||location.origin)+'" aria-label="API base URL"><button class="btn btn-g btn-sm" data-act="save-integration">Save</button></div><small>Same-origin is recommended for the deployed dashboard.</small></div><div class="product-grid" style="margin-top:14px"><div class="product-tile"><span class="product-tile-index">01</span><b>Authentication</b><small>Production reads use X-API-Key with readonly/operator roles. Execute requests must also include a unique Idempotency-Key.</small><button class="btn btn-g btn-sm" data-act="copy-integration">Copy base URL</button></div><div class="product-tile"><span class="product-tile-index">02</span><b>Event contract</b><small>Send payment.failed, payment.captured, payment_link.paid, or refund.processed with a signed timestamped payload — see the Webhooks tab to try it live.</small><button class="btn btn-g btn-sm" data-act="set-tab" data-tab-group="settings" data-tab="webhooks">Open Webhooks</button></div><div class="product-tile"><span class="product-tile-index">03</span><b>Safety boundary</b><small>Payload limits, rate limits, HMAC audit seals, CSP, and parameterized database queries are enforced server-side.</small><button class="btn btn-g btn-sm" data-act="set-tab" data-tab-group="settings" data-tab="general">View configuration</button></div></div></div></div>';
+
+ if(S.settingsTab==='webhooks'){
+  var awaitingCase=S.cases.find(function(c){return c.recovery_status==='awaiting_payment';});
+  h+='<div class="card"><div class="workspace-title"><div><span class="eyebrow">Inbound events</span><h2>Webhooks</h2><p>RecoverAI <b>receives</b> events from Razorpay at the URL below — it does not send outbound webhooks, so there is nothing to "add" here.</p></div><span class="mode-chip">● Test mode</span></div><div class="cbody"><div class="integration-url"><label>Inbound webhook URL — paste into Razorpay Dashboard → Settings → Webhooks</label><div><input id="webhookInboundUrl" readonly value="'+esc(location.origin)+'/api/webhooks/razorpay"><button class="btn btn-g btn-sm" data-act="copy-webhook-url">Copy</button></div><small>Set the same secret you configure there as <span class="mono">WEBHOOK_SECRET</span> in the backend environment — deliveries are verified with a timing-safe HMAC-SHA256 comparison of the raw request body. This sandbox runs with <span class="mono">RAZORPAY_SIMULATE=true</span> and no secret set, so the unsigned test events below are accepted the same way an unconfigured production deploy would reject them.</small></div><div class="product-grid" style="margin-top:14px"><div class="product-tile"><span class="product-tile-index">01</span><b>Events RecoverAI listens for</b><small>payment.failed, payment.captured, payment_link.paid, refund.processed — anything else is rejected with 400.</small></div><div class="product-tile"><span class="product-tile-index">02</span><b>Replay-safe</b><small>Every X-Razorpay-Event-Id is deduplicated; a retried delivery returns the same accepted response, never double-processed.</small></div><div class="product-tile"><span class="product-tile-index">03</span><b>Revenue-confirming</b><small>payment.captured and payment_link.paid are the ONLY events that turn an awaiting_payment case into counted revenue.</small></div></div></div></div>';
+  h+='<div class="card"><div class="chead"><h3>Send a test webhook</h3><span class="hint">hits the real endpoint above — not a simulation</span></div><div class="webhook-form" style="grid-template-columns:1fr 1fr"><div><label for="webhookTestEvent">Event type</label><select id="webhookTestEvent"><option value="payment.failed">payment.failed</option><option value="payment.captured">payment.captured (confirms revenue)</option><option value="payment_link.paid">payment_link.paid (confirms revenue)</option><option value="refund.processed">refund.processed</option></select></div><div style="display:flex;align-items:flex-end"><button class="btn btn-p" data-act="send-test-webhook" style="width:100%">Send test event</button></div><p class="form-note">'+(awaitingCase?'A confirming event will target case <b class="mono">'+esc(awaitingCase.id)+'</b> ('+esc(awaitingCase.customer)+'), the only case currently awaiting payment — watch it flip to Recovered.':'No case is currently awaiting payment, so a confirming event will be accepted but won\'t match any case — run a Payment Link playbook first to see it flip a real case to Recovered.')+'</p></div><div class="webhook-list">'+(S.webhookTestLog.length?S.webhookTestLog.slice(0,8).map(function(w){return '<div class="webhook-row"><div><b>'+esc(w.event)+'</b><small>'+esc(w.message)+'</small></div><span class="sb '+(w.ok?'recovered':'escalated')+'"><i></i>'+(w.ok?'Accepted':'Rejected')+'</span><span class="mono" style="font-size:10px;color:var(--dim);margin-left:8px">'+esc(w.time)+'</span></div>';}).join(''):'<div class="table-empty"><h3>No test events sent yet</h3><p>Send one above — it POSTs to /api/webhooks/razorpay for real, right now.</p></div>')+'</div></div>';
+  return h;
+ }
+
+ if(S.settingsTab==='account'){
+  h+=tabBar('account',[['profile','Profile'],['balance','Balance'],['credits','Credits'],['team','Manage Team'],['support','Support Tickets']],S.accountTab);
+  if(S.accountTab!=='profile')return h+renderAccountSection(S.accountTab);
+  return h+'<div class="card account-panel"><div class="workspace-title"><div><span class="eyebrow">Account</span><h2>Profile</h2><p>Operator workspace identity for this sandbox session.</p></div></div><div class="cbody"><div class="detail-list"><div><span>Environment</span><b>Test Mode · Razorpay Sandbox</b></div><div><span>Access</span><b>RecoverAI operator workspace</b></div><div><span>Audit</span><b>All changes remain auditable</b></div></div></div></div>';
+ }
  return h;
 }
 function renderAccountSection(section){
@@ -1128,10 +1240,10 @@ function openCaseDetail(id){
  Api.case(id).then(function(detail){
   var evs=S.audit.filter(function(e){return e.caseId===c.id;}).slice(0,4);
   var evidence=detail.evidence||{};
-  var h='<div class="case-detail-top"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="mono" style="color:#4ade80;font-weight:700;font-size:14px">'+c.id+'</span><span class="sb '+c.status+'"><i></i>'+pretty(c.status)+'</span><span class="rb '+c.risk+'"><i></i>'+c.risk+'</span></div><button class="btn btn-g btn-sm" data-act="close-exec" aria-label="Close">Close</button></div><div class="case-customer">'+esc(c.customer)+'</div><div class="case-context">'+esc(c.category.code)+' · '+esc(c.created)+' · '+esc(c.txn)+'</div></div><div class="case-detail-body"><div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px"><div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:700">At risk</div><div class="mono" style="font-size:26px;font-weight:700">'+fmtINR(c.amount)+'</div></div><div style="text-align:right;font-size:11px;color:var(--mut)"><div>Recovery status</div><b>'+esc(pretty(c.recovery_status||c.status))+'</b></div></div>';
+  var h='<div class="case-detail-top"><div style="display:flex;align-items:center;justify-content:space-between;gap:8px"><div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span class="mono" style="color:#4ade80;font-weight:700;font-size:14px">'+esc(c.id)+'</span><span class="sb '+esc(c.status)+'"><i></i>'+esc(pretty(c.status))+'</span><span class="rb '+esc(c.risk)+'"><i></i>'+esc(c.risk)+'</span></div><button class="btn btn-g btn-sm" data-act="close-exec" aria-label="Close">Close</button></div><div class="case-customer">'+esc(c.customer)+'</div><div class="case-context">'+esc(c.category.code)+' · '+esc(c.created)+' · '+esc(c.txn)+'</div></div><div class="case-detail-body"><div style="display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px"><div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:700">At risk</div><div class="mono" style="font-size:26px;font-weight:700">'+fmtINR(c.amount)+'</div></div><div style="text-align:right;font-size:11px;color:var(--mut)"><div>Recovery status</div><b>'+esc(pretty(c.recovery_status||c.status))+'</b></div></div>';
   h+='<div class="grid2"><div class="dcell"><span>Diagnosis</span><b>'+esc(c.category.name)+'</b></div><div class="dcell"><span>Action</span><b style="color:#4ade80">'+esc(c.action)+'</b></div></div>';
   h+='<div class="grid2" style="margin-top:10px"><div class="dcell"><span>Retries</span><b>'+c.attempts+' / '+c.maxAttempts+'</b><small style="display:block;color:var(--dim);font-size:10px">'+(detail.next_retry_at?'Next retry '+relTime(detail.next_retry_at):'No retry scheduled')+'</small></div></div>';
-  h+='<div class="grid2" style="margin-top:10px"><div class="dcell"><span>Transaction</span><b class="mono" style="font-size:10px;cursor:pointer" data-act="copy-txn" data-text="'+c.txn+'" title="Copy txn">'+c.txn+' ⧉</b></div><div class="dcell"><span>Diagnosis mode</span><b>'+esc(evidence.diagnosis_mode||'deterministic_fallback')+'</b></div></div>';
+  h+='<div class="grid2" style="margin-top:10px"><div class="dcell"><span>Transaction</span><b class="mono" style="font-size:10px;cursor:pointer" data-act="copy-txn" data-text="'+esc(c.txn)+'" title="Copy txn">'+esc(c.txn)+' ⧉</b></div><div class="dcell"><span>Diagnosis mode</span><b>'+esc(evidence.diagnosis_mode||'deterministic_fallback')+'</b></div></div>';
   h+='<div class="diag"><h4>Why this case is here</h4><p style="font-size:12px;color:#9d9da6">'+esc(detail.reason||c.category.name)+'</p>';
   if(evidence.success_rate_percent!=null){h+='<div class="conf"><span>Customer success rate</span><div class="meter"><i style="width:'+evidence.success_rate_percent+'%;background:'+(evidence.success_rate_percent>70?'#22c55e':'#f59e0b')+'"></i></div><span class="mono">'+evidence.success_rate_percent+'%</span></div>';}
   h+='</div>';
@@ -1141,7 +1253,7 @@ function openCaseDetail(id){
   if(evs.length){h+='<div style="margin-top:12px"><div style="font-size:10px;color:var(--dim);text-transform:uppercase;font-weight:800;letter-spacing:.1em;margin-bottom:5px">Recent activity</div>'+evs.map(function(e){return '<div class="actrow" style="padding:7px 4px"><span class="lt">'+e.ts+'</span><span class="tag b">'+e.type+'</span><span class="ax">'+esc(e.desc)+'</span>'+(e.eventHash?'<span class="sealed-tag" title="Sealed with a tamper-evident HMAC chain">Sealed</span>':'')+'</div>';}).join('')+'</div>';}
   h+='<div class="case-detail-actions">';
   var isDetailTerm=['recovered','blocked','needs_human_review','skipped'].indexOf(c.status)>-1||['recovered','blocked','needs_human_review','skipped'].indexOf(c.recovery_status)>-1;
-  if(c.status==='open'&&!isDetailTerm){h+='<button class="btn btn-p" data-act="exec-case" data-id="'+c.id+'">Execute</button>';h+='<button class="btn btn-v" data-act="start-voice-from" data-id="'+c.id+'">Voice Call</button>';}
+  if(c.status==='open'&&!isDetailTerm){h+='<button class="btn btn-p" data-act="exec-case" data-id="'+esc(c.id)+'">Execute</button>';h+='<button class="btn btn-v" data-act="start-voice-from" data-id="'+esc(c.id)+'">Voice Call</button>';}
   else if(isDetailTerm){h+='<button class="btn btn-g btn-sm" disabled style="opacity:.35;cursor:not-allowed;">Already '+pretty(c.status)+'</button>';}
   h+='<button class="btn btn-g" data-act="close-exec">Close details</button></div></div>';
   document.getElementById('execContent').innerHTML='<div class="case-detail-modal">'+h+'</div>';
@@ -1159,6 +1271,7 @@ function doSeed(){
  }).catch(function(err){S.loading=false;toast('e','Seed failed',err.message);renderShell();});
 }
 function doReset(){
+ if(!confirm('Reset ALL data? This permanently deletes every case, payment, and audit event in this sandbox database, then reseeds fresh demo data. This cannot be undone.'))return;
  S.loading=true;renderShell();
  Api.reset().then(function(){
   S.cases=[];S.audit=[];S.dashboard=null;
@@ -1511,7 +1624,7 @@ function buildCmds(){
   {l:'Overview',g:'Navigate',fn:function(){go('overview');}},
   {l:'Cases',g:'Navigate',fn:function(){go('cases');}},
   {l:'Batch Run',g:'Navigate',fn:function(){go('batch');}},
-  {l:'Playbooks',g:'Navigate',fn:function(){go('playbooks');}},
+  {l:'Playbooks',g:'Navigate',fn:function(){S.selectedPlaybook=null;S.navKey='Subscriptions';go('playbooks');}},
   {l:'Voice Agent',g:'Navigate',fn:function(){go('voice');}},
   {l:'Promises',g:'Navigate',fn:function(){go('promises');}},
   {l:'Audit Trail',g:'Navigate',fn:function(){go('audit');}},
@@ -1546,11 +1659,13 @@ document.addEventListener('click',function(e){
  if(!e.target.closest('.mode-wrap')){var openMode=document.getElementById('modeMenu');if(openMode)openMode.classList.remove('show');}
  if(e.target.closest('button:disabled'))return;
  var navBtn=e.target.closest('.nav button[data-pg]');
- if(navBtn){S.navKey=navBtn.title;go(navBtn.dataset.pg);return;}
+ if(navBtn){S.navKey=navBtn.title;S.selectedPlaybook=null;go(navBtn.dataset.pg);return;}
  var act=e.target.closest('[data-act]');
  if(act){
   var a=act.dataset.act,id=act.dataset.id,pg=act.dataset.pg,risk=act.dataset.risk,lang=act.dataset.lang,txt=act.dataset.text,view=act.dataset.view,type=act.dataset.type;
-  if(a==='go'){S.navKey=null;go(pg);}
+  if(a==='go'){S.navKey=null;S.selectedPlaybook=null;go(pg);}
+  else if(a==='open-pb'){S.selectedPlaybook=id;S.navKey='Subscriptions';go('playbooks');}
+  else if(a==='close-pb'){S.selectedPlaybook=null;go('playbooks');}
   else if(a==='set-tab'){var group=act.dataset.tabGroup,tab=act.dataset.tab;if(group==='transactions')S.transactionTab=tab;else if(group==='reports')S.reportsTab=tab;else if(group==='settings')S.settingsTab=tab;else if(group==='account')S.accountTab=tab;go(S.page);}
   else if(a==='run-batch')runBatch();
   else if(a==='toggle-pause')togglePause();
@@ -1586,8 +1701,21 @@ document.addEventListener('click',function(e){
   else if(a==='export-audit')exportAudit();
   else if(a==='export-report')exportReport();
   else if(a==='schedule-report')toast('i','Schedule reports','Connect a production notification provider to enable scheduled delivery.');
-  else if(a==='add-webhook'){var wn=document.getElementById('webhookName'),wu=document.getElementById('webhookUrl'),we=document.getElementById('webhookEvents'),name=(wn&&wn.value||'').trim(),url=(wu&&wu.value||'').trim();if(!name||!url){toast('w','Missing details','Enter a webhook name and endpoint URL.');return;}try{var parsed=new URL(url);if(parsed.protocol!=='https:'&&!(parsed.protocol==='http:'&&(parsed.hostname==='localhost'||parsed.hostname==='127.0.0.1'))){toast('w','Invalid endpoint','Use HTTPS, or HTTP only for localhost testing.');return;}}catch(err){toast('w','Invalid endpoint','Enter a complete URL such as https://example.com/webhooks/recoverai.');return;}S.webhooks.push({id:'wh_'+Date.now().toString(36),name:name,url:url,events:(we?we.value:'payment.failed').split(','),created:nowTs()});saveWorkspaceConfig();toast('s','Webhook added',name+' is saved for this browser in Test Mode.');go('settings');}
-  else if(a==='remove-webhook'){S.webhooks=S.webhooks.filter(function(w){return w.id!==id;});saveWorkspaceConfig();toast('s','Webhook removed','The local Test Mode destination was removed.');go('settings');}
+  else if(a==='copy-webhook-url')safeCopy(location.origin+'/api/webhooks/razorpay');
+  else if(a==='send-test-webhook'){
+   var evSel=document.getElementById('webhookTestEvent');var eventType=evSel?evSel.value:'payment.failed';
+   var isConfirming=eventType==='payment.captured'||eventType==='payment_link.paid';
+   var target=isConfirming?S.cases.find(function(c){return c.recovery_status==='awaiting_payment';}):null;
+   act.disabled=true;var origTxt=act.textContent;act.textContent='Sending…';
+   Api.sendTestWebhook(eventType,target?target.txn:null).then(function(r){
+    S.webhookTestLog.unshift({event:eventType,ok:true,message:r.message+(target?' · matched case '+target.id+' → recovered':isConfirming?' · no awaiting_payment case to match right now':''),time:nowTs()});
+    toast('s','Webhook accepted',r.message);
+    return target?refreshCasesAndAudit():Promise.resolve();
+   }).catch(function(err){
+    S.webhookTestLog.unshift({event:eventType,ok:false,message:err.message,time:nowTs()});
+    toast('e','Webhook rejected',err.message);
+   }).then(function(){act.disabled=false;act.textContent=origTxt;go('settings');});
+  }
   else if(a==='save-integration'){var ib=document.getElementById('integrationBase'),value=(ib&&ib.value||'').trim();try{var ip=new URL(value);if(ip.protocol!=='https:'&&!(ip.protocol==='http:'&&(ip.hostname==='localhost'||ip.hostname==='127.0.0.1'))){toast('w','Invalid base URL','Use HTTPS, or HTTP only for localhost testing.');return;}S.integrationBase=value;saveWorkspaceConfig();toast('s','Integration saved','API base URL saved for this browser.');}catch(err){toast('w','Invalid base URL','Enter a complete URL.');}}
   else if(a==='copy-integration')safeCopy(location.origin+'/api');
   else if(a==='account-action')toast('i','Test Mode','Account changes are disabled in the sandbox demo.');
