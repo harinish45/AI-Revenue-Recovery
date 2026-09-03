@@ -25,7 +25,7 @@
 
 ### Contents
 
-[The Problem](#-the-problem) · [The Solution](#-the-solution) · [Architecture](#️-architecture) · [Project Structure](#-project-structure) · [Quickstart (any OS)](#-quickstart) · [API Highlights](#-api-highlights) · [End-to-End Workflow](#-real-end-to-end-workflow) · [Operator Cockpit](#️-operator-cockpit) · [Test Matrix](#-adversarial-test-matrix) · [Security Layers](#️-security-posture--defense-in-depth) · [Design Decisions](#-design-decisions--trade-offs) · [Roadmap](#️-roadmap)
+[The Problem](#-the-problem) · [Quickstart (any OS)](#-quickstart) · [The Solution](#-the-solution) · [Architecture](#️-architecture) · [Project Structure](#-project-structure) · [API Highlights](#-api-highlights) · [End-to-End Workflow](#-real-end-to-end-workflow) · [Operator Cockpit](#️-operator-cockpit) · [Test Matrix](#-adversarial-test-matrix) · [Security Layers](#️-security-posture--defense-in-depth) · [Design Decisions](#-design-decisions--trade-offs) · [Roadmap](#️-roadmap)
 
 ---
 
@@ -34,6 +34,92 @@
 Indian digital merchants lose **billions of rupees every year** to failed payments — UPI declines, gateway timeouts, insufficient balances, abandoned checkouts. Most of that money is *recoverable*, but recovery requires judgment: *why* did the payment fail, *who* should be contacted, *how*, and — critically — *when not to*.
 
 Human ops teams can't scale to thousands of daily failures. Naive automation retries blindly, spams customers, breaches compliance, and double-charges.
+
+## 🚀 Quickstart
+
+**Live demo:** [recoverai-5orn.onrender.com](https://recoverai-5orn.onrender.com)
+
+**Paste one line into a terminal.** It clones the repo (if you don't already
+have it) and starts the whole app — nothing else to install first except
+Docker. Same result on Windows, macOS, and Linux.
+
+**macOS / Linux (Terminal):**
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/harinish45/AI-Revenue-Recovery/main/bootstrap.sh | bash
+```
+
+**Windows (PowerShell):**
+
+```powershell
+irm https://raw.githubusercontent.com/harinish45/AI-Revenue-Recovery/main/bootstrap.ps1 | iex
+```
+
+### 👉 Open **http://localhost:8000**
+
+That's the whole cockpit — standalone dashboard, voice agent, everything. (The
+React dev dashboard, if you want it separately, is on http://localhost:5173.)
+Both containers run as a non-root user with a `HEALTHCHECK` — see
+[Security Posture](#️-security-posture--defense-in-depth). Stop it any time
+with `docker compose down` from inside the cloned folder.
+
+Already have the repo cloned? Skip the line above and just run
+`docker compose up --build` from inside it — same result. Verified end to end
+against a genuinely fresh clone with zero local config: builds, starts, and
+`/api/demo/seed` works immediately, no `.env` file required.
+
+<details>
+<summary><strong>Prefer running it without Docker?</strong></summary>
+
+```bash
+cd backend
+pip install -r requirements.txt
+cp .env.example .env            # Razorpay test keys optional — simulation is on by default
+uvicorn app.main:app --reload
+```
+
+Open **http://localhost:8000**. To also run the React dev dashboard
+separately: `cd frontend && npm install && npm run dev` → http://localhost:5173.
+
+Local demo controls (seed / reset / batch / failure simulation) need one more
+line in `backend/.env`:
+
+```bash
+DEMO_MODE=true
+```
+
+</details>
+
+### Voice agent: use Microsoft Edge
+
+The voice agent is a real browser interaction: it requests microphone input,
+recognizes speech, speaks replies aloud, and records consent and outcomes to
+the backend audit trail. Payments remain simulated in this test-mode demo;
+the voice conversation and audit events are real.
+
+For the best result, open either the [live Render demo](https://recoverai-5orn.onrender.com)
+or `http://localhost:8000` in **Microsoft Edge**. Edge generally provides the
+best built-in neural voices for the supported Indian languages. Allow the
+microphone permission when prompted, select a case, check the consent box,
+and start the call. If a language voice is missing, the agent intentionally
+shows the response as text instead of playing incorrect pronunciation.
+
+The live Render URL uses HTTPS, so microphone access is supported. When using
+the React development dashboard separately, run it at `http://localhost:5173`
+and keep the backend running at `http://localhost:8000`.
+
+Render and localhost use the same standalone cockpit and backend API. If Edge
+reports that a language voice is unavailable, install that language's speech
+pack in Windows **Settings → Time & language → Language & region**, restart
+Edge, and reload the page. Speech recognition retries the language's primary
+tag automatically when a regional tag is rejected; typed replies remain
+available as a safe fallback.
+
+### Run the test suite
+
+```bash
+cd backend && python -m pytest tests/ -v      # 67 tests: safety, adversarial, business logic, API
+```
 
 ## ✨ The Solution
 
@@ -128,92 +214,6 @@ Routers stay thin, services own the logic, the policy engine is the single
 gate every execution passes through, and the React app is decomposed into
 single-purpose hooks and components rather than one monolithic file —
 structured the way a codebase meant to be extended, not just demoed, should be.
-
-## 🚀 Quickstart
-
-**Live demo:** [recoverai-5orn.onrender.com](https://recoverai-5orn.onrender.com)
-
-**Paste one line into a terminal.** It clones the repo (if you don't already
-have it) and starts the whole app — nothing else to install first except
-Docker. Same result on Windows, macOS, and Linux.
-
-**macOS / Linux (Terminal):**
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/harinish45/AI-Revenue-Recovery/main/bootstrap.sh | bash
-```
-
-**Windows (PowerShell):**
-
-```powershell
-irm https://raw.githubusercontent.com/harinish45/AI-Revenue-Recovery/main/bootstrap.ps1 | iex
-```
-
-### 👉 Open **http://localhost:8000**
-
-That's the whole cockpit — standalone dashboard, voice agent, everything. (The
-React dev dashboard, if you want it separately, is on http://localhost:5173.)
-Both containers run as a non-root user with a `HEALTHCHECK` — see
-[Security Posture](#️-security-posture--defense-in-depth). Stop it any time
-with `docker compose down` from inside the cloned folder.
-
-Already have the repo cloned? Skip the line above and just run
-`docker compose up --build` from inside it — same result. Verified end to end
-against a genuinely fresh clone with zero local config: builds, starts, and
-`/api/demo/seed` works immediately, no `.env` file required.
-
-<details>
-<summary><strong>Prefer running it without Docker?</strong></summary>
-
-```bash
-cd backend
-pip install -r requirements.txt
-cp .env.example .env            # Razorpay test keys optional — simulation is on by default
-uvicorn app.main:app --reload
-```
-
-Open **http://localhost:8000**. To also run the React dev dashboard
-separately: `cd frontend && npm install && npm run dev` → http://localhost:5173.
-
-Local demo controls (seed / reset / batch / failure simulation) need one more
-line in `backend/.env`:
-
-```bash
-DEMO_MODE=true
-```
-
-</details>
-
-### Voice agent: use Microsoft Edge
-
-The voice agent is a real browser interaction: it requests microphone input,
-recognizes speech, speaks replies aloud, and records consent and outcomes to
-the backend audit trail. Payments remain simulated in this test-mode demo;
-the voice conversation and audit events are real.
-
-For the best result, open either the [live Render demo](https://recoverai-5orn.onrender.com)
-or `http://localhost:8000` in **Microsoft Edge**. Edge generally provides the
-best built-in neural voices for the supported Indian languages. Allow the
-microphone permission when prompted, select a case, check the consent box,
-and start the call. If a language voice is missing, the agent intentionally
-shows the response as text instead of playing incorrect pronunciation.
-
-The live Render URL uses HTTPS, so microphone access is supported. When using
-the React development dashboard separately, run it at `http://localhost:5173`
-and keep the backend running at `http://localhost:8000`.
-
-Render and localhost use the same standalone cockpit and backend API. If Edge
-reports that a language voice is unavailable, install that language's speech
-pack in Windows **Settings → Time & language → Language & region**, restart
-Edge, and reload the page. Speech recognition retries the language's primary
-tag automatically when a regional tag is rejected; typed replies remain
-available as a safe fallback.
-
-### Run the test suite
-
-```bash
-cd backend && python -m pytest tests/ -v      # 67 tests: safety, adversarial, business logic, API
-```
 
 ## 🔌 API Highlights
 
@@ -311,6 +311,13 @@ through a real usability and honesty pass, not just a features pass:
   copy.** Payment Pages now shows real payment-link case data (sent /
   awaiting / paid, and the actual cases); Route shows a live breakdown of
   every case by the policy engine's actual routed action.
+- **Smart Collect (voice) navigation.** The voice cockpit is now a
+  three-step flow — choose a case, set up the call, run it — with a
+  persistent step bar and a single, always-visible way back, instead of one
+  easy-to-miss link. The pre-call screen is a proper two-column form (case
+  facts alongside language, consent, and start) instead of a centered
+  stack of empty space, and the live-call console is height-bounded to the
+  viewport so the reply controls never require scrolling to reach.
 - **The Execute button couldn't tell an already-`awaiting_payment` or
   `closed` case from an actionable one, in both frontends.** Each kept its
   own copy of which statuses count as terminal, and both copies had gone
