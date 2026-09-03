@@ -23,7 +23,7 @@ export function useBatchRecovery({ cases, refresh, pushNotice, setLoading }) {
       setBatchResult(r);
       clearInterval(progressTimer);
       setProgress(100);
-      pushNotice({ type: 'success', text: 'Recovered ' + money(r.recovered_amount) + ' across ' + r.successful + ' successful cases.' });
+      pushNotice({ type: 'success', text: 'Recovered ' + money(r.amount_recovered) + ' across ' + r.successful + ' successful cases.' });
       await refresh();
       return r;
     } catch (e) {
