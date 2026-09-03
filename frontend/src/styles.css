@@ -393,6 +393,12 @@ tbody tr:hover { background: rgba(83, 105, 215, .06); }
   to { transform: translateX(0); opacity: 1; }
 }
 .audit-drawer > p { color: var(--text-faint); font-size: 10px; line-height: 1.5; }
+.chain-status-banner {
+  margin: 10px 0 16px; padding: 10px 14px;
+  border: 1px solid; border-radius: 9px; font-size: 11px; line-height: 1.5;
+}
+.chain-status-banner.positive { border-color: var(--green-border); background: var(--green-bg); color: #8bd5b0; }
+.chain-status-banner.negative { border-color: var(--red-border); background: var(--red-bg); color: var(--red); }
 .json-list { display: grid; gap: 10px; }
 .json-list pre {
   margin: 0; padding: 14px;

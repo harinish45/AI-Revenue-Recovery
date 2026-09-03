@@ -4,6 +4,8 @@ import { api } from '../api';
 export function useAuditTrail({ audit, setAudit, pushNotice }) {
   const [auditOpen, setAuditOpen] = React.useState(false);
   const [sealStatus, setSealStatus] = React.useState({});
+  const [chainStatus, setChainStatus] = React.useState(null);
+  const [chainChecking, setChainChecking] = React.useState(false);
 
   const openAuditDrawer = async () => {
     setAuditOpen(true);
@@ -24,6 +26,18 @@ export function useAuditTrail({ audit, setAudit, pushNotice }) {
     }
   };
 
+  const verifyChain = async () => {
+    setChainChecking(true);
+    try {
+      const result = await api.verifyChain();
+      setChainStatus(result);
+    } catch (e) {
+      pushNotice({ type: 'error', text: e.message });
+    } finally {
+      setChainChecking(false);
+    }
+  };
+
   const exportAudit = () => {
     const rows = [['id', 'case_id', 'event_type', 'actor', 'result', 'timestamp']];
     audit.forEach(event =>
@@ -38,5 +52,15 @@ export function useAuditTrail({ audit, setAudit, pushNotice }) {
     URL.revokeObjectURL(url);
   };
 
-  return { auditOpen, setAuditOpen, openAuditDrawer, sealStatus, verifySeal, exportAudit };
+  return {
+    auditOpen,
+    setAuditOpen,
+    openAuditDrawer,
+    sealStatus,
+    verifySeal,
+    exportAudit,
+    chainStatus,
+    chainChecking,
+    verifyChain,
+  };
 }

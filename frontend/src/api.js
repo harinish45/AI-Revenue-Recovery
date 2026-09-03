@@ -91,6 +91,7 @@ export const api = {
   confirmProviderPayment: (id) => request(`/api/execution/cases/${encodeURIComponent(id)}/confirm-payment`, { method: 'POST' }),
   getAudit: () => request('/api/audit?limit=200').then(normalizeAudit),
   verifyAudit: id => request(`/api/audit/${encodeURIComponent(id)}/verify`),
+  verifyChain: () => request('/api/audit/chain/verify'),
   seedDemo: () => request('/api/demo/seed', { method: 'POST' }),
   resetDemo: () => request('/api/demo/reset', { method: 'POST' }),
   runRecoveryBatch: () => request('/api/demo/recovery-batch', { method: 'POST' }),

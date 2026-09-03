@@ -150,6 +150,10 @@ class AuditChainVerifyResponse(BaseModel):
     valid: bool
     events_checked: int
     events: list
+    # Cross-check against each case's independent chain-tail anchor (see
+    # audit_service.verify_chain) -- flags a case whose newest audit event(s)
+    # were deleted, which pure backward hash-linking alone can't detect.
+    anchor_mismatches: list = []
 
 
 class WebhookResponse(BaseModel):

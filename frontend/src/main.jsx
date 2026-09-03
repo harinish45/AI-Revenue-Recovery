@@ -64,7 +64,7 @@ function App() {
   const { batchResult, setBatchResult, progress, batch } = batchRecovery;
 
   const auditTrail = useAuditTrail({ audit, setAudit, pushNotice });
-  const { auditOpen, setAuditOpen, openAuditDrawer, sealStatus, verifySeal, exportAudit } = auditTrail;
+  const { auditOpen, setAuditOpen, openAuditDrawer, sealStatus, verifySeal, exportAudit, chainStatus, chainChecking, verifyChain } = auditTrail;
 
   const { copied, copyToClipboard } = useClipboard(pushNotice);
   const { shortcutsOpen, setShortcutsOpen } = useShortcuts();
@@ -138,6 +138,7 @@ function App() {
       <AuditDrawer
         auditOpen={auditOpen} onClose={() => setAuditOpen(false)} audit={audit}
         exportAudit={exportAudit} verifySeal={verifySeal} sealStatus={sealStatus}
+        chainStatus={chainStatus} chainChecking={chainChecking} verifyChain={verifyChain}
       />
 
       <ShortcutsModal shortcutsOpen={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />

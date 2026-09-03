@@ -1,7 +1,7 @@
 import React from 'react';
 import { pretty } from '../utils/format';
 
-export function AuditDrawer({ auditOpen, onClose, audit, exportAudit, verifySeal, sealStatus }) {
+export function AuditDrawer({ auditOpen, onClose, audit, exportAudit, verifySeal, sealStatus, chainStatus, chainChecking, verifyChain }) {
   if (!auditOpen) return null;
   return (
     <div className="drawer-backdrop" onMouseDown={onClose}>
@@ -11,10 +11,23 @@ export function AuditDrawer({ auditOpen, onClose, audit, exportAudit, verifySeal
             <div className="eyebrow">Compliance proof</div>
             <h2>Audit Trail</h2>
           </div>
+          <button className="ghost-btn" onClick={verifyChain} disabled={chainChecking}>
+            {chainChecking ? 'Verifying…' : '🔗 Verify full chain'}
+          </button>
           <button className="ghost-btn" onClick={exportAudit}>Export CSV</button>
           <button className="close-btn" onClick={onClose} aria-label="Close">×</button>
         </div>
         <p>Compliance events from the backend, including diagnosis, policy gating and execution.</p>
+        {chainStatus && (
+          <div className={`chain-status-banner ${chainStatus.valid ? 'positive' : 'negative'}`}>
+            {chainStatus.valid
+              ? `Chain verified: ${chainStatus.events_checked} event${chainStatus.events_checked === 1 ? '' : 's'} checked, no tampering or truncation detected.`
+              : `Chain INVALID: ${chainStatus.events_checked} event${chainStatus.events_checked === 1 ? '' : 's'} checked. ` +
+                (chainStatus.anchor_mismatches?.length
+                  ? `${chainStatus.anchor_mismatches.length} case${chainStatus.anchor_mismatches.length === 1 ? '' : 's'} show signs of a deleted/truncated audit event.`
+                  : 'One or more events failed hash or chain-link verification.')}
+          </div>
+        )}
         <div className="json-list">
           {audit.length
             ? audit.map(event => (
