@@ -122,7 +122,10 @@ def _run_recovery(db: Session, case: RecoveryCase) -> dict:
         )
 
     # Safety check 2: economic smart-skip (expected value below intervention cost).
-    if payment.amount < settings.SMART_SKIP_MIN_AMOUNT:
+    # AMOUNT_TOLERANCE guards this boundary the same way policy_engine's
+    # amount_limit_check guards MAX_AMOUNT -- a value semantically exactly at
+    # the floor shouldn't flip skip/no-skip on float representation noise.
+    if payment.amount < settings.SMART_SKIP_MIN_AMOUNT - settings.AMOUNT_TOLERANCE:
         case.recovery_status = "skipped"
         case.action_status = "skipped"
         audit = log_event(

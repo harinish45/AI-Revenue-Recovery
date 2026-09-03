@@ -1,3 +1,4 @@
+from app.config import settings
 from app.models import Customer, Payment, RecoveryCase
 from app.services import batch_executor
 from app.services.batch_executor import run_batch_recovery
@@ -45,6 +46,63 @@ def test_policy_blocks_amount_above_threshold(db_session):
     assert allowed is False
     assert checks["amount_limit_check"] is False
     assert any("Amount exceeds" in r for r in reasons)
+
+
+def test_policy_amount_check_tolerates_float_noise_at_the_boundary(db_session):
+    """An amount that's semantically exactly MAX_AMOUNT can land a few ULPs on
+    either side after a couple of arithmetic hops (e.g. round(x, 2) on a
+    computed value) -- AMOUNT_TOLERANCE absorbs that noise so the check
+    doesn't flip on float representation alone, while a genuinely-over amount
+    still blocks."""
+    customer, just_noise = _make_customer_and_payment(
+        db_session, amount=settings.MAX_AMOUNT + 1e-9
+    )
+    case = RecoveryCase(
+        id="RC-BOUNDARY-1",
+        payment_id=just_noise.id,
+        customer_id=just_noise.customer_id,
+        customer_name="Test",
+        amount_at_risk=just_noise.amount,
+        risk_level="high",
+        failure_category="bank_rejection",
+        recommended_action="needs_human_review",
+        reason="test",
+        evidence={},
+        retry_count=0,
+        max_retries=2,
+        recovery_status="pending",
+    )
+    allowed, checks, _ = evaluate_policy(db_session, case, just_noise)
+    assert checks["amount_limit_check"] is True
+    assert allowed is True
+
+    genuinely_over = Payment(
+        id="pay_test_2",
+        customer_id=customer.id,
+        amount=settings.MAX_AMOUNT + 1.0,
+        status="failed",
+        failure_reason="Bank declined transaction",
+    )
+    db_session.add(genuinely_over)
+    db_session.commit()
+    case_2 = RecoveryCase(
+        id="RC-BOUNDARY-2",
+        payment_id=genuinely_over.id,
+        customer_id=genuinely_over.customer_id,
+        customer_name="Test",
+        amount_at_risk=genuinely_over.amount,
+        risk_level="high",
+        failure_category="bank_rejection",
+        recommended_action="needs_human_review",
+        reason="test",
+        evidence={},
+        retry_count=0,
+        max_retries=2,
+        recovery_status="pending",
+    )
+    allowed_2, checks_2, _ = evaluate_policy(db_session, case_2, genuinely_over)
+    assert checks_2["amount_limit_check"] is False
+    assert allowed_2 is False
 
 
 def test_policy_blocks_case_already_in_terminal_state(db_session):

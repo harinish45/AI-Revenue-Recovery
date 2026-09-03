@@ -76,7 +76,11 @@ def evaluate_policy(db: Session, case: RecoveryCase, payment: Payment) -> tuple:
             f"policy ceiling {settings.MAX_RETRIES})"
         )
 
-    if payment.amount > settings.MAX_AMOUNT:
+    # AMOUNT_TOLERANCE absorbs float representation noise at the boundary
+    # (e.g. an amount that's semantically exactly MAX_AMOUNT after a few
+    # arithmetic hops can land a few ULPs on either side in IEEE754) --
+    # the same tolerance the reconciliation check below already relies on.
+    if payment.amount > settings.MAX_AMOUNT + settings.AMOUNT_TOLERANCE:
         checks["amount_limit_check"] = False
         reasons.append("Amount exceeds safe automated threshold")
 
