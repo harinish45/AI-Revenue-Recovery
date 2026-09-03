@@ -42,7 +42,16 @@ def test_agent_confidence_is_a_function_of_customer_evidence_not_a_constant():
 def test_execution_is_idempotent_and_response_has_security_headers(client: TestClient, db_session):
     client.post("/api/demo/seed")
     cases = client.get("/api/cases/").json()["items"]
-    case_id = next(c["id"] for c in cases if c["recommended_action"] != "needs_human_review")
+    # amount must clear SMART_SKIP_MIN_AMOUNT (settings default 50.0): the
+    # synthetic seed always includes one abandoned case at amount=25.0
+    # (see synthetic_data.py), which recovery_executor smart-skips before
+    # ever calling the provider -- no Execution row is created for it, which
+    # would make this test's later assertion flaky depending on case order.
+    case_id = next(
+        c["id"]
+        for c in cases
+        if c["recommended_action"] != "needs_human_review" and c["amount"] >= 50
+    )
 
     first = client.post(
         "/api/execution/execute",

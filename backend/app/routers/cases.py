@@ -31,7 +31,12 @@ def get_cases(
         query = query.filter(RecoveryCase.customer_name.ilike(f"%{search}%"))
 
     total = query.count()
-    cases = query.offset((page - 1) * limit).limit(limit).all()
+    cases = (
+        query.order_by(RecoveryCase.created_at.desc())
+        .offset((page - 1) * limit)
+        .limit(limit)
+        .all()
+    )
 
     payments_by_id = {
         p.id: p
