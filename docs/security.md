@@ -130,18 +130,29 @@ than changed, with the reasoning for why:**
   hash of the signed body instead of (or in addition to) the header would
   close this cleanly; left as a documented, low-priority gap rather than
   adding a schema migration for a threat the state machine already contains.
-- **In the public demo's default posture** (`RAZORPAY_SIMULATE=true`, no
-  `WEBHOOK_SECRET`) **anyone can fake a payment confirmation for any specific
-  case whose `payment_id` they already know** — and `GET /api/cases` /
-  `GET /api/cases/{id}` expose `payment_id` in their response, so learning
-  one is trivial. This was true before this session's webhook-shape fix too
-  (the old, simplified payload shape had the identical gap); it is not a
-  regression, and it is exactly the accepted trade-off "explicitly out of
-  scope" already documents below. `RAZORPAY_SIMULATE=true` means no real
-  money is ever at stake either way. Noted explicitly here because it's more
-  specific than the general statement below, and because a reader relying on
-  the demo's own displayed metrics as evidence of anything should know they
-  can be inflated by any visitor, by design, in this mode.
+- **The live public demo's own configuration lets anyone forge a payment
+  confirmation for a case whose `payment_id` they already know.** The
+  deployed demo runs with `RAZORPAY_SIMULATE=true` and no `WEBHOOK_SECRET`
+  set (control 14's production-only boot check doesn't apply outside
+  `APP_ENV=production`, and the demo intentionally runs
+  `APP_ENV=development` — see `render.yaml`), so under control 3's guard
+  `/api/webhooks/razorpay` accepts *unsigned* requests. `GET /api/cases` is
+  itself unauthenticated in this same configuration and returns each case's
+  real `payment_id`, so learning one is trivial. POSTing an unsigned
+  `payment.captured` / `payment_link.paid` event for it flips that specific
+  case to `recovered` with no real signature. This is bounded — it can only
+  mark an *existing* case's *own* payment amount as recovered, not fabricate
+  an arbitrary amount or case, and it's fully visible afterward
+  (`razorpay_webhook_received` + `payment_confirmed` both sealed into the
+  same tamper-evident audit chain as everything else) — and it was true
+  before this session's webhook-shape fix too (the old, simplified payload
+  shape had the identical gap), so it's not a regression. It's exactly the
+  accepted trade-off "explicitly out of scope" already documents below,
+  consistent with (not worse than) the demo's existing unauthenticated
+  seed/reset surface; `RAZORPAY_SIMULATE=true` means no real money is ever
+  at stake either way. Setting `WEBHOOK_SECRET` closes it — the demo
+  deliberately leaves it open so anyone can try the confirmation flow
+  against the live URL with zero setup.
 
 ## Threat model — in scope vs. out of scope
 
@@ -166,27 +177,3 @@ For a deployed environment: set a strict `CORS_ORIGINS`, disable demo routes
 `AUDIT_SIGNING_KEY` configured, use PostgreSQL with TLS, store secrets in a
 secret manager, and add distributed rate limiting (e.g. a Redis-backed
 limiter) if running more than one instance.
-
-**A specific, concrete consequence of the live public demo's own
-configuration, stated plainly rather than left implicit:** the deployed demo
-runs with `RAZORPAY_SIMULATE=true` and no `WEBHOOK_SECRET` set (control 14's
-production-only boot check doesn't apply outside `APP_ENV=production`, and
-the demo intentionally runs `APP_ENV=development` — see `render.yaml`). Under
-control 3's guard, that means `/api/webhooks/razorpay` accepts *unsigned*
-requests. `GET /api/cases` is itself unauthenticated in this same demo
-configuration and returns each case's real `payment_id`, so anyone can read a
-case's `payment_id` and then POST an unsigned `payment.captured` /
-`payment_link.paid` event for it, flipping that specific case to `recovered`
-without ever having a real signature. The forged confirmation is bounded --
-it can only mark an *existing* case's *own* payment amount as recovered, not
-fabricate an arbitrary amount or case, and it's fully visible afterward
-(`razorpay_webhook_received` + `payment_confirmed` are both sealed into the
-same tamper-evident audit chain as everything else) -- but it is a real,
-exploitable gap in the demo's revenue-confirmation story specifically,
-consistent with (not worse than) the demo's existing unauthenticated
-seed/reset surface. Setting `WEBHOOK_SECRET` (with `RAZORPAY_SIMULATE=false`
-once a real provider is wired in, or even just set alongside
-`RAZORPAY_SIMULATE=true` -- control 3 requires a valid signature whenever a
-secret is configured, regardless of simulate mode) closes it; the demo
-deliberately leaves it open so anyone can `POST /api/webhooks/razorpay`
-against the live URL with zero setup and see the confirmation flow work.
