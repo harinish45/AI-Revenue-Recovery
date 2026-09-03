@@ -112,6 +112,37 @@ Implemented controls:
     (`\`, `%`, `_`) with an explicit `ESCAPE` clause before the pattern is
     built.
 
+**Two residual findings from a fresh review of the webhook path, noted rather
+than changed, with the reasoning for why:**
+
+- **Webhook replay dedup keys on the `X-Razorpay-Event-Id` header, which
+  isn't covered by the HMAC signature** (the signature only signs the raw
+  body). A validly-signed body that an attacker somehow captured and replayed
+  with a different event-id header would bypass the `WebhookEvent` dedup
+  table and be treated as "new." This does **not** translate into a real
+  double-count of revenue: `confirm_provider_payment` independently requires
+  `recovery_status == "awaiting_payment"` under a row lock, so a case already
+  confirmed by the first delivery simply won't match on the replay — the
+  practical consequence is a duplicate `razorpay_webhook_received` audit
+  entry, not a financial integrity gap. Also requires the attacker to already
+  possess a validly-signed body, a materially larger compromise than this API
+  boundary is meant to defend against alone. Deriving the dedup key from a
+  hash of the signed body instead of (or in addition to) the header would
+  close this cleanly; left as a documented, low-priority gap rather than
+  adding a schema migration for a threat the state machine already contains.
+- **In the public demo's default posture** (`RAZORPAY_SIMULATE=true`, no
+  `WEBHOOK_SECRET`) **anyone can fake a payment confirmation for any specific
+  case whose `payment_id` they already know** — and `GET /api/cases` /
+  `GET /api/cases/{id}` expose `payment_id` in their response, so learning
+  one is trivial. This was true before this session's webhook-shape fix too
+  (the old, simplified payload shape had the identical gap); it is not a
+  regression, and it is exactly the accepted trade-off "explicitly out of
+  scope" already documents below. `RAZORPAY_SIMULATE=true` means no real
+  money is ever at stake either way. Noted explicitly here because it's more
+  specific than the general statement below, and because a reader relying on
+  the demo's own displayed metrics as evidence of anything should know they
+  can be inflated by any visitor, by design, in this mode.
+
 ## Threat model — in scope vs. out of scope
 
 **In scope / mitigated by the above:** unauthorized reads or writes to the

@@ -97,7 +97,12 @@ async def ingest_razorpay_webhook(
     if event_ts is not None:
         try:
             event_time = datetime_from_epoch_or_iso(event_ts)
-        except (ValueError, TypeError) as exc:
+        except (ValueError, TypeError, OverflowError) as exc:
+            # OverflowError: datetime.fromtimestamp() raises this (not
+            # ValueError) for a numerically valid but out-of-range value
+            # (e.g. a huge "created_at") -- without catching it here, a
+            # single malformed request became an unhandled 500 instead of
+            # the same clean 400 every other malformed timestamp gets.
             raise HTTPException(status_code=400, detail="Invalid webhook timestamp") from exc
         if event_time is not None and (utcnow().replace(tzinfo=None) - event_time) > timedelta(
             seconds=settings.WEBHOOK_MAX_AGE_SECONDS

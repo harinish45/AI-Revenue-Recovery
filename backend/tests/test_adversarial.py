@@ -348,6 +348,18 @@ def test_webhook_stale_event_is_rejected(client: TestClient):
     assert "stale" in _detail(response).lower()
 
 
+def test_webhook_absurd_timestamp_returns_clean_400_not_500(client: TestClient):
+    """A numerically valid but out-of-range created_at raises OverflowError
+    from datetime.fromtimestamp(), not ValueError -- must not leak as an
+    unhandled 500."""
+    response = client.post(
+        "/api/webhooks/razorpay",
+        json={"id": "wh_overflow_1", "event": "payment.failed", "created_at": 99999999999999999999},
+    )
+    assert response.status_code == 400
+    assert "timestamp" in _detail(response).lower()
+
+
 def test_audit_chain_verification_detects_tampering(client: TestClient, db_session):
     _seed(client)
     assert client.get("/api/audit/chain/verify").json()["valid"] is True
