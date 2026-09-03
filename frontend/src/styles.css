@@ -225,8 +225,9 @@ tbody tr:hover { background: rgba(83, 105, 215, .06); }
   color: #fff; border-color: var(--red-solid); background: var(--red-solid);
   box-shadow: 0 0 0 2px rgba(181, 31, 54, .14);
 }
-.status-badge.open { color: var(--amber); border-color: var(--amber-border); background: var(--amber-bg); }
+.status-badge.open, .status-badge.awaiting_payment { color: var(--amber); border-color: var(--amber-border); background: var(--amber-bg); }
 .status-badge.in-progress { color: var(--blue-lav); border-color: #343e69; background: #12172a; }
+.status-badge.closed, .status-badge.skipped { color: var(--text-muted); border-color: var(--border-strong); background: var(--surface-3); }
 
 /* risk badges (table + drawer) */
 .risk-badge {
