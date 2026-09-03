@@ -10,7 +10,7 @@
 ![FastAPI](https://img.shields.io/badge/FastAPI-009688?logo=fastapi&logoColor=white)
 ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=black)
 ![Razorpay](https://img.shields.io/badge/Razorpay-Integrated-0C2451?logo=razorpay&logoColor=white)
-![Tests](https://img.shields.io/badge/Tests-63%20passing-brightgreen)
+![Tests](https://img.shields.io/badge/Tests-66%20passing-brightgreen)
 ![License](https://img.shields.io/badge/License-MIT-blue)
 
 [![Backend CI](https://github.com/harinish45/AI-Revenue-Recovery/actions/workflows/backend-ci.yml/badge.svg)](https://github.com/harinish45/AI-Revenue-Recovery/actions/workflows/backend-ci.yml)
@@ -25,7 +25,7 @@
 
 ### Contents
 
-[The Problem](#-the-problem) · [The Solution](#-the-solution) · [Architecture](#️-architecture) · [Project Structure](#-project-structure) · [Quickstart (any OS)](#-quickstart) · [API Highlights](#-api-highlights) · [End-to-End Workflow](#-real-end-to-end-workflow) · [Test Matrix](#-adversarial-test-matrix) · [Security Layers](#️-security-posture--defense-in-depth) · [Design Decisions](#-design-decisions--trade-offs) · [Roadmap](#️-roadmap)
+[The Problem](#-the-problem) · [The Solution](#-the-solution) · [Architecture](#️-architecture) · [Project Structure](#-project-structure) · [Quickstart (any OS)](#-quickstart) · [API Highlights](#-api-highlights) · [End-to-End Workflow](#-real-end-to-end-workflow) · [Operator Cockpit](#️-operator-cockpit) · [Test Matrix](#-adversarial-test-matrix) · [Security Layers](#️-security-posture--defense-in-depth) · [Design Decisions](#-design-decisions--trade-offs) · [Roadmap](#️-roadmap)
 
 ---
 
@@ -109,7 +109,7 @@ backend/
 │   └── models.py · schemas.py · main.py
 ├── migrations/          Alembic migrations (real, verified up/down against a
 │                          clean database — see Design Decisions)
-└── tests/                63 tests — safety, adversarial, business logic, API
+└── tests/                66 tests — safety, adversarial, business logic, API
 
 frontend/src/
 ├── components/         CasesTable · CaseDetailModal · AuditDrawer
@@ -212,7 +212,7 @@ available as a safe fallback.
 ### Run the test suite
 
 ```bash
-cd backend && python -m pytest tests/ -v      # 63 tests: safety, adversarial, business logic, API
+cd backend && python -m pytest tests/ -v      # 66 tests: safety, adversarial, business logic, API
 ```
 
 ## 🔌 API Highlights
@@ -277,6 +277,40 @@ step 5 isn't a status flag — it's a real chain walk, recomputing every link fr
 root, that fails loudly the moment one byte of history is altered. Reproduce it
 yourself: run any Quickstart option above, then `POST /api/demo/seed` and follow the
 six calls.
+
+## 🎛️ Operator Cockpit
+
+`RecoverAI-standalone.html` (what's actually live at the deployed URL) went
+through a real usability and honesty pass, not just a features pass:
+
+- **Webhooks that actually work, not a fake outbound-registration form.** The
+  Settings → Webhooks tab used to let you "add" destination URLs saved only
+  to `localStorage` — the backend never saw them, and RecoverAI *receives*
+  Razorpay events, it doesn't send them. It now shows the real inbound
+  webhook URL to paste into your Razorpay Dashboard, explains
+  `WEBHOOK_SECRET`, and has a **Send a test webhook** button that POSTs an
+  accurately-shaped Razorpay `payment.captured` / `payment_link.paid` /
+  `payment.failed` / `refund.processed` payload straight to
+  `/api/webhooks/razorpay` — the real endpoint — and shows the real response.
+  Sending a confirming event for a case that's `awaiting_payment` flips it to
+  `recovered`, live, in the same tab.
+- **Settings, reorganized.** It was two stacked, overlapping tab bars mixing
+  voice preferences, a chaos-testing "Failure Simulation" toggle, destructive
+  Seed/Reset buttons with no confirmation, and two near-duplicate readiness
+  checklists that disagreed with each other (one still listed signed
+  webhooks as "NEXT" after the backend already implemented them). Now 7
+  flat, single-purpose tabs — General, Developer Tools, Data, Readiness,
+  Integration, Webhooks, Account — one readiness checklist, and a real
+  confirmation prompt before Reset All deletes anything.
+- **Playbooks got their own page.** Clicking a playbook used to run it
+  immediately with no way to see what it was about to touch. Each of the 9
+  playbooks (3 new: Low-Risk Auto-Retry, Small-Ticket Batch Clear, Second
+  Attempt Ladder) now opens a detail page listing exactly which live cases
+  are eligible before you run it.
+- **Payment Pages and Route stopped being the same page with different
+  copy.** Payment Pages now shows real payment-link case data (sent /
+  awaiting / paid, and the actual cases); Route shows a live breakdown of
+  every case by the policy engine's actual routed action.
 
 ## 🧪 Adversarial Test Matrix
 
@@ -399,7 +433,7 @@ per-event seal checks.
 
 Plus, orthogonal to the request path:
 
-- **Webhook integrity** — HMAC-SHA256 signature verification (timing-safe compare), staleness window, event-type allowlist, provider-ID requirement, payload size cap
+- **Webhook integrity, verified against the real shape** — HMAC-SHA256 signature verification (timing-safe compare), replay dedup via the real `X-Razorpay-Event-Id` header (not a body field that real Razorpay deliveries don't send), a staleness window read from the real `created_at` field, event-type allowlist, payload size cap. Payment confirmation reads `payload.payment.entity.id` — the actual Razorpay nesting — not a shallower shape that would silently never match. A test proves an accurately-shaped `payment_link.paid` delivery flips a real case to `recovered` end to end.
 - **CI security scanning on every push** — `pip-audit` + `npm audit` (dependency CVEs), `bandit` (Python SAST), Gitleaks (secret scanning), Dependabot (pip/npm/Actions/Docker); frontend CI now also runs `eslint` as a real lint gate (there wasn't one before)
 - **Reproducible builds** — frontend dependencies (`react`, `vite`, `@vitejs/plugin-react`, `typescript`) were pinned to `"latest"`, meaning every fresh `npm install` could silently pull a different, untested version; all now pinned to the exact versions this repo is built and tested against
 - **Container hardening** — both images run as a non-root user with a `HEALTHCHECK`; base images and CI Actions kept current (Python 3.14, Node 26, nginx 1.31, `actions/checkout@v7`, `actions/setup-python@v7`, `actions/setup-node@v7`, `gitleaks-action@v3`) — each bump verified before applying, not merged blindly (see commit history for how)

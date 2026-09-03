@@ -28,7 +28,12 @@ Implemented controls:
     (see control 13); the frontend is a client of that boundary, not part of
     it.
 11. Webhooks verify the exact raw request body when a secret is configured and
-    deduplicate provider event IDs.
+    deduplicate provider event IDs — using the real `X-Razorpay-Event-Id`
+    header Razorpay actually sends (not a body field it doesn't), and
+    reading the confirmed payment id from the real `payload.payment.entity.id`
+    nesting. An earlier version of this parsing used a shallower shape that
+    would have silently never matched a genuine Razorpay delivery; fixed and
+    covered by a test that sends an accurately-shaped payload end to end.
 12. Idempotency responses are bound to their original case, and audit seal
     verification recomputes the event hash before reporting success.
 13. **API-key authorization** (`backend/app/security/auth.py`) gates the core
