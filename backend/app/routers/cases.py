@@ -12,6 +12,17 @@ from ..services.policy_engine import compliance_score, retry_window
 router = APIRouter(dependencies=[Depends(require_readonly)])
 
 
+def _escape_like(value: str) -> str:
+    """Escape SQL LIKE/ILIKE wildcards in user-supplied search text.
+
+    Not an injection risk (the query is already parameterized) -- but
+    without this, a literal "%" or "_" in `search` is interpreted as a
+    wildcard instead of a literal character, so searching for a customer
+    named e.g. "50% Off Corp" would match far more rows than intended.
+    """
+    return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+
+
 @router.get("/cases", response_model=CasesListResponse)
 def get_cases(
     status: Optional[str] = None,
@@ -28,7 +39,9 @@ def get_cases(
     if risk_level:
         query = query.filter(RecoveryCase.risk_level == risk_level)
     if search:
-        query = query.filter(RecoveryCase.customer_name.ilike(f"%{search}%"))
+        query = query.filter(
+            RecoveryCase.customer_name.ilike(f"%{_escape_like(search)}%", escape="\\")
+        )
 
     total = query.count()
     cases = (

@@ -356,6 +356,30 @@ def test_audit_chain_verification_detects_a_deleted_tail_event(client: TestClien
     assert any(m["case_id"] == case_id for m in report["anchor_mismatches"])
 
 
+def test_cases_search_treats_percent_and_underscore_as_literal_characters(
+    client: TestClient, db_session
+):
+    """GET /api/cases?search= builds a SQL LIKE pattern -- not an injection
+    risk (parameterized), but without escaping, a literal '%' or '_' in the
+    search text (or in data it's matched against) is interpreted as a
+    wildcard instead of a literal character, silently broadening the match."""
+    items = _seed(client)
+    target = db_session.query(RecoveryCase).filter(RecoveryCase.id == items[0]["id"]).first()
+    target.customer_name = "Wildcard%Test"
+    db_session.commit()
+
+    exact = client.get("/api/cases", params={"search": "Wildcard%Test", "limit": 100}).json()
+    assert any(i["id"] == target.id for i in exact["items"])
+
+    # If '_' weren't escaped, this LIKE pattern ('%Wildcard_Test%') would
+    # still match "Wildcard%Test" because '_' matches any single character,
+    # including the literal '%' in the stored name.
+    wildcard_probe = client.get(
+        "/api/cases", params={"search": "Wildcard_Test", "limit": 100}
+    ).json()
+    assert not any(i["id"] == target.id for i in wildcard_probe["items"])
+
+
 def test_core_api_is_open_outside_production_with_no_keys_configured(client: TestClient):
     """Demo/dev mode must keep working unauthenticated: no API_KEYS configured
     and APP_ENV != production is the existing, unchanged public-demo posture."""
