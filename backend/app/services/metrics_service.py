@@ -3,7 +3,7 @@ recompute aggregates on every request while still reflecting mutations
 within a few seconds (see ``invalidate_metrics_cache``, called by every
 mutation path)."""
 
-from sqlalchemy import func
+from sqlalchemy import case, func
 from sqlalchemy.orm import Session
 
 from ..config import settings
@@ -23,36 +23,51 @@ def invalidate_metrics_cache() -> None:
 
 
 def _compute_metrics(db: Session) -> dict:
-    total_transactions = db.query(Payment).count()
-    failed_payments = db.query(Payment).filter(Payment.status == "failed").count()
-    open_cases = db.query(RecoveryCase).filter(RecoveryCase.recovery_status == "pending").count()
-    awaiting_payment_cases = (
-        db.query(RecoveryCase).filter(RecoveryCase.recovery_status == "awaiting_payment").count()
-    )
+    # Conditional aggregation collapses what used to be 11 sequential
+    # round-trips (one COUNT/SUM per status) into 3 -- one per table --
+    # each doing every count/sum for that table in a single pass. This is
+    # the hottest read path in the app (every dashboard refresh, on a cache
+    # miss every ~3s under load), so the round-trip count matters more here
+    # than almost anywhere else in the backend.
+    payment_row = db.query(
+        func.count(Payment.id),
+        func.sum(case((Payment.status == "failed", 1), else_=0)),
+        func.sum(case((Payment.status == "success", Payment.amount), else_=0.0)),
+    ).one()
+    total_transactions, failed_payments, total_revenue = payment_row
+    failed_payments = failed_payments or 0
+    total_revenue = total_revenue or 0.0
 
-    total_revenue = (
-        db.query(func.sum(Payment.amount)).filter(Payment.status == "success").scalar() or 0.0
-    )
-    revenue_at_risk = (
-        db.query(func.sum(RecoveryCase.amount_at_risk))
-        .filter(RecoveryCase.recovery_status == "pending")
-        .scalar()
-        or 0.0
-    )
-    recovered_amount = db.query(func.sum(RecoveryCase.recovered_amount)).scalar() or 0.0
+    case_row = db.query(
+        func.sum(case((RecoveryCase.recovery_status == "pending", 1), else_=0)),
+        func.sum(case((RecoveryCase.recovery_status == "awaiting_payment", 1), else_=0)),
+        func.sum(
+            case(
+                (RecoveryCase.recovery_status == "pending", RecoveryCase.amount_at_risk),
+                else_=0.0,
+            )
+        ),
+        func.sum(RecoveryCase.recovered_amount),
+        func.sum(case((RecoveryCase.recovery_status == "recovered", 1), else_=0)),
+        func.sum(case((RecoveryCase.recovery_status == "failed", 1), else_=0)),
+        func.sum(
+            case(
+                (RecoveryCase.recovery_status.in_(["needs_human_review", "blocked"]), 1),
+                else_=0,
+            )
+        ),
+    ).one()
+    (
+        open_cases,
+        awaiting_payment_cases,
+        revenue_at_risk,
+        recovered_amount,
+        successful_recoveries,
+        failed_recoveries,
+        escalated_cases,
+    ) = (value or 0 for value in case_row)
 
-    recovery_attempts = db.query(Execution).count()
-    successful_recoveries = (
-        db.query(RecoveryCase).filter(RecoveryCase.recovery_status == "recovered").count()
-    )
-    failed_recoveries = (
-        db.query(RecoveryCase).filter(RecoveryCase.recovery_status == "failed").count()
-    )
-    escalated_cases = (
-        db.query(RecoveryCase)
-        .filter(RecoveryCase.recovery_status.in_(["needs_human_review", "blocked"]))
-        .count()
-    )
+    recovery_attempts = db.query(func.count(Execution.id)).scalar() or 0
 
     recovery_rate = (
         (
