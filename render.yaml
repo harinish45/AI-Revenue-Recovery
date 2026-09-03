@@ -11,10 +11,17 @@ services:
     envVars:
       - key: DATABASE_URL
         value: sqlite:///./recoverai.db
+      # This is a public, zero-login buildathon demo -- RAZORPAY_SIMULATE is
+      # always "true" and no real payment credentials are ever wired in, so
+      # APP_ENV stays "development" here on purpose: it's the same mode you
+      # run locally, which is what makes the standalone dashboard usable
+      # with no API key and lets /api/demo/* seed and reset the board. Do
+      # not flip this to "production" without also giving the frontend a
+      # way to send X-API-Key -- it doesn't today.
       - key: APP_ENV
-        value: production
-      # DEMO_MODE defaults to false: /api/demo/* routes are hard-disabled
-      # in production regardless of any environment setting.
+        value: development
+      - key: DEMO_MODE
+        value: "true"
       - key: RAZORPAY_SIMULATE
         value: "true"
       - key: CORS_ORIGINS
@@ -23,15 +30,9 @@ services:
       # X-Demo-Token wherever demo controls are enabled.
       - key: DEMO_API_TOKEN
         sync: false
-      # main.py refuses to boot with APP_ENV=production unless both of
-      # these are set -- without them the deploy would fail at startup,
-      # not at build. API_KEYS needs a value you actually know (to call
-      # the API with it), so set it yourself in the Render dashboard:
-      #   ["<a-long-random-string>:operator"]
-      # AUDIT_SIGNING_KEY just needs to be a stable secret nobody can
-      # guess -- Render generates and stores one automatically.
-      - key: API_KEYS
-        sync: false
+      # Not required outside production, but generating a stable one anyway
+      # keeps the audit hash-chain verifiable across Render's free-tier
+      # restarts instead of rotating to a new random key every boot.
       - key: AUDIT_SIGNING_KEY
         generateValue: true
       - key: PYTHON_VERSION
