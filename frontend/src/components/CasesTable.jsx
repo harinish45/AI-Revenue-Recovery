@@ -76,7 +76,7 @@ export function CasesTable({
                   <td className="amount">{money(item.amount ?? item.payment?.amount)}</td>
                   <td><RiskBadge risk={item.risk_level} /></td>
                   <td className="muted">{item.next_retry_at ? new Date(item.next_retry_at).toLocaleString() : '—'}</td>
-                  <td className="diagnosis">{item.diagnosis || item.failure_reason || item.payment?.failure_reason || 'Payment failure detected'}</td>
+                  <td className="diagnosis">{item.failure_reason || item.payment?.failure_reason || 'Payment failure detected'}</td>
                   <td>{pretty(item.recommended_action)}</td>
                   <td><Badge status={item.status} /></td>
                   <td>
