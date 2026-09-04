@@ -23,9 +23,22 @@
 
 ---
 
+## 🎥 Demo
+
+<video src="https://github.com/harinish45/AI-Revenue-Recovery/raw/main/video/RecoverAI-Demo.mp4" controls width="100%"></video>
+
+**Best experience:** open the [live Render demo](https://recoverai-5orn.onrender.com)
+in **Microsoft Edge** — it ships the strongest built-in neural voices for the
+multilingual Smart Collect voice agent, and everything else in the video runs
+identically there, live, in Razorpay Test Mode.
+
+If the player above doesn't load, [download/watch the video directly](video/RecoverAI-Demo.mp4).
+
+---
+
 ### Contents
 
-[The Problem](#-the-problem) · [Quickstart (any OS)](#-quickstart) · [The Solution](#-the-solution) · [Architecture](#️-architecture) · [Project Structure](#-project-structure) · [API Highlights](#-api-highlights) · [End-to-End Workflow](#-real-end-to-end-workflow) · [Operator Cockpit](#️-operator-cockpit) · [Test Matrix](#-adversarial-test-matrix) · [Security Layers](#️-security-posture--defense-in-depth) · [Design Decisions](#-design-decisions--trade-offs) · [Roadmap](#️-roadmap)
+[Demo](#-demo) · [The Problem](#-the-problem) · [Quickstart (any OS)](#-quickstart) · [The Solution](#-the-solution) · [Architecture](#️-architecture) · [Project Structure](#-project-structure) · [API Highlights](#-api-highlights) · [End-to-End Workflow](#-real-end-to-end-workflow) · [Operator Cockpit](#️-operator-cockpit) · [Test Matrix](#-adversarial-test-matrix) · [Security Layers](#️-security-posture--defense-in-depth) · [Design Decisions](#-design-decisions--trade-offs) · [Roadmap](#️-roadmap)
 
 ---
 
