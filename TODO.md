@@ -1,17 +1,62 @@
-# Engineering Roadmap & AI Pair-Programming Tasks (TODO)
+# 📋 TODO & Master Plan — AI-Revenue-Recovery
 
-## 📌 Autonomous Vibe-Coding Checklist
+> **Project**: RecoverAI — Autonomous AI Revenue Recovery Agent
+> **Stack**: Python, FastAPI, React, Docker
+> **Status**: 🟡 In Progress (~70%)
+> **Last Updated**: 2026-10-30
 
-### Phase 1: Gateway Integrations
-- [ ] Add Stripe webhook listener and auto-recovery channel adapter.
-- [ ] Add Cashfree Payments integration for Indian digital commerce merchants.
-- [ ] Support international multi-currency conversions (USD, EUR, GBP, SGD).
+## 🏗️ Architecture
+\\\
+AI-Revenue-Recovery/
+├── frontend/           # React frontend
+├── backend/            # FastAPI Python backend
+├── docs/               # Documentation
+├── scripts/            # Automation scripts
+├── video/              # Demo videos
+├── RecoverAI-standalone.html  # Standalone HTML demo
+├── docker-compose.yml
+├── railway.toml        # Railway deployment
+├── render.yaml         # Render deployment
+├── bootstrap.sh / .ps1 # Setup scripts
+└── package.json
+\\\
 
-### Phase 2: Conversational Voice Intelligence
-- [ ] Expand neural voice models in Smart Collect to support Tamil, Telugu, Kannada, and Marathi.
-- [ ] Implement sentiment analysis during call to instantly de-escalate or offer discount incentives.
-- [ ] Add automated recording transcripts with PII masking.
+## ✅ Completed
+- [x] Full-stack architecture (frontend + backend)
+- [x] Docker + multi-platform deployment configs
+- [x] Standalone HTML demo (RecoverAI-standalone.html)
+- [x] CHANGELOG.md
+- [x] GitHub Actions CI
+- [x] Bootstrap scripts (Linux + Windows)
 
-### Phase 3: Compliance & Enterprise
-- [ ] Add SOC 2 Type II audit logging export format.
-- [ ] Add automated RBI digital lending & debt collection guideline compliance verification.
+## 🔧 In Progress
+- [ ] Payment failure detection engine
+- [ ] Customer dunning logic
+- [ ] Dashboard analytics
+
+## 🚀 Roadmap
+
+### Phase 1 — Detection Engine (Nov 2026)
+- [ ] Stripe webhook integration for failed payments
+- [ ] Failure pattern classification (hard decline/soft decline/expired card)
+- [ ] Customer risk scoring
+- [ ] Churn probability model
+
+### Phase 2 — Recovery Flows (Nov–Dec 2026)
+- [ ] Smart retry scheduling (ML-optimized timing)
+- [ ] Personalized email sequences (Sendgrid)
+- [ ] In-app payment retry prompts
+- [ ] SMS recovery (Twilio)
+- [ ] Card updater integration (Stripe)
+
+### Phase 3 — Analytics (Jan 2027)
+- [ ] Recovery rate dashboard
+- [ ] Revenue saved tracking
+- [ ] A/B test framework for dunning strategies
+- [ ] Cohort analysis (failure by plan/segment)
+
+### Phase 4 — Enterprise (Feb 2027)
+- [ ] Multi-payment gateway support (Braintree, PayPal)
+- [ ] CRM integrations (Salesforce, HubSpot)
+- [ ] White-label solution
+- [ ] SaaS pricing + billing
