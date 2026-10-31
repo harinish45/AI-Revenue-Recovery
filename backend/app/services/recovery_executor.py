@@ -51,15 +51,6 @@ def execute_recovery(db: Session, case: RecoveryCase, idempotency_key: str = Non
             return cached.response
 
     try:
-        # Re-fetch under a row lock before doing anything else: without this,
-        # two concurrent requests for the same case (a UI double-click, or a
-        # retry that reused a different idempotency key) both read the same
-        # "pending" status, both pass the policy engine, and both call the
-        # payment provider before either commit is visible to the other. The
-        # lock makes the second request block until the first commits, so it
-        # then sees the now-terminal status and the policy engine's own
-        # terminal_state_check correctly blocks it. A no-op on SQLite (single
-        # writer already), a real lock on Postgres in production.
         locked_case = (
             db.query(RecoveryCase).filter(RecoveryCase.id == case.id).with_for_update().first()
         )
@@ -91,6 +82,7 @@ def execute_recovery(db: Session, case: RecoveryCase, idempotency_key: str = Non
 def _escalate(db: Session, case: RecoveryCase, reason: str, decision: str = None) -> dict:
     """Send the case to human review with a sealed audit event."""
     case.recovery_status = "needs_human_review"
+    case.dunning_state = "escalated"
     audit = log_event(
         db,
         case.id,
@@ -122,12 +114,10 @@ def _run_recovery(db: Session, case: RecoveryCase) -> dict:
         )
 
     # Safety check 2: economic smart-skip (expected value below intervention cost).
-    # AMOUNT_TOLERANCE guards this boundary the same way policy_engine's
-    # amount_limit_check guards MAX_AMOUNT -- a value semantically exactly at
-    # the floor shouldn't flip skip/no-skip on float representation noise.
     if payment.amount < settings.SMART_SKIP_MIN_AMOUNT - settings.AMOUNT_TOLERANCE:
         case.recovery_status = "skipped"
         case.action_status = "skipped"
+        case.dunning_state = "skipped"
         audit = log_event(
             db,
             case.id,
@@ -150,11 +140,12 @@ def _run_recovery(db: Session, case: RecoveryCase) -> dict:
     case.policy_checks = checks
 
     if not allowed:
-        # Never overwrite an existing terminal status (e.g. awaiting_payment):
-        # the audit trail must preserve the state the case actually reached.
         if case.recovery_status not in TERMINAL_STATES:
             case.recovery_status = (
                 "blocked" if not checks.get("max_retries_check", True) else "needs_human_review"
+            )
+            case.dunning_state = (
+                "escalated" if case.recovery_status == "needs_human_review" else "churned"
             )
         audit = log_event(
             db,
@@ -172,9 +163,7 @@ def _run_recovery(db: Session, case: RecoveryCase) -> dict:
             "audit_event_id": audit.id,
         }
 
-    # Safety check 4 (demo only): simulated provider failure AFTER the policy
-    # gate, so an armed failure can never bypass amount limits, terminal-state
-    # protection, or the action allowlist.
+    # Safety check 4 (demo only): simulated provider failure
     flag = db.query(DemoFlag).filter(DemoFlag.id == 1).first()
     if flag and flag.simulate_failure_active:
         flag.simulate_failure_active = False
@@ -226,6 +215,7 @@ def _run_recovery(db: Session, case: RecoveryCase) -> dict:
                 f"Recovery failed after {case.retry_count} attempts: {result_msg}. Escalated.",
             )
         case.recovery_status = "failed"
+        case.dunning_state = "soft_retry_scheduled"
         audit = log_event(
             db,
             case.id,
@@ -243,9 +233,8 @@ def _run_recovery(db: Session, case: RecoveryCase) -> dict:
         }
 
     if case.recommended_action in AWAITING_PROVIDER_ACTIONS:
-        # An intervention was sent, NOT money received. Revenue is only counted
-        # when the provider confirms the payment (webhook or operator).
         case.recovery_status = "awaiting_payment"
+        case.dunning_state = "awaiting_payment"
         execution = Execution(
             id=f"EXE-{uuid.uuid4().hex[:6].upper()}",
             case_id=case.id,
@@ -273,8 +262,6 @@ def _run_recovery(db: Session, case: RecoveryCase) -> dict:
             "audit_event_id": audit.id,
         }
 
-    # Direct retry_payment: the gateway confirms the charge synchronously in
-    # test mode, so this is a provider-confirmed recovery.
     execution = Execution(
         id=f"EXE-{uuid.uuid4().hex[:6].upper()}",
         case_id=case.id,
@@ -285,6 +272,7 @@ def _run_recovery(db: Session, case: RecoveryCase) -> dict:
     db.add(execution)
     case.recovery_status = "recovered"
     case.recovered_amount = payment.amount
+    case.dunning_state = "recovered"
     payment.status = "success"
     audit = log_event(
         db,

@@ -8,6 +8,7 @@ from ..models import (
     AuditSeal,
     Customer,
     DemoFlag,
+    DunningNotification,
     IdempotencyKey,
     Payment,
     RecoveryCase,
@@ -15,7 +16,9 @@ from ..models import (
 )
 from ..utils.time import utcnow
 from .audit_service import log_event
+from .churn_scoring import score_recovery_probability
 from .decision_engine import diagnose_and_recommend
+from .dunning_engine import DeclineCategory, schedule_next_retry
 from .metrics_service import invalidate_metrics_cache
 
 INDIAN_NAMES = [
@@ -37,9 +40,11 @@ FAILURE_REASONS = [
     ("invalid_card", "Invalid card details", "invalid_instrument"),
     ("user_abandoned", "User abandoned checkout", "user_abandonment"),
 ]
+GATEWAYS = ["razorpay", "razorpay", "stripe", "paddle", "braintree"]
 
 
 def generate_synthetic_data(db: Session):
+    db.query(DunningNotification).delete()
     db.query(AuditLog).delete()
     db.query(AuditSeal).delete()
     db.query(IdempotencyKey).delete()
@@ -70,28 +75,27 @@ def generate_synthetic_data(db: Session):
             customer_id=random.choice(customers).id,
             amount=round(random.uniform(500, 15000), 2),
             status="success",
+            gateway=random.choice(GATEWAYS),
             timestamp=utcnow() - timedelta(days=random.randint(1, 30)),
         )
         payments.append(p)
 
-    # Guarantee every failure category appears at least once (shuffled, then
-    # topped up randomly): with 5 categories and a plain random.choice per
-    # payment, an unlucky seed could omit a whole category (e.g. no
-    # gateway_timeout -> no retry_payment case at all), so a fresh demo seed
-    # would silently fail to showcase one of the agent's recovery paths.
     failure_pool = FAILURE_REASONS.copy()
     random.shuffle(failure_pool)
     for i in range(20):
         if i < len(failure_pool):
-            _, reason_text, category = failure_pool[i]
+            f_code, reason_text, category = failure_pool[i]
         else:
-            _, reason_text, category = random.choice(FAILURE_REASONS)
+            f_code, reason_text, category = random.choice(FAILURE_REASONS)
         p = Payment(
             id=f"pay_fail_{i + 1:03d}",
             customer_id=random.choice(customers).id,
             amount=round(random.uniform(1000, 25000), 2),
             status="failed",
+            failure_code=f_code,
             failure_reason=reason_text,
+            gateway=random.choice(GATEWAYS),
+            card_brand=random.choice(["visa", "mastercard", "rupay"]),
             timestamp=utcnow() - timedelta(hours=random.randint(1, 48)),
         )
         payments.append(p)
@@ -102,7 +106,9 @@ def generate_synthetic_data(db: Session):
             customer_id=random.choice(customers).id,
             amount=25.0 if i == 0 else round(random.uniform(500, 5000), 2),
             status="abandoned" if i == 0 else random.choice(["pending", "abandoned"]),
+            failure_code="abandoned",
             failure_reason="User abandoned checkout" if random.random() > 0.5 else None,
+            gateway=random.choice(GATEWAYS),
             timestamp=utcnow() - timedelta(hours=random.randint(1, 24)),
         )
         payments.append(p)
@@ -121,13 +127,30 @@ def generate_synthetic_data(db: Session):
             db, payment, customer
         )
 
+        score_result = score_recovery_probability(
+            tenure_months=6,
+            decline_code=payment.failure_code,
+            failure_reason=payment.failure_reason,
+            amount=payment.amount,
+        )
+
+        next_retry = schedule_next_retry(
+            attempt=1,
+            category=DeclineCategory.SOFT_DECLINE
+            if category != "invalid_instrument"
+            else DeclineCategory.EXPIRED_CARD,
+            card_brand=payment.card_brand,
+            base_time=payment.timestamp,
+            seed_key=payment.id,
+        )
+
         case = RecoveryCase(
             id=f"RC-{payment.id[-6:].upper()}",
             payment_id=payment.id,
             customer_id=customer.id,
             customer_name=customer.name,
             amount_at_risk=payment.amount,
-            risk_level=risk_level,
+            risk_level=score_result.risk_tier.value,
             failure_category=category,
             recommended_action=action,
             reason=reason,
@@ -138,6 +161,13 @@ def generate_synthetic_data(db: Session):
             recovery_status="pending",
             recovered_amount=0.0,
             action_status="eligible",
+            dunning_state="grace_period"
+            if category != "invalid_instrument"
+            else "card_update_requested",
+            next_retry_at=next_retry,
+            recovery_probability=score_result.recovery_probability,
+            churn_risk_score=score_result.churn_risk_score,
+            gateway=payment.gateway or "razorpay",
             created_at=payment.timestamp,
         )
         db.add(case)

@@ -34,6 +34,9 @@ class Payment(Base):
     currency = Column(String, default="INR")
     status = Column(String)  # success, failed, pending, abandoned
     failure_reason = Column(String, nullable=True)
+    gateway = Column(String, default="razorpay")
+    failure_code = Column(String, nullable=True)
+    card_brand = Column(String, nullable=True)
     timestamp = Column(DateTime, default=utcnow)
 
     customer = relationship("Customer", back_populates="payments")
@@ -60,6 +63,11 @@ class RecoveryCase(Base):
     )  # pending, recovered, failed, needs_human_review, blocked
     recovered_amount = Column(Float, default=0.0)
     action_status = Column(String, default="eligible")
+    dunning_state = Column(String, default="pending")
+    next_retry_at = Column(DateTime, nullable=True)
+    recovery_probability = Column(Float, nullable=True)
+    churn_risk_score = Column(Float, nullable=True)
+    gateway = Column(String, default="razorpay")
     created_at = Column(DateTime, default=utcnow)
     updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
     # Chain-tail anchor: mirrors the sequence/hash of this case's most recent
@@ -73,6 +81,26 @@ class RecoveryCase(Base):
     payment = relationship("Payment", back_populates="recovery_case")
     executions = relationship("Execution", back_populates="case")
     audit_logs = relationship("AuditLog", back_populates="case")
+    notifications = relationship("DunningNotification", back_populates="case")
+
+
+class DunningNotification(Base):
+    """Tracks automated notification sequences delivered to customers."""
+
+    __tablename__ = "dunning_notifications"
+    id = Column(String, primary_key=True, default=lambda: f"NOTIF-{uuid.uuid4().hex[:6].upper()}")
+    case_id = Column(String, ForeignKey("recovery_cases.id"), nullable=False)
+    sequence_step = Column(Integer, default=1)
+    template_name = Column(String, nullable=False)
+    locale = Column(String, default="en")
+    channel = Column(String, default="email")
+    recipient = Column(String, nullable=False)
+    subject = Column(String, nullable=False)
+    content = Column(String, nullable=False)
+    status = Column(String, default="sent")
+    sent_at = Column(DateTime, default=utcnow)
+
+    case = relationship("RecoveryCase", back_populates="notifications")
 
 
 class Execution(Base):

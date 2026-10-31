@@ -46,6 +46,16 @@ class Settings(BaseSettings):
     RAZORPAY_SIMULATE: bool = True
 
     # ---------------------------------------------------------------- #
+    # Multi-Gateway Webhooks & Simulation
+    # ---------------------------------------------------------------- #
+    STRIPE_WEBHOOK_SECRET: str = ""
+    STRIPE_SIMULATE: bool = True
+    PADDLE_WEBHOOK_SECRET: str = ""
+    PADDLE_SIMULATE: bool = True
+    BRAINTREE_WEBHOOK_SECRET: str = ""
+    BRAINTREE_SIMULATE: bool = True
+
+    # ---------------------------------------------------------------- #
     # Recovery policy & safety thresholds — the numbers the policy engine
     # gates every execution against (see services/policy_engine.py).
     # ---------------------------------------------------------------- #
@@ -61,6 +71,13 @@ class Settings(BaseSettings):
     RETRY_COOLDOWN_HOURS: float = 24.0
     # Case amount and payment amount must agree within this tolerance (INR).
     AMOUNT_TOLERANCE: float = 0.01
+
+    # ---------------------------------------------------------------- #
+    # Dunning Engine & Scheduling
+    # ---------------------------------------------------------------- #
+    DUNNING_GRACE_PERIOD_DAYS: int = 3
+    DUNNING_MAX_DURATION_DAYS: int = 14
+    DEFAULT_LOCALE: str = "en"
 
     # ---------------------------------------------------------------- #
     # Rate limiting

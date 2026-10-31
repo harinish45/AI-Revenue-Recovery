@@ -13,13 +13,7 @@ router = APIRouter(dependencies=[Depends(require_readonly)])
 
 
 def _escape_like(value: str) -> str:
-    """Escape SQL LIKE/ILIKE wildcards in user-supplied search text.
-
-    Not an injection risk (the query is already parameterized) -- but
-    without this, a literal "%" or "_" in `search` is interpreted as a
-    wildcard instead of a literal character, so searching for a customer
-    named e.g. "50% Off Corp" would match far more rows than intended.
-    """
+    """Escape SQL LIKE/ILIKE wildcards in user-supplied search text."""
     return value.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
@@ -66,7 +60,7 @@ def get_cases(
                 customer_id=c.customer_id,
                 customer_name=c.customer_name,
                 amount=c.amount_at_risk,
-                currency="INR",
+                currency=payment.currency if payment and payment.currency else "INR",
                 failure_category=c.failure_category,
                 failure_reason=payment.failure_reason if payment else None,
                 risk_level=c.risk_level,
@@ -77,7 +71,11 @@ def get_cases(
                 retry_count=c.retry_count,
                 created_at=c.created_at,
                 compliance_score=compliance_score(c.policy_checks),
-                next_retry_at=next_retry_at,
+                next_retry_at=c.next_retry_at or next_retry_at,
+                dunning_state=c.dunning_state,
+                recovery_probability=c.recovery_probability,
+                churn_risk_score=c.churn_risk_score,
+                gateway=c.gateway or (payment.gateway if payment else "razorpay"),
             )
         )
 
@@ -119,5 +117,9 @@ def get_case(
         created_at=case.created_at,
         updated_at=case.updated_at,
         compliance_score=compliance_score(case.policy_checks),
-        next_retry_at=next_retry_at,
+        next_retry_at=case.next_retry_at or next_retry_at,
+        dunning_state=case.dunning_state,
+        recovery_probability=case.recovery_probability,
+        churn_risk_score=case.churn_risk_score,
+        gateway=case.gateway or (payment.gateway if payment else "razorpay"),
     )

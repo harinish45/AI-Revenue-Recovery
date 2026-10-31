@@ -19,10 +19,6 @@ def confirm_provider_payment(
     db: Session, case: RecoveryCase, actor: str = "razorpay_webhook"
 ) -> dict:
     """Transition awaiting_payment -> recovered, driven by a provider event."""
-    # Lock the row before the status check: a webhook retry (different event
-    # id, so WebhookEvent dedup doesn't catch it) racing an operator's manual
-    # confirm-payment click could otherwise both read "awaiting_payment" and
-    # both record an Execution, double-counting recovered revenue.
     locked_case = (
         db.query(RecoveryCase).filter(RecoveryCase.id == case.id).with_for_update().first()
     )
@@ -34,6 +30,7 @@ def confirm_provider_payment(
         return None
     case.recovery_status = "recovered"
     case.recovered_amount = payment.amount
+    case.dunning_state = "recovered"
     payment.status = "success"
     execution = Execution(
         id=f"EXE-{uuid.uuid4().hex[:6].upper()}",
